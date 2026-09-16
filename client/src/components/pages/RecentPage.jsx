@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowUp, ArrowDown } from "lucide-react";
 import { api } from "../../api.js";
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
@@ -6,12 +7,13 @@ export default function RecentPage({ data }) {
   const storeColor = makeStoreColor(data?.storeMeta);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [sort, setSort] = useState("desc");
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  async function load(startArg, endArg) {
+  async function load(startArg, endArg, sortArg) {
     try {
-      const res = await api.searchTransactions({ start: startArg || undefined, end: endArg || undefined });
+      const res = await api.searchTransactions({ start: startArg || undefined, end: endArg || undefined, sort: sortArg });
       setResult(res);
       setError(null);
     } catch (err) {
@@ -20,18 +22,19 @@ export default function RecentPage({ data }) {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    load(start, end, sort);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
 
   function handleSearch(e) {
     e.preventDefault();
-    load(start, end);
+    load(start, end, sort);
   }
 
   function handleClear() {
     setStart("");
     setEnd("");
-    load();
+    load(undefined, undefined, sort);
   }
 
   return (
@@ -89,7 +92,14 @@ export default function RecentPage({ data }) {
               <thead>
                 <tr style={{ borderBottom: "1px solid #E7E2DB" }}>
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
-                    日付
+                    <button
+                      onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
+                      className="flex items-center gap-1"
+                      style={{ color: "#8A857D" }}
+                    >
+                      日付
+                      {sort === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
+                    </button>
                   </th>
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
                     店舗

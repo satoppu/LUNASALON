@@ -4,13 +4,23 @@ import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 export default function SummaryPage({ data }) {
   const { year, storeNames, storeMeta, summary, occupancyData, overallStats, annualTrend } = data;
   const storeColor = makeStoreColor(storeMeta);
+  const totalRevenue = annualTrend.reduce(
+    (sum, y) => sum + storeNames.reduce((s, name) => s + (y[name] || 0), 0),
+    0
+  );
 
   return (
     <>
       <div className="mb-12">
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          年度別売上推移(全期間)
-        </h3>
+        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+          <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">
+            年度別売上推移(全期間)
+          </h3>
+          <p style={{ fontFamily: FONT_HEAD, color: "#345953" }} className="text-sm">
+            全期間累計売上:{" "}
+            <span className="text-2xl font-bold">{yen(totalRevenue)}</span>
+          </p>
+        </div>
         <div style={{ background: "#FFFFFF" }} className="p-4">
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={annualTrend}>
