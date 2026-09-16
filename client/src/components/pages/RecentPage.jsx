@@ -3,17 +3,28 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 import { api } from "../../api.js";
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
+const PAGE_SIZE = 100;
+
 export default function RecentPage({ data }) {
   const storeColor = makeStoreColor(data?.storeMeta);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [store, setStore] = useState("");
+  const [status, setStatus] = useState("");
+  const [user, setUser] = useState("");
   const [sort, setSort] = useState("desc");
+  const [offset, setOffset] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({ stores: [], statuses: [] });
 
-  async function load(startArg, endArg, sortArg) {
+  useEffect(() => {
+    api.getTransactionFilters().then(setFilters).catch(() => {});
+  }, []);
+
+  async function load(params, offsetArg) {
     try {
-      const res = await api.searchTransactions({ start: startArg || undefined, end: endArg || undefined, sort: sortArg });
+      const res = await api.searchTransactions({ ...params, offset: offsetArg || undefined });
       setResult(res);
       setError(null);
     } catch (err) {
@@ -21,21 +32,41 @@ export default function RecentPage({ data }) {
     }
   }
 
+  function currentParams() {
+    return {
+      start: start || undefined,
+      end: end || undefined,
+      store: store || undefined,
+      status: status || undefined,
+      user: user || undefined,
+      sort,
+    };
+  }
+
   useEffect(() => {
-    load(start, end, sort);
+    load(currentParams(), offset);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort]);
+  }, [sort, offset]);
 
   function handleSearch(e) {
     e.preventDefault();
-    load(start, end, sort);
+    setOffset(0);
+    load(currentParams(), 0);
   }
 
   function handleClear() {
     setStart("");
     setEnd("");
-    load(undefined, undefined, sort);
+    setStore("");
+    setStatus("");
+    setUser("");
+    setOffset(0);
+    load({ sort }, 0);
   }
+
+  const hasFilters = start || end || store || status || user;
+  const selectClass = "text-sm px-3 py-2 border";
+  const selectStyle = { borderColor: "#E7E2DB", background: "#FFFFFF" };
 
   return (
     <div>
@@ -48,21 +79,45 @@ export default function RecentPage({ data }) {
             type="date"
             value={start}
             onChange={(e) => setStart(e.target.value)}
-            className="text-sm px-3 py-2 border"
-            style={{ borderColor: "#E7E2DB", background: "#FFFFFF" }}
+            className={selectClass}
+            style={selectStyle}
           />
           <span style={{ color: "#8A857D" }}>〜</span>
           <input
             type="date"
             value={end}
             onChange={(e) => setEnd(e.target.value)}
-            className="text-sm px-3 py-2 border"
-            style={{ borderColor: "#E7E2DB", background: "#FFFFFF" }}
+            className={selectClass}
+            style={selectStyle}
+          />
+          <select value={store} onChange={(e) => setStore(e.target.value)} className={selectClass} style={selectStyle}>
+            <option value="">店舗(すべて)</option>
+            {filters.stores.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass} style={selectStyle}>
+            <option value="">状態(すべて)</option>
+            {filters.statuses.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={user}
+            onChange={(e) => setUser(e.target.value)}
+            placeholder="利用者名で検索"
+            className={selectClass}
+            style={selectStyle}
           />
           <button type="submit" className="text-sm px-3 py-2" style={{ background: "#345953", color: "#FAF8F5" }}>
             検索
           </button>
-          {(start || end) && (
+          {hasFilters && (
             <button
               type="button"
               onClick={handleClear}
@@ -83,17 +138,43 @@ export default function RecentPage({ data }) {
 
       {result && (
         <>
-          <p className="text-xs mb-2" style={{ color: "#8A857D" }}>
-            {result.total}件中 最大{result.limit}件を表示
-            {result.total > result.limit ? "(日付範囲を絞り込むと残りも確認できます)" : ""}
-          </p>
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <p className="text-xs" style={{ color: "#8A857D" }}>
+              {result.total}件中 {result.total === 0 ? 0 : result.offset + 1}〜{Math.min(result.offset + result.limit, result.total)}件を表示
+            </p>
+            {result.total > result.limit && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={offset === 0}
+                  onClick={() => setOffset(Math.max(offset - PAGE_SIZE, 0))}
+                  className="text-sm px-3 py-1.5 border disabled:opacity-40"
+                  style={{ borderColor: "#E7E2DB", color: "#6B665F", background: "#FFFFFF" }}
+                >
+                  前へ
+                </button>
+                <button
+                  type="button"
+                  disabled={offset + result.limit >= result.total}
+                  onClick={() => setOffset(offset + PAGE_SIZE)}
+                  className="text-sm px-3 py-1.5 border disabled:opacity-40"
+                  style={{ borderColor: "#E7E2DB", color: "#6B665F", background: "#FFFFFF" }}
+                >
+                  次へ
+                </button>
+              </div>
+            )}
+          </div>
           <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: "1px solid #E7E2DB" }}>
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
                     <button
-                      onClick={() => setSort(sort === "desc" ? "asc" : "desc")}
+                      onClick={() => {
+                        setSort(sort === "desc" ? "asc" : "desc");
+                        setOffset(0);
+                      }}
                       className="flex items-center gap-1"
                       style={{ color: "#8A857D" }}
                     >

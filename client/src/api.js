@@ -13,14 +13,19 @@ export const api = {
   getDashboard: (year) => request(`/dashboard${year ? `?year=${year}` : ""}`),
   getYears: () => request("/years"),
   getCustomers: () => request("/customers"),
-  searchTransactions: ({ start, end, sort } = {}) => {
+  searchTransactions: ({ start, end, store, status, user, offset, sort } = {}) => {
     const params = new URLSearchParams();
     if (start) params.set("start", start);
     if (end) params.set("end", end);
+    if (store) params.set("store", store);
+    if (status) params.set("status", status);
+    if (user) params.set("user", user);
+    if (offset) params.set("offset", offset);
     if (sort) params.set("sort", sort);
     const qs = params.toString();
     return request(`/transactions${qs ? `?${qs}` : ""}`);
   },
+  getTransactionFilters: () => request("/transactions/filters"),
   getStoreSettings: () => request("/store-settings"),
   updateStoreSetting: (store, payload) =>
     request(`/store-settings/${encodeURIComponent(store)}`, {
