@@ -150,6 +150,9 @@ export default function CustomerPage() {
                     利用者
                   </th>
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    主な店舗
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     初回利用日
                   </th>
                   <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -169,6 +172,7 @@ export default function CustomerPage() {
                     style={{ borderBottom: "1px solid #F3EBDF" }}
                   >
                     <td className="px-4 py-3">{c.user}</td>
+                    <td className="px-4 py-3">{c.primaryStore}</td>
                     <td className="px-4 py-3">{c.firstUseDate}</td>
                     <td className="px-4 py-3 text-right">{c.totalCount}</td>
                     <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
@@ -176,7 +180,7 @@ export default function CustomerPage() {
                 ))}
                 {monthFilteredCustomers.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                    <td colSpan={5} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                       該当する顧客が見つかりません。
                     </td>
                   </tr>
@@ -238,6 +242,9 @@ export default function CustomerPage() {
                   利用者
                 </th>
                 <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  主な店舗
+                </th>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   初回利用日
                 </th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -263,6 +270,7 @@ export default function CustomerPage() {
                   style={{ borderBottom: "1px solid #F3EBDF" }}
                 >
                   <td className="px-4 py-3">{c.user}</td>
+                  <td className="px-4 py-3">{c.primaryStore}</td>
                   <td className="px-4 py-3">{c.firstUseDate}</td>
                   <td className="px-4 py-3 text-right">{c.totalCount}</td>
                   <td className="px-4 py-3 text-right">{c.totalCancelCount}</td>
@@ -272,7 +280,7 @@ export default function CustomerPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                  <td colSpan={7} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                     該当する顧客が見つかりません。
                   </td>
                 </tr>

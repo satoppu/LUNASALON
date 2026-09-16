@@ -353,8 +353,15 @@ export function buildCustomerProfiles(allRows) {
     });
     const byYearList = Object.values(byYear).sort((a, b) => b.year - a.year);
 
+    const storeCounts = {};
+    rows.forEach((r) => {
+      storeCounts[r.store] = (storeCounts[r.store] || 0) + 1;
+    });
+    const primaryStore = Object.entries(storeCounts).sort((a, b) => b[1] - a[1])[0][0];
+
     customers.push({
       user,
+      primaryStore,
       firstUseDate: visits[0].date,
       totalCount: visits.length,
       totalCancelCount: byYearList.reduce((sum, y) => sum + y.cancelCount, 0),

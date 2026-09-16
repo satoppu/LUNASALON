@@ -21,7 +21,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
               {customer.user}
             </h2>
             <p style={{ color: "#8F7D6E" }} className="text-sm">
-              初回利用日: {customer.firstUseDate}
+              主な店舗: {customer.primaryStore} ／ 初回利用日: {customer.firstUseDate}
             </p>
           </div>
           <button onClick={onClose} style={{ color: "#8F7D6E" }} aria-label="閉じる">
