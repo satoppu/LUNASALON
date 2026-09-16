@@ -1,6 +1,6 @@
 import db from "./db.js";
 import { getTodayISO } from "./config.js";
-import { buildDashboard } from "./aggregations.js";
+import { buildDashboard, buildAnnualTrend } from "./aggregations.js";
 
 export function getAvailableYears() {
   const rows = db.prepare(`SELECT DISTINCT substr(date, 1, 4) AS y FROM transactions ORDER BY y DESC`).all();
@@ -20,6 +20,10 @@ function getRowsForYear(year) {
   return db.prepare(`SELECT * FROM transactions WHERE substr(date, 1, 4) = ? ORDER BY date`).all(String(year));
 }
 
+function getAllRows() {
+  return db.prepare(`SELECT date, store, revenue, status FROM transactions`).all();
+}
+
 export function getDashboard(requestedYear) {
   const years = getAvailableYears();
   if (years.length === 0) {
@@ -29,6 +33,8 @@ export function getDashboard(requestedYear) {
   const year = requestedYear && years.includes(requestedYear) ? requestedYear : years[0];
   const priorYear = year - 1;
   const hasPriorYear = years.includes(priorYear);
+  const priorYear2 = year - 2;
+  const hasPriorYear2 = years.includes(priorYear2);
 
   const storeSettingsRows = getStoreSettings();
   const inferredOpenDates = getStoreOpenDates();
@@ -48,17 +54,23 @@ export function getDashboard(requestedYear) {
 
   const yearRows = getRowsForYear(year);
   const priorYearRows = hasPriorYear ? getRowsForYear(priorYear) : [];
+  const priorYear2Rows = hasPriorYear2 ? getRowsForYear(priorYear2) : [];
 
   const dashboard = buildDashboard({
     year,
     priorYear,
     hasPriorYear,
+    priorYear2,
+    hasPriorYear2,
     storeNames,
     storeMeta,
     yearRows,
     priorYearRows,
+    priorYear2Rows,
     todayISO: getTodayISO(),
   });
 
-  return { ...dashboard, years, storeMeta, todayISO: getTodayISO() };
+  const annualTrend = buildAnnualTrend(getAllRows(), storeNames);
+
+  return { ...dashboard, years, storeMeta, annualTrend, todayISO: getTodayISO() };
 }

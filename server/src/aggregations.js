@@ -58,13 +58,28 @@ export function yen(n) {
  * @param {number} params.year
  * @param {number} params.priorYear
  * @param {boolean} params.hasPriorYear
+ * @param {number} params.priorYear2
+ * @param {boolean} params.hasPriorYear2
  * @param {string[]} params.storeNames - ordered store names
  * @param {Record<string, {openDate: string, hoursPerDay: number, color: string, area: string}>} params.storeMeta
  * @param {object[]} params.yearRows
  * @param {object[]} params.priorYearRows
+ * @param {object[]} params.priorYear2Rows
  * @param {string} params.todayISO
  */
-export function buildDashboard({ year, priorYear, hasPriorYear, storeNames, storeMeta, yearRows, priorYearRows, todayISO }) {
+export function buildDashboard({
+  year,
+  priorYear,
+  hasPriorYear,
+  priorYear2,
+  hasPriorYear2,
+  storeNames,
+  storeMeta,
+  yearRows,
+  priorYearRows,
+  priorYear2Rows,
+  todayISO,
+}) {
   const yearStartISO = `${year}-01-01`;
   const yearEndISO = `${year}-12-31`;
 
@@ -186,23 +201,37 @@ export function buildDashboard({ year, priorYear, hasPriorYear, storeNames, stor
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 10);
 
-  // ---- Year-over-year ----
+  // ---- Year-over-year (up to 3 years: selected year + 2 prior years) ----
+  const yoyYears = [
+    { year, rows: yearRows, has: true },
+    { year: priorYear, rows: priorYearRows, has: hasPriorYear },
+    { year: priorYear2, rows: priorYear2Rows, has: hasPriorYear2 },
+  ];
   const yoyMonthly = MONTH_LABELS.map((label, idx) => {
-    const cur = yearRows
-      .filter((r) => Number(r.date.slice(5, 7)) - 1 === idx)
-      .reduce((sum, r) => sum + effectiveRevenue(r), 0);
-    const prev = priorYearRows
-      .filter((r) => Number(r.date.slice(5, 7)) - 1 === idx)
-      .reduce((sum, r) => sum + effectiveRevenue(r), 0);
-    return { label, [`${year}年`]: cur, [`${priorYear}年`]: hasPriorYear ? prev : undefined };
+    const entry = { label };
+    yoyYears.forEach(({ year: y, rows, has }) => {
+      entry[`${y}年`] = has
+        ? rows.filter((r) => Number(r.date.slice(5, 7)) - 1 === idx).reduce((sum, r) => sum + effectiveRevenue(r), 0)
+        : undefined;
+    });
+    return entry;
   });
+
+  // Compare the same month across stores. For the current calendar year, the
+  // latest month is usually still in progress, so use the last *completed*
+  // month instead — otherwise a handful of this-month bookings gets compared
+  // against a full prior-year month. Past years use their actual last month
+  // with data (a store that opened mid-year has no earlier months to show).
+  const todayYear = Number(todayISO.slice(0, 4));
+  const todayMonth = Number(todayISO.slice(5, 7));
+  const currentMonthTarget = year === todayYear && todayMonth > 1 ? todayMonth - 1 : null;
 
   const yoyByStore = storeNames
     .map((name) => {
       const storeYearRows = yearRows.filter((r) => r.store === name);
       if (storeYearRows.length === 0) return null;
       const monthsWithData = Array.from(new Set(storeYearRows.map((r) => Number(r.date.slice(5, 7)))));
-      const latestMonth = Math.max(...monthsWithData);
+      const latestMonth = currentMonthTarget ?? Math.max(...monthsWithData);
       const curRevenue = storeYearRows
         .filter((r) => Number(r.date.slice(5, 7)) === latestMonth)
         .reduce((sum, r) => sum + effectiveRevenue(r), 0);
@@ -220,6 +249,8 @@ export function buildDashboard({ year, priorYear, hasPriorYear, storeNames, stor
     year,
     priorYear,
     hasPriorYear,
+    priorYear2,
+    hasPriorYear2,
     storeNames,
     summary,
     monthlyTrend,
@@ -234,4 +265,19 @@ export function buildDashboard({ year, priorYear, hasPriorYear, storeNames, stor
     yoyMonthly,
     yoyByStore,
   };
+}
+
+/** Total revenue per store per year, across all years in the data (independent of the selected year). */
+export function buildAnnualTrend(allRows, storeNames) {
+  const byYear = {};
+  allRows.forEach((r) => {
+    const y = Number(r.date.slice(0, 4));
+    if (!byYear[y]) {
+      byYear[y] = { year: y };
+      storeNames.forEach((name) => { byYear[y][name] = 0; });
+    }
+    if (!(r.store in byYear[y])) byYear[y][r.store] = 0;
+    byYear[y][r.store] += effectiveRevenue(r);
+  });
+  return Object.values(byYear).sort((a, b) => a.year - b.year);
 }

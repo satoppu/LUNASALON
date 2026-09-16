@@ -17,6 +17,8 @@ export default function Dashboard({ data }) {
     year,
     priorYear,
     hasPriorYear,
+    priorYear2,
+    hasPriorYear2,
     storeNames,
     storeMeta,
     summary,
@@ -31,12 +33,38 @@ export default function Dashboard({ data }) {
     userSummary,
     yoyMonthly,
     yoyByStore,
+    annualTrend,
   } = data;
 
   const storeColor = (name) => storeMeta?.[name]?.color || "#8A857D";
+  const yoyLabel = [year, hasPriorYear && priorYear, hasPriorYear2 && priorYear2]
+    .filter(Boolean)
+    .map((y) => `${y}年`)
+    .join(" vs ");
 
   return (
     <>
+      {/* Annual revenue trend */}
+      <div className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          年度別売上推移(全期間)
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="p-4">
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={annualTrend}>
+              <CartesianGrid stroke="#EFEAE3" vertical={false} />
+              <XAxis dataKey="year" tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={{ stroke: "#E7E2DB" }} tickLine={false} tickFormatter={(v) => `${v}年`} />
+              <YAxis tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`} />
+              <Tooltip formatter={(v) => yen(v)} labelFormatter={(v) => `${v}年`} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {storeNames.map((name) => (
+                <Bar key={name} dataKey={name} fill={storeColor(name)} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       {/* Overall stats strip */}
       <div className="flex flex-wrap gap-x-10 gap-y-3 mb-10 px-6 py-4" style={{ background: "#FFFFFF" }}>
         <div>
@@ -296,7 +324,7 @@ export default function Dashboard({ data }) {
       {/* Year-over-year comparison */}
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          年度比較 — {year}年 vs {priorYear}年
+          年度比較 — {yoyLabel}
         </h3>
         <div style={{ background: "#FFFFFF" }} className="p-4 mb-4">
           {hasPriorYear ? (
@@ -309,6 +337,9 @@ export default function Dashboard({ data }) {
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Line type="monotone" dataKey={`${year}年`} stroke="#345953" strokeWidth={2.5} dot={false} connectNulls />
                 <Line type="monotone" dataKey={`${priorYear}年`} stroke="#B66E7D" strokeWidth={2.5} strokeDasharray="4 3" dot={false} connectNulls />
+                {hasPriorYear2 && (
+                  <Line type="monotone" dataKey={`${priorYear2}年`} stroke="#B0A99A" strokeWidth={2.5} strokeDasharray="2 2" dot={false} connectNulls />
+                )}
               </LineChart>
             </ResponsiveContainer>
           ) : (
