@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, Download } from "lucide-react";
 import { api } from "../../api.js";
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
@@ -142,8 +142,17 @@ export default function RecentPage({ data }) {
             <p className="text-xs" style={{ color: "#8F7D6E" }}>
               {result.total}件中 {result.total === 0 ? 0 : result.offset + 1}〜{Math.min(result.offset + result.limit, result.total)}件を表示
             </p>
-            {result.total > result.limit && (
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <a
+                href={api.transactionsExportUrl(currentParams())}
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 border"
+                style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
+              >
+                <Download size={14} />
+                エクスポート
+              </a>
+              {result.total > result.limit && (
+                <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={offset === 0}
@@ -164,6 +173,7 @@ export default function RecentPage({ data }) {
                 </button>
               </div>
             )}
+            </div>
           </div>
           <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
             <table className="w-full text-sm">

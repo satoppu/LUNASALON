@@ -26,6 +26,17 @@ export const api = {
     return request(`/transactions${qs ? `?${qs}` : ""}`);
   },
   getTransactionFilters: () => request("/transactions/filters"),
+  transactionsExportUrl: ({ start, end, store, status, user, sort } = {}) => {
+    const params = new URLSearchParams();
+    if (start) params.set("start", start);
+    if (end) params.set("end", end);
+    if (store) params.set("store", store);
+    if (status) params.set("status", status);
+    if (user) params.set("user", user);
+    if (sort) params.set("sort", sort);
+    const qs = params.toString();
+    return `${BASE}/transactions/export${qs ? `?${qs}` : ""}`;
+  },
   getStoreSettings: () => request("/store-settings"),
   updateStoreSetting: (store, payload) =>
     request(`/store-settings/${encodeURIComponent(store)}`, {

@@ -43,6 +43,40 @@ export function searchTransactions({ start, end, store, status, user, limit, off
   return { rows, total, limit: cappedLimit, offset: cappedOffset };
 }
 
+/**
+ * Same filtering as searchTransactions (date range, store, status, partial
+ * user_name match) but returns every matching row, unpaginated, for CSV
+ * export.
+ */
+export function exportTransactions({ start, end, store, status, user, sort } = {}) {
+  const direction = sort === "asc" ? "ASC" : "DESC"; // whitelisted, never interpolated from raw input otherwise
+  const conditions = [];
+  const params = {};
+  if (start) {
+    conditions.push("date >= @start");
+    params.start = start;
+  }
+  if (end) {
+    conditions.push("date <= @end");
+    params.end = end;
+  }
+  if (store) {
+    conditions.push("store = @store");
+    params.store = store;
+  }
+  if (status) {
+    conditions.push("status = @status");
+    params.status = status;
+  }
+  if (user) {
+    conditions.push("user_name LIKE @user ESCAPE '\\'");
+    params.user = `%${user.replace(/[\\%_]/g, "\\$&")}%`;
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  return db.prepare(`SELECT * FROM transactions ${where} ORDER BY date ${direction}, id ${direction}`).all(params);
+}
+
 /** Distinct store/status values actually present in transactions, for filter dropdowns. */
 export function getTransactionFilters() {
   const stores = db.prepare("SELECT DISTINCT store FROM transactions ORDER BY store").all().map((r) => r.store);
