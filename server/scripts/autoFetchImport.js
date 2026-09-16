@@ -114,7 +114,11 @@ async function downloadCsv(page) {
 }
 
 async function main() {
-  const browser = await chromium.launch({ headless: !DEBUG, slowMo: DEBUG ? 200 : 0 });
+  // Uses the machine's own installed Chrome (channel: "chrome") rather than
+  // Playwright's bundled Chromium — on a company-managed PC, security
+  // software is more likely to trust the IT-provisioned, digitally signed
+  // Chrome install than a freshly downloaded binary under AppData.
+  const browser = await chromium.launch({ channel: "chrome", headless: !DEBUG, slowMo: DEBUG ? 200 : 0 });
   const page = await browser.newPage({ acceptDownloads: true });
   try {
     await login(page);

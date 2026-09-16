@@ -106,9 +106,10 @@ node src/importRawSubscriptions.js /path/to/coupon-export.csv   # 予約デー�
 
 ### セットアップ(初回のみ)
 
+PC本体にインストール済みの通常のChromeを使います(`channel: "chrome"`)。会社支給のPCなど、セキュリティソフトが新規ダウンロードしたブラウザの自動操作をブロックする環境でも、IT部門が許可している既存のChromeなら動きやすいためです。Chromeが入っていない場合は先に https://www.google.com/chrome/ からインストールしてください。
+
 ```powershell
 cd server
-npx playwright install chromium
 copy .env.example .env
 ```
 
