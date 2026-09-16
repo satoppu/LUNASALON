@@ -282,3 +282,105 @@ export function buildAnnualTrend(allRows, storeNames) {
   });
   return Object.values(byYear).sort((a, b) => a.year - b.year);
 }
+
+// ---- Customer analysis (spans all years, independent of the selected year) ----
+
+function shiftYearMonth(ym, delta) {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function enumerateYearMonths(startYM, endYM) {
+  const months = [];
+  for (let ym = startYM; ym <= endYM; ym = shiftYearMonth(ym, 1)) months.push(ym);
+  return months;
+}
+
+function formatYearMonth(ym) {
+  const [y, m] = ym.split("-");
+  return `${y}年${Number(m)}月`;
+}
+
+/**
+ * Per-customer profile: first actual-visit date, lifetime visit count/revenue,
+ * and a per-year breakdown of visit count and revenue. Customers who only
+ * ever appear as a cancellation (no actual visit) are excluded — they never
+ * used the service. Revenue follows the same effectiveRevenue rule as
+ * everywhere else (includes cancellation fees and subscription revenue);
+ * visit count only counts rows that were actually used (spec 4.3).
+ */
+export function buildCustomerProfiles(allRows) {
+  const byUser = new Map();
+  allRows.forEach((r) => {
+    if (!byUser.has(r.user_name)) byUser.set(r.user_name, []);
+    byUser.get(r.user_name).push(r);
+  });
+
+  const customers = [];
+  for (const [user, rows] of byUser) {
+    const visits = rows.filter((r) => effectiveHours(r) > 0).sort((a, b) => (a.date < b.date ? -1 : 1));
+    if (visits.length === 0) continue;
+
+    const byYear = {};
+    rows.forEach((r) => {
+      const y = Number(r.date.slice(0, 4));
+      if (!byYear[y]) byYear[y] = { year: y, count: 0, revenue: 0 };
+      byYear[y].revenue += effectiveRevenue(r);
+      if (effectiveHours(r) > 0) byYear[y].count += 1;
+    });
+
+    customers.push({
+      user,
+      firstUseDate: visits[0].date,
+      totalCount: visits.length,
+      totalRevenue: rows.reduce((sum, r) => sum + effectiveRevenue(r), 0),
+      byYear: Object.values(byYear).sort((a, b) => b.year - a.year),
+    });
+  }
+
+  return customers.sort((a, b) => b.totalRevenue - a.totalRevenue);
+}
+
+/** New-customer count per calendar month, based on each customer's first actual visit. */
+export function buildNewCustomersByMonth(customerProfiles) {
+  const counts = {};
+  customerProfiles.forEach((c) => {
+    const ym = c.firstUseDate.slice(0, 7);
+    counts[ym] = (counts[ym] || 0) + 1;
+  });
+  return Object.keys(counts)
+    .sort()
+    .map((ym) => ({ yearMonth: ym, label: formatYearMonth(ym), count: counts[ym] }));
+}
+
+/**
+ * Active-customer count per calendar month: a customer is active in month M
+ * if their lifetime visit count through M is >= 5 AND they have at least one
+ * visit in the trailing 3-month window ending at M (M-2..M inclusive).
+ */
+export function buildActiveCustomersByMonth(allRows) {
+  const visitYearMonthsByUser = new Map();
+  allRows.forEach((r) => {
+    if (effectiveHours(r) <= 0) return;
+    if (!visitYearMonthsByUser.has(r.user_name)) visitYearMonthsByUser.set(r.user_name, []);
+    visitYearMonthsByUser.get(r.user_name).push(r.date.slice(0, 7));
+  });
+  for (const months of visitYearMonthsByUser.values()) months.sort();
+
+  const allYearMonths = [...visitYearMonthsByUser.values()].flat();
+  if (allYearMonths.length === 0) return [];
+  const minYM = allYearMonths.reduce((a, b) => (a < b ? a : b));
+  const maxYM = allYearMonths.reduce((a, b) => (a > b ? a : b));
+
+  return enumerateYearMonths(minYM, maxYM).map((ym) => {
+    const windowStart = shiftYearMonth(ym, -2);
+    let active = 0;
+    for (const months of visitYearMonthsByUser.values()) {
+      const cumulativeCount = months.filter((m) => m <= ym).length;
+      if (cumulativeCount < 5) continue;
+      if (months.some((m) => m >= windowStart && m <= ym)) active++;
+    }
+    return { yearMonth: ym, label: formatYearMonth(ym), count: active };
+  });
+}

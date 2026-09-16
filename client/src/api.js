@@ -12,6 +12,7 @@ async function request(path, options) {
 export const api = {
   getDashboard: (year) => request(`/dashboard${year ? `?year=${year}` : ""}`),
   getYears: () => request("/years"),
+  getCustomers: () => request("/customers"),
   getStoreSettings: () => request("/store-settings"),
   updateStoreSetting: (store, payload) =>
     request(`/store-settings/${encodeURIComponent(store)}`, {
