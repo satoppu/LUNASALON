@@ -130,6 +130,12 @@ export default function CustomerPage() {
                   累計利用回数
                 </th>
                 <th className="text-right px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  キャンセル数
+                </th>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  クーポン購入回数
+                </th>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
                   累計売上
                 </th>
               </tr>
@@ -145,12 +151,14 @@ export default function CustomerPage() {
                   <td className="px-4 py-3">{c.user}</td>
                   <td className="px-4 py-3">{c.firstUseDate}</td>
                   <td className="px-4 py-3 text-right">{c.totalCount}</td>
+                  <td className="px-4 py-3 text-right">{c.totalCancelCount}</td>
+                  <td className="px-4 py-3 text-right">{c.totalSubscriptionCount}</td>
                   <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center" style={{ color: "#8A857D" }}>
+                  <td colSpan={6} className="px-4 py-6 text-center" style={{ color: "#8A857D" }}>
                     該当する顧客が見つかりません。
                   </td>
                 </tr>

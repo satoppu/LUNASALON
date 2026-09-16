@@ -8,6 +8,7 @@ import storeSettingsRoutes from "./routes/storeSettings.js";
 import importRoutes from "./routes/importRoute.js";
 import templateRoutes from "./routes/template.js";
 import customerRoutes from "./routes/customers.js";
+import transactionRoutes from "./routes/transactions.js";
 import "./seed.js"; // seeds transactions from the bundled CSV on first run only
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -22,6 +23,7 @@ app.use("/api", storeSettingsRoutes);
 app.use("/api", importRoutes);
 app.use("/api", templateRoutes);
 app.use("/api", customerRoutes);
+app.use("/api", transactionRoutes);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 

@@ -325,17 +325,31 @@ export function buildCustomerProfiles(allRows) {
     const byYear = {};
     rows.forEach((r) => {
       const y = Number(r.date.slice(0, 4));
-      if (!byYear[y]) byYear[y] = { year: y, count: 0, revenue: 0 };
-      byYear[y].revenue += effectiveRevenue(r);
-      if (effectiveHours(r) > 0) byYear[y].count += 1;
+      if (!byYear[y]) {
+        byYear[y] = { year: y, count: 0, cancelCount: 0, revenue: 0, subscriptionCount: 0, subscriptionRevenue: 0 };
+      }
+      const entry = byYear[y];
+      entry.revenue += effectiveRevenue(r);
+      if (r.status === SUBSCRIPTION_STATUS) {
+        entry.subscriptionCount += 1;
+        entry.subscriptionRevenue += effectiveRevenue(r);
+      } else if (effectiveHours(r) > 0) {
+        entry.count += 1;
+      } else {
+        entry.cancelCount += 1;
+      }
     });
+    const byYearList = Object.values(byYear).sort((a, b) => b.year - a.year);
 
     customers.push({
       user,
       firstUseDate: visits[0].date,
       totalCount: visits.length,
+      totalCancelCount: byYearList.reduce((sum, y) => sum + y.cancelCount, 0),
       totalRevenue: rows.reduce((sum, r) => sum + effectiveRevenue(r), 0),
-      byYear: Object.values(byYear).sort((a, b) => b.year - a.year),
+      totalSubscriptionCount: byYearList.reduce((sum, y) => sum + y.subscriptionCount, 0),
+      totalSubscriptionRevenue: byYearList.reduce((sum, y) => sum + y.subscriptionRevenue, 0),
+      byYear: byYearList,
     });
   }
 
