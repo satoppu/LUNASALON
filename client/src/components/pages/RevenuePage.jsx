@@ -2,7 +2,8 @@ import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Cart
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
 export default function RevenuePage({ data }) {
-  const { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, storeMeta, monthlyTrend, yoyMonthly, yoyByStore } = data;
+  const { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, storeMeta, monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyByStore } =
+    data;
   const storeColor = makeStoreColor(storeMeta);
   const yoyLabel = [year, hasPriorYear && priorYear, hasPriorYear2 && priorYear2]
     .filter(Boolean)
@@ -37,7 +38,7 @@ export default function RevenuePage({ data }) {
 
       <div>
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          年度比較 — {yoyLabel}
+          年度比較(売上) — {yoyLabel}
         </h3>
         <div style={{ background: "#FFFFFF" }} className="p-4 mb-4">
           {hasPriorYear ? (
@@ -47,6 +48,32 @@ export default function RevenuePage({ data }) {
                 <XAxis dataKey="label" tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={{ stroke: "#E7E2DB" }} tickLine={false} />
                 <YAxis tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v) => yen(v)} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey={`${year}年`} stroke="#345953" strokeWidth={2.5} dot={false} connectNulls />
+                <Line type="monotone" dataKey={`${priorYear}年`} stroke="#B66E7D" strokeWidth={2.5} strokeDasharray="4 3" dot={false} connectNulls />
+                {hasPriorYear2 && (
+                  <Line type="monotone" dataKey={`${priorYear2}年`} stroke="#B0A99A" strokeWidth={2.5} strokeDasharray="2 2" dot={false} connectNulls />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <p style={{ color: "#8A857D" }} className="text-sm py-8 text-center">
+              {priorYear}年のデータがないため比較できません。
+            </p>
+          )}
+        </div>
+
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          年度比較(利用件数) — {yoyLabel}
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="p-4 mb-4">
+          {hasPriorYear ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={yoyMonthlyCount}>
+                <CartesianGrid stroke="#EFEAE3" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={{ stroke: "#E7E2DB" }} tickLine={false} />
+                <YAxis tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}件`} />
+                <Tooltip formatter={(v) => `${v}件`} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Line type="monotone" dataKey={`${year}年`} stroke="#345953" strokeWidth={2.5} dot={false} connectNulls />
                 <Line type="monotone" dataKey={`${priorYear}年`} stroke="#B66E7D" strokeWidth={2.5} strokeDasharray="4 3" dot={false} connectNulls />

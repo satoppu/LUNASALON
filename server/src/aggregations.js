@@ -218,6 +218,17 @@ export function buildDashboard({
     return entry;
   });
 
+  // Same 3-year comparison, but counting actual visits (spec 4.3) instead of revenue.
+  const yoyMonthlyCount = MONTH_LABELS.map((label, idx) => {
+    const entry = { label };
+    yoyYears.forEach(({ year: y, rows, has }) => {
+      entry[`${y}年`] = has
+        ? rows.filter((r) => Number(r.date.slice(5, 7)) - 1 === idx && effectiveHours(r) > 0).length
+        : undefined;
+    });
+    return entry;
+  });
+
   // Compare the same month across stores. For the current calendar year, the
   // latest month is usually still in progress, so use the last *completed*
   // month instead — otherwise a handful of this-month bookings gets compared
@@ -264,6 +275,7 @@ export function buildDashboard({
     overallStats,
     userSummary,
     yoyMonthly,
+    yoyMonthlyCount,
     yoyByStore,
   };
 }
