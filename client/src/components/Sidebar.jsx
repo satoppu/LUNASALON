@@ -1,5 +1,4 @@
 import { LayoutDashboard, TrendingUp, Activity, Share2, Trophy, Users, History, Settings } from "lucide-react";
-import { FONT_HEAD } from "../constants.js";
 
 export const NAV_ITEMS = [
   { key: "summary", label: "サマリー", icon: LayoutDashboard },
@@ -18,12 +17,7 @@ export default function Sidebar({ view, onChange }) {
       className="flex md:flex-col flex-row flex-wrap gap-1 md:w-52 md:shrink-0 px-3 py-4 md:py-6"
       style={{ background: "#FFFFFF", borderBottom: "1px solid #E7E2DB" }}
     >
-      <p
-        style={{ fontFamily: FONT_HEAD, color: "#8A857D" }}
-        className="hidden md:block text-xs px-3 mb-2 tracking-wide"
-      >
-        LUNAレンタルサロン
-      </p>
+      <img src="/logo.png" alt="LUNAレンタルサロン" className="w-full max-w-[180px] h-auto px-2 mb-2" />
       {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
         const active = view === key;
         return (
