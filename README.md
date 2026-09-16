@@ -96,6 +96,47 @@ node src/importRawSubscriptions.js /path/to/coupon-export.csv   # 予約デー�
 
 ヘッダーは英語(`date,store,user,revenue,hoursUsed,hour,weekday,channel`)・日本語(`日付,店舗,利用者,売上,利用時間,hour,weekday,channel`)のどちらにも対応(`server/src/importRows.js`)。`status`/`ステータス` 列を明示的に含めることもでき、省略時は売上・稼働時間の値から自動推定します。画面の「テンプレートDL」から取り込み用CSVのひな形をダウンロードできます。インポートは追加(アペンド)方式で、未登録の店舗名はCSVに含まれていれば自動的に店舗設定へ登録されます。
 
+## 自動取り込み(夜間バッチ、よやクルPro)
+
+予約サイト(よやクルPro, `v3.yoyakul.com`)に毎晩自動ログインして「売り上げ情報」タブのCSVをダウンロードし、そのまま上記の自社サイト予約インポートと同じ処理(`importCsv`)に流し込むスクリプトです。**ダッシュボードのサーバーと同じPC上で実行する前提**(`server/luna.db` に直接書き込むため)。
+
+### セットアップ(初回のみ)
+
+```powershell
+cd server
+npx playwright install chromium
+copy .env.example .env
+```
+
+`server/.env` をメモ帳などで開き、よやクルProのID/PASSWORDを入力して保存してください(このファイルはgit管理外です)。
+
+### 動作確認
+
+```powershell
+npm run auto-import:debug
+```
+
+ブラウザが表示された状態で実行され、各ステップのスクリーンショットが `server/scripts/debug-shots/` に保存されます。ログインページやCSVダウンロードボタンなど、サイト側の画面構成が変わっている場合はここで気づけます(`server/scripts/autoFetchImport.js` の該当箇所を調整してください)。
+
+問題なければ通常実行(ブラウザ非表示)で試します:
+
+```powershell
+npm run auto-import
+```
+
+### 毎晩の自動実行(タスクスケジューラ)
+
+1. Windowsで「タスクスケジューラ」を開く
+2. 「基本タスクの作成」→ 名前を入力(例: LUNA自動取り込み)
+3. トリガー: 「毎日」→ 実行したい時刻(例: 夜3:00)を指定
+4. 操作: 「プログラムの開始」
+   - プログラム/スクリプト: `npm.cmd`
+   - 引数の追加: `run auto-import`
+   - 開始(オプション): `server` フォルダのフルパス(例: `C:\Users\〇〇\LUNASALON\server`)
+5. 完了。PCの電源が入っていて起動している時間帯にスケジュールしてください。
+
+タスクの実行結果(成功/失敗、取り込み件数)はタスクスケジューラの履歴、またはコンソールログで確認できます。
+
 ## 仕様書からの未確定事項(要本人確認・引き継ぎ)
 
 - Forest(2024-10-31〜)・Asteria(2026-04-10〜)の開業日は実績データからの自動推定値。実際の契約開業日と異なる場合は「店舗設定」画面から修正してください。
