@@ -58,7 +58,7 @@ export default function Dashboard({ data }) {
               <Tooltip formatter={(v) => yen(v)} labelFormatter={(v) => `${v}年`} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               {storeNames.map((name) => (
-                <Bar key={name} dataKey={name} fill={storeColor(name)} />
+                <Bar key={name} dataKey={name} stackId="revenue" fill={storeColor(name)} />
               ))}
             </BarChart>
           </ResponsiveContainer>
@@ -169,11 +169,11 @@ export default function Dashboard({ data }) {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mb-12">
         <div className="lg:col-span-3">
           <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-            店舗別売上推移({year}年・月別)
+            売上推移({year}年・月別・通常予約 / 定期クーポン)
           </h3>
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={monthlyTrend}>
+              <BarChart data={monthlyTrend}>
                 <CartesianGrid stroke="#EFEAE3" vertical={false} />
                 <XAxis dataKey="label" tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={{ stroke: "#E7E2DB" }} tickLine={false} />
                 <YAxis
@@ -184,10 +184,9 @@ export default function Dashboard({ data }) {
                 />
                 <Tooltip formatter={(v) => yen(v)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                {storeNames.map((name) => (
-                  <Line key={name} type="monotone" dataKey={name} stroke={storeColor(name)} strokeWidth={2.5} dot={false} connectNulls />
-                ))}
-              </LineChart>
+                <Bar dataKey="通常予約" stackId="revenue" fill="#345953" />
+                <Bar dataKey="定期クーポン" stackId="revenue" fill={CHANNEL_COLOR["定期クーポン"]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

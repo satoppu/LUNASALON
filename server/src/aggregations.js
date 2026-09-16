@@ -95,11 +95,12 @@ export function buildDashboard({
     if (effectiveHours(r) > 0) summary[r.store].count += 1;
   });
 
-  // ---- Monthly revenue trend ----
-  const monthlyTrend = MONTH_LABELS.map((label) => ({ label }));
+  // ---- Monthly revenue trend (通常予約 vs 定期クーポン, all stores combined) ----
+  const monthlyTrend = MONTH_LABELS.map((label) => ({ label, 通常予約: 0, 定期クーポン: 0 }));
   yearRows.forEach((r) => {
     const m = Number(r.date.slice(5, 7)) - 1;
-    monthlyTrend[m][r.store] = (monthlyTrend[m][r.store] || 0) + effectiveRevenue(r);
+    const key = r.status === SUBSCRIPTION_STATUS ? "定期クーポン" : "通常予約";
+    monthlyTrend[m][key] += effectiveRevenue(r);
   });
 
   // ---- Occupancy rate by store ----
