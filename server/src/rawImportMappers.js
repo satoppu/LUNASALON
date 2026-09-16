@@ -2,12 +2,19 @@
 // shared between the CLI tools (importRawBookings.js / importRawSubscriptions.js)
 // and the web /api/import endpoint (importService.js), so both paths apply
 // the exact same business rules.
-import { SUBSCRIPTION_STATUS } from "./config.js";
+import { SUBSCRIPTION_STATUS, getTodayISO } from "./config.js";
 import { canonicalizeUserName, resolveStoreForUser } from "./importHelpers.js";
 
 const WEEKDAY_FROM_JS_DOW = ["日", "月", "火", "水", "木", "金", "土"];
 const STORE_PREFIX = "レンタルサロン ";
 const BOOKING_CHANNEL = "自社サイト"; // this export shape is 自社サイト-only bookings.
+const INSTABASE_CHANNEL = "Instabase";
+
+// 施設名 (facility name) substrings -> store, per the actual listing titles.
+const INSTABASE_FACILITY_STORE = [
+  { match: "つくば市初", store: "Asteria" },
+  { match: "柏駅徒歩3分", store: "Bellezza" },
+];
 
 /**
  * Detects which raw export shape a parsed CSV's header row matches, or null
@@ -17,6 +24,7 @@ export function detectRawFormat(fields) {
   const set = new Set(fields || []);
   if (set.has("スペース名") && set.has("状態") && set.has("利用日時")) return "rawBooking";
   if (set.has("クーポン名") && set.has("購入日時")) return "rawSubscription";
+  if (set.has("予約ID") && set.has("施設名") && set.has("利用開始日時")) return "rawInstabase";
   return null;
 }
 
@@ -111,5 +119,56 @@ export function mapRawSubscriptionRow(raw) {
     channel: SUBSCRIPTION_STATUS,
     status: SUBSCRIPTION_STATUS,
     external_id: raw["支払いID"] || null,
+  };
+}
+
+function mapInstabaseStore(facilityName) {
+  const hit = INSTABASE_FACILITY_STORE.find((f) => String(facilityName).includes(f.match));
+  return hit ? hit.store : "Forest";
+}
+
+function mapInstabaseStatus(rawStatus, revenue) {
+  if (rawStatus === "予約確定") return "利用済み";
+  if (rawStatus.includes("キャンセル")) return revenue > 0 ? "キャンセル(返金あり)" : "キャンセル(顧客)";
+  return null;
+}
+
+/**
+ * Maps one row of a raw Instabase booking export (columns: 予約ID,施設名,
+ * スペース名,ステータス,決済方法,決済状況,予約者ID,予約者会社名・屋号,予約者名,
+ * 利用用途,用途詳細,利用人数,申込日時,利用開始日時,利用終了日時,利用時間 (時間),
+ * 予約金額 (税込),支払金額 (税込)) to a transactions row, or null if the row
+ * should be skipped (a future/not-yet-happened booking per spec 4.4, or an
+ * unrecognized status).
+ *
+ * Revenue uses 予約金額 (税込) — the full listed booking price, which already
+ * reflects any cancellation-fee tier — not 支払金額 (税込), which is net of
+ * Instabase's platform commission; the existing historical data already
+ * books the gross amount as revenue, treating the platform fee as a cost
+ * rather than a discount off sales.
+ */
+export function mapRawInstabaseRow(raw) {
+  const rawStatus = String(raw["ステータス"] || "").trim();
+  const revenue = Number(raw["予約金額 (税込)"]) || 0;
+  const status = mapInstabaseStatus(rawStatus, revenue);
+  const date = String(raw["利用開始日時"] || "").slice(0, 10);
+  if (!status || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  if (date > getTodayISO()) return null; // not yet happened — wait for a later export.
+
+  const startHour = Number(String(raw["利用開始日時"]).slice(11, 13));
+  const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];
+  const hoursUsed = status === "利用済み" ? Number(raw["利用時間 (時間)"]) || 0 : 0;
+
+  return {
+    date,
+    store: mapInstabaseStore(raw["施設名"]),
+    user_name: canonicalizeUserName(raw["予約者名"]),
+    revenue,
+    hours_used: hoursUsed,
+    start_hour: Number.isNaN(startHour) ? null : startHour,
+    weekday,
+    channel: INSTABASE_CHANNEL,
+    status,
+    external_id: raw["予約ID"] || null,
   };
 }

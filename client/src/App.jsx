@@ -56,9 +56,9 @@ export default function App() {
 
   function describeImportResult(result) {
     const parts = [`${result.inserted}件のデータを取り込みました。`];
-    if (result.format === "rawBooking") {
+    if (result.format === "rawBooking" || result.format === "rawInstabase") {
       if (result.skippedPending) parts.push(`未確定の予約 ${result.skippedPending}件は対象外(実施後に再度アップロードしてください)。`);
-      if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みの期間のためスキップしました。`);
+      if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みのためスキップしました。`);
       if (result.skippedUnparseable) parts.push(`${result.skippedUnparseable}件は読み取れませんでした。`);
     } else if (result.format === "rawSubscription") {
       if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みの期間のためスキップしました。`);

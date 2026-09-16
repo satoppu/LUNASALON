@@ -1,8 +1,8 @@
 import Papa from "papaparse";
 import db from "./db.js";
 import { normalizeImportRow } from "./importRows.js";
-import { SUBSCRIPTION_STATUS } from "./config.js";
-import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow } from "./rawImportMappers.js";
+import { SUBSCRIPTION_STATUS, getTodayISO } from "./config.js";
+import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow } from "./rawImportMappers.js";
 import { ensureStoreRegistered } from "./storeSettingsService.js";
 
 const insertStmt = db.prepare(`
@@ -105,11 +105,64 @@ function importRawSubscriptionCsv(parsed) {
   };
 }
 
+// Unlike the 自社サイト raw export, the historical data's Instabase coverage
+// has gaps rather than a clean cutoff date (spot-checked: several Bellezza
+// rows from early/mid the export period were missing from history while
+// later Asteria rows were already present) — so a "since latest date" filter
+// would both skip real new rows and let through nothing it shouldn't have.
+// Content-based dedup (date+store+user+revenue against the historical rows,
+// which have no external_id) is the safe check for this one; external_id
+// still guards re-uploads of an export this path has already processed.
+function importRawInstabaseCsv(parsed) {
+  const today = getTodayISO();
+  const existingHistorical = new Set(
+    db
+      .prepare(`SELECT date, store, user_name, revenue FROM transactions WHERE channel = 'Instabase' AND external_id IS NULL`)
+      .all()
+      .map((r) => `${r.date}|${r.store}|${r.user_name}|${r.revenue}`)
+  );
+
+  let skippedPending = 0;
+  let skippedUnparseable = 0;
+  let skippedAlreadyCovered = 0;
+  const rows = [];
+
+  for (const raw of parsed.data) {
+    const date = String(raw["利用開始日時"] || "").slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date > today) {
+      skippedPending++;
+      continue;
+    }
+    const row = mapRawInstabaseRow(raw);
+    if (!row) {
+      skippedUnparseable++;
+      continue;
+    }
+    const key = `${row.date}|${row.store}|${row.user_name}|${row.revenue}`;
+    if (existingHistorical.has(key)) {
+      skippedAlreadyCovered++;
+      continue;
+    }
+    rows.push(row);
+  }
+
+  const inserted = rows.length > 0 ? insertRows(rows) : 0;
+  return {
+    format: "rawInstabase",
+    inserted,
+    duplicates: rows.length - inserted,
+    skippedPending,
+    skippedUnparseable,
+    skippedAlreadyCovered,
+    error: null,
+  };
+}
+
 /**
  * Parses an uploaded CSV and appends valid rows to the transactions table.
- * Auto-detects three shapes: the dashboard's own simple template, a raw
- * booking export, or a raw 定期クーポン purchase export straight from the
- * reservation platform (see rawImportMappers.js). Unknown stores are
+ * Auto-detects four shapes: the dashboard's own simple template, a raw
+ * 自社サイト booking export, a raw 定期クーポン purchase export, or a raw
+ * Instabase booking export (see rawImportMappers.js). Unknown stores are
  * auto-registered in store_settings (spec 7.1).
  */
 export function importCsv(csvText) {
@@ -119,5 +172,6 @@ export function importCsv(csvText) {
 
   if (format === "rawBooking") return importRawBookingCsv(parsed);
   if (format === "rawSubscription") return importRawSubscriptionCsv(parsed);
+  if (format === "rawInstabase") return importRawInstabaseCsv(parsed);
   return importSimpleCsv(parsed);
 }
