@@ -12,34 +12,34 @@ export default function RankingPage({ data }) {
       <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr style={{ borderBottom: "1px solid #EAE0E3" }}>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+            <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 順位
               </th>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 利用者
               </th>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 主な店舗
               </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 利用回数
               </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 総利用時間
               </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 平均利用時間
               </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 総売上
               </th>
             </tr>
           </thead>
           <tbody>
             {userSummary.map((u, i) => (
-              <tr key={u.user} style={{ borderBottom: "1px solid #F3E7EA" }}>
-                <td className="px-4 py-3" style={{ fontFamily: FONT_HEAD, color: "#B5306A" }}>
+              <tr key={u.user} style={{ borderBottom: "1px solid #F3EBDF" }}>
+                <td className="px-4 py-3" style={{ fontFamily: FONT_HEAD, color: "#D4A644" }}>
                   {i + 1}
                 </td>
                 <td className="px-4 py-3">{u.user}</td>

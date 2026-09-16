@@ -56,12 +56,12 @@ export default function StoreSettings({ onChanged }) {
 
   return (
     <div className="mb-12">
-      <p style={{ color: "#8F7B82" }} className="text-sm mb-6">
+      <p style={{ color: "#8F7D6E" }} className="text-sm mb-6">
         営業開始日と1日あたりの稼働可能時間はここで管理します。営業開始日を空欄にすると、実績データ上の初回利用日から自動推定されます。
       </p>
 
       {error && (
-        <div className="flex items-start gap-2 text-sm mb-6 px-4 py-3" style={{ background: "#FBEFEF", color: "#A83A56" }}>
+        <div className="flex items-start gap-2 text-sm mb-6 px-4 py-3" style={{ background: "#FCEEE7", color: "#A84434" }}>
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
@@ -71,19 +71,19 @@ export default function StoreSettings({ onChanged }) {
         {stores.map((s) => {
           const draft = drafts[s.store] || {};
           return (
-            <div key={s.store} style={{ background: "#FFFFFF", borderLeft: `4px solid ${s.color || "#8F7B82"}` }} className="px-6 py-5">
+            <div key={s.store} style={{ background: "#FFFFFF", borderLeft: `4px solid ${s.color || "#8F7D6E"}` }} className="px-6 py-5">
               <div className="flex items-baseline justify-between mb-4">
                 <h3 style={{ fontFamily: FONT_HEAD }} className="text-lg font-bold">
                   {s.store}
                 </h3>
                 {s.area && (
-                  <span style={{ color: "#8F7B82" }} className="text-xs">
+                  <span style={{ color: "#8F7D6E" }} className="text-xs">
                     {s.area}
                   </span>
                 )}
               </div>
 
-              <label className="block text-xs mb-1" style={{ color: "#8F7B82" }}>
+              <label className="block text-xs mb-1" style={{ color: "#8F7D6E" }}>
                 営業開始日(空欄=自動推定)
               </label>
               <input
@@ -91,10 +91,10 @@ export default function StoreSettings({ onChanged }) {
                 value={draft.openDate}
                 onChange={(e) => setDraft(s.store, { openDate: e.target.value })}
                 className="w-full text-sm px-3 py-2 border mb-4"
-                style={{ borderColor: "#EAE0E3" }}
+                style={{ borderColor: "#EDE3D5" }}
               />
 
-              <label className="block text-xs mb-1" style={{ color: "#8F7B82" }}>
+              <label className="block text-xs mb-1" style={{ color: "#8F7D6E" }}>
                 1日あたり稼働可能時間(h)
               </label>
               <input
@@ -105,13 +105,13 @@ export default function StoreSettings({ onChanged }) {
                 value={draft.operatingHoursPerDay}
                 onChange={(e) => setDraft(s.store, { operatingHoursPerDay: e.target.value })}
                 className="w-full text-sm px-3 py-2 border mb-4"
-                style={{ borderColor: "#EAE0E3" }}
+                style={{ borderColor: "#EDE3D5" }}
               />
 
               <button
                 onClick={() => save(s.store)}
                 className="flex items-center gap-1.5 text-sm px-3 py-2"
-                style={{ background: "#B5306A", color: "#FBF6F7" }}
+                style={{ background: "#D4A644", color: "#262421" }}
               >
                 {savedStore === s.store ? <Check size={15} /> : null}
                 保存

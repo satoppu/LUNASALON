@@ -90,13 +90,13 @@ export default function App() {
   const currentLabel = NAV_ITEMS.find((n) => n.key === view)?.label ?? "";
 
   return (
-    <div style={{ background: "#FBF6F7", color: "#262421", fontFamily: FONT_BODY, minHeight: "100vh" }} className="flex flex-col md:flex-row">
+    <div style={{ background: "#FCF8F0", color: "#262421", fontFamily: FONT_BODY, minHeight: "100vh" }} className="flex flex-col md:flex-row">
       <Sidebar view={view} onChange={setView} />
 
       <div className="flex-1 min-w-0 px-6 py-8 md:px-10 md:py-10">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
           <div>
-            <p style={{ color: "#8F7B82", letterSpacing: "0.02em" }} className="text-sm mb-1">
+            <p style={{ color: "#8F7D6E", letterSpacing: "0.02em" }} className="text-sm mb-1">
               店舗運営ダッシュボード
             </p>
             <h1 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-2xl md:text-3xl font-bold">
@@ -109,7 +109,7 @@ export default function App() {
                 value={selectedYear ?? ""}
                 onChange={(e) => handleYearChange(Number(e.target.value))}
                 className="text-sm px-3 py-2 border"
-                style={{ borderColor: "#EAE0E3", color: "#262421", background: "#FFFFFF" }}
+                style={{ borderColor: "#EDE3D5", color: "#262421", background: "#FFFFFF" }}
               >
                 {dashboard.years.map((y) => (
                   <option key={y} value={y}>
@@ -121,7 +121,7 @@ export default function App() {
             <a
               href={api.templateUrl}
               className="flex items-center gap-1.5 text-sm px-3 py-2 border"
-              style={{ borderColor: "#EAE0E3", color: "#756269", background: "#FFFFFF" }}
+              style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
             >
               <Download size={15} />
               テンプレートDL
@@ -129,7 +129,7 @@ export default function App() {
             <button
               onClick={() => fileInput.current?.click()}
               className="flex items-center gap-1.5 text-sm px-3 py-2"
-              style={{ background: "#B5306A", color: "#FBF6F7" }}
+              style={{ background: "#D4A644", color: "#262421" }}
             >
               <Upload size={15} />
               CSVインポート
@@ -139,25 +139,25 @@ export default function App() {
         </div>
 
         {importMessage && (
-          <p className="text-sm mb-4" style={{ color: "#756269" }}>
+          <p className="text-sm mb-4" style={{ color: "#7A6A5C" }}>
             {importMessage}
           </p>
         )}
         {error && (
-          <div className="flex items-start gap-2 text-sm mb-6 px-4 py-3" style={{ background: "#FBEFEF", color: "#A83A56" }}>
+          <div className="flex items-start gap-2 text-sm mb-6 px-4 py-3" style={{ background: "#FCEEE7", color: "#A84434" }}>
             <AlertCircle size={16} className="mt-0.5 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        {loading && <p style={{ color: "#8F7B82" }}>読み込み中…</p>}
+        {loading && <p style={{ color: "#8F7D6E" }}>読み込み中…</p>}
 
         {!loading && view === "settings" && <StoreSettings onChanged={() => loadDashboard(selectedYear)} />}
 
         {!loading && view !== "settings" && dashboard && dashboard.year && <PageComponent data={dashboard} />}
 
         {!loading && view !== "settings" && dashboard && !dashboard.year && (
-          <p style={{ color: "#8F7B82" }} className="text-sm py-12 text-center">
+          <p style={{ color: "#8F7D6E" }} className="text-sm py-12 text-center">
             {dashboard.message || "データがありません。"}
           </p>
         )}

@@ -31,13 +31,13 @@ export default function CustomerPage() {
 
   if (error) {
     return (
-      <p className="text-sm" style={{ color: "#A83A56" }}>
+      <p className="text-sm" style={{ color: "#A84434" }}>
         {error}
       </p>
     );
   }
   if (!state) {
-    return <p style={{ color: "#8F7B82" }}>読み込み中…</p>;
+    return <p style={{ color: "#8F7D6E" }}>読み込み中…</p>;
   }
 
   return (
@@ -50,20 +50,20 @@ export default function CustomerPage() {
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={state.newCustomersByMonth} margin={{ bottom: 24 }}>
-                <CartesianGrid stroke="#F0E3E7" vertical={false} />
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: "#8F7B82", fontSize: 10 }}
-                  axisLine={{ stroke: "#EAE0E3" }}
+                  tick={{ fill: "#8F7D6E", fontSize: 10 }}
+                  axisLine={{ stroke: "#EDE3D5" }}
                   tickLine={false}
                   interval={labelInterval(state.newCustomersByMonth.length)}
                   angle={-40}
                   textAnchor="end"
                   height={50}
                 />
-                <YAxis tick={{ fill: "#8F7B82", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip formatter={(v) => `${v}人`} />
-                <Bar dataKey="count" fill="#B5306A" />
+                <Bar dataKey="count" fill="#D4A644" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -76,24 +76,24 @@ export default function CustomerPage() {
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={state.activeCustomersByMonth} margin={{ bottom: 24 }}>
-                <CartesianGrid stroke="#F0E3E7" vertical={false} />
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
                 <XAxis
                   dataKey="label"
-                  tick={{ fill: "#8F7B82", fontSize: 10 }}
-                  axisLine={{ stroke: "#EAE0E3" }}
+                  tick={{ fill: "#8F7D6E", fontSize: 10 }}
+                  axisLine={{ stroke: "#EDE3D5" }}
                   tickLine={false}
                   interval={labelInterval(state.activeCustomersByMonth.length)}
                   angle={-40}
                   textAnchor="end"
                   height={50}
                 />
-                <YAxis tick={{ fill: "#8F7B82", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip formatter={(v) => `${v}人`} />
-                <Bar dataKey="count" fill="#3E7FB0" />
+                <Bar dataKey="count" fill="#D66B5C" />
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs mt-2" style={{ color: "#8F7B82" }}>
+          <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
             アクティブ = 累計利用5回以上、かつ直近3か月以内に利用
           </p>
         </div>
@@ -107,20 +107,20 @@ export default function CustomerPage() {
           {state.bookingLeadTime.total > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={state.bookingLeadTime.buckets}>
-                <CartesianGrid stroke="#F0E3E7" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: "#8F7B82", fontSize: 12 }} axisLine={{ stroke: "#EAE0E3" }} tickLine={false} />
-                <YAxis tick={{ fill: "#8F7B82", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
+                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip formatter={(v) => `${v}件`} />
-                <Bar dataKey="count" fill="#C68A2E" />
+                <Bar dataKey="count" fill="#D9738F" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p style={{ color: "#8F7B82" }} className="text-sm py-8 text-center">
+            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
               対象データがありません。
             </p>
           )}
         </div>
-        <p className="text-xs mt-2" style={{ color: "#8F7B82" }}>
+        <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
           自社サイト・Instabaseの予約データのうち、予約日時を取得できた分のみが対象です(過去にインポートした一部のデータは対象外)。
         </p>
       </div>
@@ -130,8 +130,8 @@ export default function CustomerPage() {
           <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">
             顧客一覧({state.customers.length}人・クリックで詳細)
           </h3>
-          <div className="flex items-center gap-2 px-3 py-2" style={{ background: "#FFFFFF", border: "1px solid #EAE0E3" }}>
-            <Search size={14} style={{ color: "#8F7B82" }} />
+          <div className="flex items-center gap-2 px-3 py-2" style={{ background: "#FFFFFF", border: "1px solid #EDE3D5" }}>
+            <Search size={14} style={{ color: "#8F7D6E" }} />
             <input
               type="text"
               value={query}
@@ -145,23 +145,23 @@ export default function CustomerPage() {
         <div style={{ background: "#FFFFFF" }} className="overflow-x-auto max-h-[560px] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0" style={{ background: "#FFFFFF" }}>
-              <tr style={{ borderBottom: "1px solid #EAE0E3" }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+              <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   利用者
                 </th>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   初回利用日
                 </th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   累計利用回数
                 </th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   キャンセル数
                 </th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   クーポン購入回数
                 </th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   累計売上
                 </th>
               </tr>
@@ -172,7 +172,7 @@ export default function CustomerPage() {
                   key={c.user}
                   onClick={() => setSelected(c)}
                   className="cursor-pointer"
-                  style={{ borderBottom: "1px solid #F3E7EA" }}
+                  style={{ borderBottom: "1px solid #F3EBDF" }}
                 >
                   <td className="px-4 py-3">{c.user}</td>
                   <td className="px-4 py-3">{c.firstUseDate}</td>
@@ -184,7 +184,7 @@ export default function CustomerPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center" style={{ color: "#8F7B82" }}>
+                  <td colSpan={6} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                     該当する顧客が見つかりません。
                   </td>
                 </tr>

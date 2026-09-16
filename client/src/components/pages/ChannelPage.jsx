@@ -1,4 +1,4 @@
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { CHANNELS, CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
 export default function ChannelPage({ data }) {
@@ -15,13 +15,13 @@ export default function ChannelPage({ data }) {
           <div className="p-4">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={channelSummary} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid stroke="#F0E3E7" horizontal={false} />
-                <XAxis type="number" tick={{ fill: "#8F7B82", fontSize: 11 }} axisLine={{ stroke: "#EAE0E3" }} tickLine={false} tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid stroke="#F0E6D8" horizontal={false} />
+                <XAxis type="number" tick={{ fill: "#8F7D6E", fontSize: 11 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`} />
                 <YAxis type="category" dataKey="channel" tick={{ fill: "#262421", fontSize: 12 }} axisLine={false} tickLine={false} width={100} />
                 <Tooltip formatter={(v) => yen(v)} />
                 <Bar dataKey="revenue" radius={[0, 2, 2, 0]}>
                   {channelSummary.map((d) => (
-                    <Bar key={d.channel} dataKey="revenue" fill={CHANNEL_COLOR[d.channel] || "#8F7B82"} />
+                    <Cell key={d.channel} fill={CHANNEL_COLOR[d.channel] || "#8F7D6E"} />
                   ))}
                 </Bar>
               </BarChart>
@@ -31,23 +31,23 @@ export default function ChannelPage({ data }) {
         <div className="lg:col-span-3 overflow-x-auto" style={{ background: "#FFFFFF" }}>
           <table className="w-full text-sm">
             <thead>
-              <tr style={{ borderBottom: "1px solid #EAE0E3" }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+              <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   店舗
                 </th>
                 {CHANNELS.map((c) => (
-                  <th key={c} className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+                  <th key={c} className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     {c}
                   </th>
                 ))}
-                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   合計
                 </th>
               </tr>
             </thead>
             <tbody>
               {channelByStore.map((row) => (
-                <tr key={row.store} style={{ borderBottom: "1px solid #F3E7EA" }}>
+                <tr key={row.store} style={{ borderBottom: "1px solid #F3EBDF" }}>
                   <td className="px-4 py-3">
                     <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(row.store) }} />
                     {row.store}
@@ -62,7 +62,7 @@ export default function ChannelPage({ data }) {
               ))}
             </tbody>
           </table>
-          <p className="px-4 py-2 text-xs" style={{ color: "#8F7B82" }}>
+          <p className="px-4 py-2 text-xs" style={{ color: "#8F7D6E" }}>
             各セルは店舗ごとの売上構成比。
           </p>
         </div>
