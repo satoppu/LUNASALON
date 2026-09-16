@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.log
+
+server/luna.db
+server/luna.db-shm
+server/luna.db-wal
+
+.DS_Store

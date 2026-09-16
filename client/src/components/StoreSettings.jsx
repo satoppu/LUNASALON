@@ -1,0 +1,128 @@
+import { useEffect, useState } from "react";
+import { AlertCircle, Check } from "lucide-react";
+import { api } from "../api.js";
+import { FONT_HEAD } from "../constants.js";
+
+export default function StoreSettings({ onChanged }) {
+  const [stores, setStores] = useState(null);
+  const [error, setError] = useState(null);
+  const [savedStore, setSavedStore] = useState(null);
+  const [drafts, setDrafts] = useState({});
+
+  async function load() {
+    setError(null);
+    try {
+      const { stores } = await api.getStoreSettings();
+      setStores(stores);
+      setDrafts(
+        Object.fromEntries(
+          stores.map((s) => [
+            s.store,
+            { openDate: s.open_date || "", operatingHoursPerDay: s.operating_hours_per_day },
+          ])
+        )
+      );
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  function setDraft(store, patch) {
+    setDrafts((d) => ({ ...d, [store]: { ...d[store], ...patch } }));
+  }
+
+  async function save(store) {
+    setError(null);
+    setSavedStore(null);
+    try {
+      const draft = drafts[store];
+      await api.updateStoreSetting(store, {
+        openDate: draft.openDate || null,
+        operatingHoursPerDay: Number(draft.operatingHoursPerDay),
+      });
+      setSavedStore(store);
+      await load();
+      onChanged?.();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  if (!stores) return null;
+
+  return (
+    <div className="mb-12">
+      <h2 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-xl font-bold mb-2">
+        店舗設定
+      </h2>
+      <p style={{ color: "#8A857D" }} className="text-sm mb-6">
+        営業開始日と1日あたりの稼働可能時間はここで管理します。営業開始日を空欄にすると、実績データ上の初回利用日から自動推定されます。
+      </p>
+
+      {error && (
+        <div className="flex items-start gap-2 text-sm mb-6 px-4 py-3" style={{ background: "#FBEFEF", color: "#8C3B3B" }}>
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {stores.map((s) => {
+          const draft = drafts[s.store] || {};
+          return (
+            <div key={s.store} style={{ background: "#FFFFFF", borderLeft: `4px solid ${s.color || "#8A857D"}` }} className="px-6 py-5">
+              <div className="flex items-baseline justify-between mb-4">
+                <h3 style={{ fontFamily: FONT_HEAD }} className="text-lg font-bold">
+                  {s.store}
+                </h3>
+                {s.area && (
+                  <span style={{ color: "#8A857D" }} className="text-xs">
+                    {s.area}
+                  </span>
+                )}
+              </div>
+
+              <label className="block text-xs mb-1" style={{ color: "#8A857D" }}>
+                営業開始日(空欄=自動推定)
+              </label>
+              <input
+                type="date"
+                value={draft.openDate}
+                onChange={(e) => setDraft(s.store, { openDate: e.target.value })}
+                className="w-full text-sm px-3 py-2 border mb-4"
+                style={{ borderColor: "#E7E2DB" }}
+              />
+
+              <label className="block text-xs mb-1" style={{ color: "#8A857D" }}>
+                1日あたり稼働可能時間(h)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="24"
+                step="0.5"
+                value={draft.operatingHoursPerDay}
+                onChange={(e) => setDraft(s.store, { operatingHoursPerDay: e.target.value })}
+                className="w-full text-sm px-3 py-2 border mb-4"
+                style={{ borderColor: "#E7E2DB" }}
+              />
+
+              <button
+                onClick={() => save(s.store)}
+                className="flex items-center gap-1.5 text-sm px-3 py-2"
+                style={{ background: "#345953", color: "#FAF8F5" }}
+              >
+                {savedStore === s.store ? <Check size={15} /> : null}
+                保存
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
