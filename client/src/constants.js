@@ -5,6 +5,7 @@ export const CHANNEL_COLOR = {
   Instabase: "#3B6FA0",
   スペースマーケット: "#4E8F5B",
   その他: "#B0A99A",
+  定期クーポン: "#8C3B3B",
 };
 
 export const FONT_HEAD = "'Shippori Mincho', serif";

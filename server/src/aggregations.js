@@ -4,7 +4,7 @@
 // pre-baked revenue/hours figures — so a future CSV that includes raw
 // statuses (e.g. straight from the reservation system) aggregates correctly
 // without any UI changes.
-import { REVENUE_STATUSES, HOURS_USED_STATUSES, CHANNELS, WEEKDAYS, MONTH_LABELS } from "./config.js";
+import { REVENUE_STATUSES, HOURS_USED_STATUSES, CHANNELS, WEEKDAYS, MONTH_LABELS, SUBSCRIPTION_STATUS } from "./config.js";
 
 export function daysBetweenInclusive(startISO, endISO) {
   const start = new Date(startISO);
@@ -123,9 +123,13 @@ export function buildDashboard({ year, priorYear, hasPriorYear, storeNames, stor
   });
 
   // ---- Channel (導線) analysis ----
+  // 定期クーポン revenue is store-linked but isn't a booking channel (spec 4.6),
+  // so it's counted in store/monthly/user revenue above but left out of this
+  // breakdown entirely rather than bucketed into "その他".
+  const channelRows = yearRows.filter((r) => r.status !== SUBSCRIPTION_STATUS);
   const channelMap = {};
   CHANNELS.forEach((c) => (channelMap[c] = { channel: c, revenue: 0, count: 0 }));
-  yearRows.forEach((r) => {
+  channelRows.forEach((r) => {
     const c = CHANNELS.includes(r.channel) ? r.channel : "その他";
     if (!channelMap[c]) channelMap[c] = { channel: c, revenue: 0, count: 0 };
     channelMap[c].revenue += effectiveRevenue(r);
@@ -137,7 +141,7 @@ export function buildDashboard({ year, priorYear, hasPriorYear, storeNames, stor
     const entry = { store: name };
     let total = 0;
     CHANNELS.forEach((c) => {
-      const rev = yearRows
+      const rev = channelRows
         .filter((r) => r.store === name && (CHANNELS.includes(r.channel) ? r.channel : "その他") === c)
         .reduce((sum, r) => sum + effectiveRevenue(r), 0);
       entry[c] = rev;

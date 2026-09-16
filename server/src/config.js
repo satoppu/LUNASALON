@@ -16,7 +16,14 @@ export const CHANNEL_COLOR = {
   Instabase: "#3B6FA0",
   スペースマーケット: "#4E8F5B",
   その他: "#B0A99A",
+  定期クーポン: "#8C3B3B",
 };
+
+// Status for 定期利用/サブスクリプション revenue rows. Unlike the four channels
+// above, this isn't a booking channel — it's revenue linked to whichever store
+// the subscriber uses most (resolved at import time), so it's tracked via
+// `status` and excluded from the channel-breakdown charts, not bucketed as "その他".
+export const SUBSCRIPTION_STATUS = "定期クーポン";
 
 // 月=0 .. 日=6, matches the WEEKDAYS order used throughout the app.
 export const WEEKDAYS = ["月", "火", "水", "木", "金", "土", "日"];
@@ -28,9 +35,10 @@ export const MONTH_LABELS = [
   "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月",
 ];
 
-// Rows counted as revenue per spec 4.2. "定期クーポン" (subscription income) is
-// intentionally excluded — it isn't tied to a single store.
-export const REVENUE_STATUSES = new Set(["利用済み", "キャンセル(返金あり)"]);
+// Rows counted as revenue per spec 4.2, plus 定期クーポン (subscription income),
+// which is now linked to a store via the subscriber's most-used store (see
+// server/src/importSubscriptions.js) rather than excluded outright.
+export const REVENUE_STATUSES = new Set(["利用済み", "キャンセル(返金あり)", SUBSCRIPTION_STATUS]);
 
 // Rows counted as actual room usage per spec 4.3 — cancellations never occupy the room.
 export const HOURS_USED_STATUSES = new Set(["利用済み"]);

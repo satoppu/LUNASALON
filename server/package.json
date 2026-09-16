@@ -9,12 +9,16 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "import-subscriptions": "node src/importSubscriptions.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "multer": "^2.4.0",
     "papaparse": "^5.7.0"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
   }
 }

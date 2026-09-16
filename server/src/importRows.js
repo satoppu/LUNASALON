@@ -2,6 +2,8 @@
 // endpoint. Column names are matched loosely (English/Japanese, camel/snake)
 // so exports from the reservation system or the dashboard's own template both work.
 
+import { SUBSCRIPTION_STATUS } from "./config.js";
+
 const HEADER_ALIASES = {
   date: ["日付", "date"],
   store: ["店舗", "store"],
@@ -74,5 +76,31 @@ export function normalizeImportRow(raw) {
     weekday: weekday || null,
     channel: String(channel).trim(),
     status: String(status).trim(),
+  };
+}
+
+/**
+ * Normalizes one row of the 定期クーポン (subscription) seed CSV — date, store,
+ * user, revenue, weekday, with `store` already resolved to the subscriber's
+ * most-used store (see server/src/importSubscriptions.js). These rows carry
+ * no room time: hours_used is always 0 and status is always SUBSCRIPTION_STATUS,
+ * which keeps them counted in revenue (spec 4.2 extension) but out of
+ * occupancy/hourly/channel aggregation.
+ */
+export function normalizeSubscriptionRow(raw) {
+  const date = raw.date;
+  const store = raw.store;
+  const revenue = Number(raw.revenue);
+  if (!date || !store || Number.isNaN(revenue)) return null;
+  return {
+    date: String(date).trim(),
+    store: String(store).trim(),
+    user_name: String(raw.user || "不明").trim(),
+    revenue,
+    hours_used: 0,
+    start_hour: null,
+    weekday: raw.weekday || null,
+    channel: SUBSCRIPTION_STATUS,
+    status: SUBSCRIPTION_STATUS,
   };
 }
