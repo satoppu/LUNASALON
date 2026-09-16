@@ -213,7 +213,7 @@ export default function CustomerPage() {
           )}
         </div>
         <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-          自社サイト・Instabaseの予約データのうち、予約日時を取得できた分のみが対象です(過去にインポートした一部のデータは対象外)。
+          自社サイトの予約データのうち、決済日時(データ入力用)を取得できた分のみが対象です(過去にインポートした一部のデータは対象外)。
         </p>
       </div>
 

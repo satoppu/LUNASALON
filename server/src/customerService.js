@@ -7,7 +7,7 @@ import {
 } from "./aggregations.js";
 
 function getAllRows() {
-  return db.prepare(`SELECT date, store, user_name, revenue, hours_used, status, booking_date FROM transactions`).all();
+  return db.prepare(`SELECT date, store, user_name, revenue, hours_used, status, channel, booking_date FROM transactions`).all();
 }
 
 export function getCustomerAnalysis() {

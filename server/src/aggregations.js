@@ -431,20 +431,28 @@ const LEAD_TIME_BUCKETS = [
   { label: "31日以上前", min: 31, max: Infinity },
 ];
 
+// 決済日時（データ入力用）is only present in the 自社サイト raw booking export
+// (see rawImportMappers.js mapRawBookingRow) and is what booking_date is
+// built from for those rows. Instabase's booking_date instead comes from
+// 申込日時, a different source field, so it's excluded here to keep this
+// chart strictly grounded in 決済日時（データ入力用）.
+const OWN_SITE_CHANNEL = "自社サイト";
+
 /**
- * Distribution of "days between booking and usage" for 自社サイト/Instabase
- * reservations (`booking_date` is only captured for those two raw-import
- * paths — see rawImportMappers.js — so rows from the historical seed CSV or
- * a simple-template import are silently excluded here, not treated as
- * same-day bookings). Counts every row with a booking_date regardless of
- * status (spec: this is about booking behavior, not just completed visits),
- * discarding the rare negative-gap row as bad data.
+ * Distribution of "days between booking and usage" for 自社サイト
+ * reservations, based on 決済日時（データ入力用）(`booking_date` — see
+ * rawImportMappers.js). Rows from the historical seed CSV or a
+ * simple-template import have no booking_date and are silently excluded
+ * here, not treated as same-day bookings. Counts every row with a
+ * booking_date regardless of status (spec: this is about booking behavior,
+ * not just completed visits), discarding the rare negative-gap row as bad
+ * data.
  */
 export function buildBookingLeadTime(allRows) {
   const buckets = LEAD_TIME_BUCKETS.map((b) => ({ label: b.label, count: 0 }));
   let total = 0;
   allRows.forEach((r) => {
-    if (!r.booking_date) return;
+    if (r.channel !== OWN_SITE_CHANNEL || !r.booking_date) return;
     const days = Math.round((new Date(r.date) - new Date(r.booking_date)) / 86400000);
     if (days < 0) return;
     const idx = LEAD_TIME_BUCKETS.findIndex((b) => days >= b.min && days <= b.max);
