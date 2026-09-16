@@ -14,6 +14,7 @@ export default function CustomerPage() {
   const [error, setError] = useState(null);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
+  const [monthFilter, setMonthFilter] = useState(null);
 
   useEffect(() => {
     api
@@ -28,6 +29,20 @@ export default function CustomerPage() {
     if (!q) return state.customers;
     return state.customers.filter((c) => c.user.includes(q));
   }, [state, query]);
+
+  const customersByName = useMemo(() => {
+    if (!state) return new Map();
+    return new Map(state.customers.map((c) => [c.user, c]));
+  }, [state]);
+
+  const monthFilteredCustomers = useMemo(() => {
+    if (!state || !monthFilter) return [];
+    if (monthFilter.type === "new") {
+      return state.customers.filter((c) => c.firstUseDate.slice(0, 7) === monthFilter.yearMonth);
+    }
+    const entry = state.activeCustomersByMonth.find((m) => m.yearMonth === monthFilter.yearMonth);
+    return (entry?.users || []).map((name) => customersByName.get(name)).filter(Boolean);
+  }, [state, monthFilter, customersByName]);
 
   if (error) {
     return (
@@ -63,10 +78,18 @@ export default function CustomerPage() {
                 />
                 <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip formatter={(v) => `${v}人`} />
-                <Bar dataKey="count" fill="#D4A644" />
+                <Bar
+                  dataKey="count"
+                  fill="#D4A644"
+                  cursor="pointer"
+                  onClick={(d) => setMonthFilter({ type: "new", yearMonth: d.yearMonth, label: d.label })}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
+            棒をクリックすると、その月に新規で来店したお客様の一覧を表示します。
+          </p>
         </div>
 
         <div>
@@ -89,15 +112,80 @@ export default function CustomerPage() {
                 />
                 <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip formatter={(v) => `${v}人`} />
-                <Bar dataKey="count" fill="#D66B5C" />
+                <Bar
+                  dataKey="count"
+                  fill="#D66B5C"
+                  cursor="pointer"
+                  onClick={(d) => setMonthFilter({ type: "active", yearMonth: d.yearMonth, label: d.label })}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-            アクティブ = 累計利用5回以上、かつ直近3か月以内に利用
+            アクティブ = 累計利用5回以上、かつ直近3か月以内に利用。棒をクリックするとその月のアクティブなお客様の一覧を表示します。
           </p>
         </div>
       </div>
+
+      {monthFilter && (
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">
+              {monthFilter.label}の{monthFilter.type === "new" ? "新規" : "アクティブ"}顧客({monthFilteredCustomers.length}人・クリックで詳細)
+            </h3>
+            <button
+              type="button"
+              onClick={() => setMonthFilter(null)}
+              className="text-sm px-3 py-2 border"
+              style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
+            >
+              閉じる
+            </button>
+          </div>
+          <div style={{ background: "#FFFFFF" }} className="overflow-x-auto max-h-[420px] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0" style={{ background: "#FFFFFF" }}>
+                <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    利用者
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    初回利用日
+                  </th>
+                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    累計利用回数
+                  </th>
+                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    累計売上
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthFilteredCustomers.map((c) => (
+                  <tr
+                    key={c.user}
+                    onClick={() => setSelected(c)}
+                    className="cursor-pointer"
+                    style={{ borderBottom: "1px solid #F3EBDF" }}
+                  >
+                    <td className="px-4 py-3">{c.user}</td>
+                    <td className="px-4 py-3">{c.firstUseDate}</td>
+                    <td className="px-4 py-3 text-right">{c.totalCount}</td>
+                    <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
+                  </tr>
+                ))}
+                {monthFilteredCustomers.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                      該当する顧客が見つかりません。
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">

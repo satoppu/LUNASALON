@@ -401,13 +401,14 @@ export function buildActiveCustomersByMonth(allRows) {
 
   return enumerateYearMonths(minYM, maxYM).map((ym) => {
     const windowStart = shiftYearMonth(ym, -2);
-    let active = 0;
-    for (const months of visitYearMonthsByUser.values()) {
+    const users = [];
+    for (const [user, months] of visitYearMonthsByUser) {
       const cumulativeCount = months.filter((m) => m <= ym).length;
       if (cumulativeCount < 5) continue;
-      if (months.some((m) => m >= windowStart && m <= ym)) active++;
+      if (months.some((m) => m >= windowStart && m <= ym)) users.push(user);
     }
-    return { yearMonth: ym, label: formatYearMonth(ym), count: active };
+    users.sort();
+    return { yearMonth: ym, label: formatYearMonth(ym), count: users.length, users };
   });
 }
 
