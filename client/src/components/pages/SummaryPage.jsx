@@ -4,10 +4,11 @@ import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 export default function SummaryPage({ data }) {
   const { year, storeNames, storeMeta, summary, occupancyData, overallStats, annualTrend } = data;
   const storeColor = makeStoreColor(storeMeta);
-  const totalRevenue = annualTrend.reduce(
-    (sum, y) => sum + storeNames.reduce((s, name) => s + (y[name] || 0), 0),
-    0
-  );
+  const yearTotals = annualTrend.map((y) => ({
+    year: y.year,
+    total: storeNames.reduce((s, name) => s + (y[name] || 0), 0),
+  }));
+  const totalRevenue = yearTotals.reduce((sum, y) => sum + y.total, 0);
 
   return (
     <>
@@ -34,6 +35,50 @@ export default function SummaryPage({ data }) {
               ))}
             </BarChart>
           </ResponsiveContainer>
+        </div>
+
+        <div style={{ background: "#FFFFFF" }} className="overflow-x-auto mt-4">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ borderBottom: "1px solid #E7E2DB" }}>
+                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  年度
+                </th>
+                {storeNames.map((name) => (
+                  <th key={name} className="text-right px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                    {name}
+                  </th>
+                ))}
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  合計
+                </th>
+                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  前年比
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {annualTrend.map((y, i) => {
+                const total = yearTotals[i].total;
+                const prevTotal = i > 0 ? yearTotals[i - 1].total : null;
+                const pct = prevTotal != null && prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : null;
+                return (
+                  <tr key={y.year} style={{ borderBottom: "1px solid #F1EDE7" }}>
+                    <td className="px-4 py-3">{y.year}年</td>
+                    {storeNames.map((name) => (
+                      <td key={name} className="px-4 py-3 text-right">
+                        {yen(y[name] || 0)}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-right font-medium">{yen(total)}</td>
+                    <td className="px-4 py-3 text-right" style={{ color: pct == null ? "#8A857D" : pct >= 0 ? "#345953" : "#B66E7D" }}>
+                      {pct == null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
