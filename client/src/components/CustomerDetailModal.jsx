@@ -51,7 +51,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
               {yen(customer.totalRevenue)}
             </p>
             <p style={{ color: "#8F7D6E" }} className="text-xs">
-              累計売上
+              累計売上(クーポン購入分を含む)
             </p>
           </div>
           <div>
@@ -59,7 +59,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
               {customer.totalSubscriptionCount}
             </p>
             <p style={{ color: "#8F7D6E" }} className="text-xs">
-              定額クーポン購入回数
+              うちクーポン購入回数
             </p>
           </div>
           <div>
@@ -67,7 +67,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
               {yen(customer.totalSubscriptionRevenue)}
             </p>
             <p style={{ color: "#8F7D6E" }} className="text-xs">
-              定額クーポン購入金額
+              うちクーポン購入金額(累計売上の内数)
             </p>
           </div>
         </div>
@@ -86,13 +86,13 @@ export default function CustomerDetailModal({ customer, onClose }) {
                   キャンセル数
                 </th>
                 <th className="text-right px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  利用金額
+                  利用金額(クーポン含む)
                 </th>
                 <th className="text-right px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  クーポン購入回数
+                  うちクーポン購入回数
                 </th>
                 <th className="text-right px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  クーポン購入金額
+                  うちクーポン購入金額
                 </th>
               </tr>
             </thead>
