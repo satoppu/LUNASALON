@@ -142,8 +142,13 @@ function mapInstabaseStore(facilityName) {
   return hit ? hit.store : "Forest";
 }
 
-function mapInstabaseStatus(rawStatus, revenue) {
-  if (rawStatus === "予約確定") return "利用済み";
+// Instabase's own "ステータス" column doesn't distinguish "already used" from
+// "confirmed, usage date still ahead" the way 自社サイト's 状態="未確定" does
+// — a future-dated booking shows the same "予約確定" as a past, completed one
+// — so isFuture (derived from 利用開始日時 vs. today) is what decides that
+// split here instead.
+function mapInstabaseStatus(rawStatus, revenue, isFuture) {
+  if (rawStatus === "予約確定") return isFuture ? PENDING_STATUS : "利用済み";
   if (rawStatus.includes("キャンセル")) return revenue > 0 ? "キャンセル(返金あり)" : "キャンセル(顧客)";
   return null;
 }
@@ -153,22 +158,27 @@ function mapInstabaseStatus(rawStatus, revenue) {
  * スペース名,ステータス,決済方法,決済状況,予約者ID,予約者会社名・屋号,予約者名,
  * 利用用途,用途詳細,利用人数,申込日時,利用開始日時,利用終了日時,利用時間 (時間),
  * 予約金額 (税込),支払金額 (税込)) to a transactions row, or null if the row
- * should be skipped (a future/not-yet-happened booking per spec 4.4, or an
- * unrecognized status).
+ * is unrecognized/unparseable. A "予約確定" row whose 利用開始日時 is still
+ * ahead of today maps to PENDING_STATUS ("利用前", same treatment as
+ * 自社サイト's 未確定 rows): counted in revenue, not in hours_used, and
+ * updated in place (via external_id) once a later export reports it "利用済み".
  *
  * Revenue uses 予約金額 (税込) — the full listed booking price, which already
  * reflects any cancellation-fee tier — not 支払金額 (税込), which is net of
  * Instabase's platform commission; the existing historical data already
  * books the gross amount as revenue, treating the platform fee as a cost
- * rather than a discount off sales.
+ * rather than a discount off sales. This is populated at booking time
+ * regardless of whether the usage date has passed yet, so no fallback
+ * revenue computation is needed here the way 自社サイト's 決済元金+割引金額 was.
  */
 export function mapRawInstabaseRow(raw) {
   const rawStatus = String(raw["ステータス"] || "").trim();
   const revenue = Number(raw["予約金額 (税込)"]) || 0;
-  const status = mapInstabaseStatus(rawStatus, revenue);
   const date = String(raw["利用開始日時"] || "").slice(0, 10);
-  if (!status || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  if (date > getTodayISO()) return null; // not yet happened — wait for a later export.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const isFuture = date > getTodayISO();
+  const status = mapInstabaseStatus(rawStatus, revenue, isFuture);
+  if (!status) return null;
 
   const startHour = Number(String(raw["利用開始日時"]).slice(11, 13));
   const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];

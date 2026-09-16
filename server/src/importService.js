@@ -1,7 +1,7 @@
 import Papa from "papaparse";
 import db from "./db.js";
 import { normalizeImportRow } from "./importRows.js";
-import { SUBSCRIPTION_STATUS, PENDING_STATUS, getTodayISO } from "./config.js";
+import { SUBSCRIPTION_STATUS, PENDING_STATUS } from "./config.js";
 import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow } from "./rawImportMappers.js";
 import { ensureStoreRegistered } from "./storeSettingsService.js";
 
@@ -145,7 +145,6 @@ function importRawSubscriptionCsv(parsed) {
 // which have no external_id) is the safe check for this one; external_id
 // still guards re-uploads of an export this path has already processed.
 function importRawInstabaseCsv(parsed) {
-  const today = getTodayISO();
   const existingHistorical = new Set(
     db
       .prepare(`SELECT date, store, user_name, revenue FROM transactions WHERE channel = 'Instabase' AND external_id IS NULL`)
@@ -153,17 +152,11 @@ function importRawInstabaseCsv(parsed) {
       .map((r) => `${r.date}|${r.store}|${r.user_name}|${r.revenue}`)
   );
 
-  let skippedPending = 0;
   let skippedUnparseable = 0;
   let skippedAlreadyCovered = 0;
   const rows = [];
 
   for (const raw of parsed.data) {
-    const date = String(raw["利用開始日時"] || "").slice(0, 10);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date > today) {
-      skippedPending++;
-      continue;
-    }
     const row = mapRawInstabaseRow(raw);
     if (!row) {
       skippedUnparseable++;
@@ -183,7 +176,6 @@ function importRawInstabaseCsv(parsed) {
     inserted,
     updated,
     duplicates: rows.length - inserted - updated,
-    skippedPending,
     skippedUnparseable,
     skippedAlreadyCovered,
     error: null,
