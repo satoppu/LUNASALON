@@ -1,12 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import { Upload, Download, AlertCircle, Settings, LayoutDashboard } from "lucide-react";
+import { Upload, Download, AlertCircle } from "lucide-react";
 import { api } from "./api.js";
 import { FONT_BODY, FONT_HEAD } from "./constants.js";
-import Dashboard from "./components/Dashboard.jsx";
+import Sidebar, { NAV_ITEMS } from "./components/Sidebar.jsx";
+import SummaryPage from "./components/pages/SummaryPage.jsx";
+import RevenuePage from "./components/pages/RevenuePage.jsx";
+import OccupancyPage from "./components/pages/OccupancyPage.jsx";
+import ChannelPage from "./components/pages/ChannelPage.jsx";
+import RankingPage from "./components/pages/RankingPage.jsx";
+import RecentPage from "./components/pages/RecentPage.jsx";
 import StoreSettings from "./components/StoreSettings.jsx";
 
+const PAGES = {
+  summary: SummaryPage,
+  revenue: RevenuePage,
+  occupancy: OccupancyPage,
+  channel: ChannelPage,
+  ranking: RankingPage,
+  recent: RecentPage,
+};
+
 export default function App() {
-  const [view, setView] = useState("dashboard");
+  const [view, setView] = useState("summary");
   const [dashboard, setDashboard] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -69,20 +84,25 @@ export default function App() {
     }
   }
 
+  const PageComponent = PAGES[view];
+  const currentLabel = NAV_ITEMS.find((n) => n.key === view)?.label ?? "";
+
   return (
-    <div style={{ background: "#FAF8F5", color: "#262421", fontFamily: FONT_BODY, minHeight: "100vh" }}>
-      <div className="max-w-6xl mx-auto px-6 py-10">
+    <div style={{ background: "#FAF8F5", color: "#262421", fontFamily: FONT_BODY, minHeight: "100vh" }} className="flex flex-col md:flex-row">
+      <Sidebar view={view} onChange={setView} />
+
+      <div className="flex-1 min-w-0 px-6 py-8 md:px-10 md:py-10">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
           <div>
             <p style={{ color: "#8A857D", letterSpacing: "0.02em" }} className="text-sm mb-1">
-              LUNAレンタルサロン
-            </p>
-            <h1 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-3xl md:text-4xl font-bold">
               店舗運営ダッシュボード
+            </p>
+            <h1 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-2xl md:text-3xl font-bold">
+              {currentLabel}
             </h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {view === "dashboard" && dashboard?.years?.length > 0 && (
+            {dashboard?.years?.length > 0 && (
               <select
                 value={selectedYear ?? ""}
                 onChange={(e) => handleYearChange(Number(e.target.value))}
@@ -113,14 +133,6 @@ export default function App() {
               CSVインポート
             </button>
             <input ref={fileInput} type="file" accept=".csv" onChange={handleFile} className="hidden" />
-            <button
-              onClick={() => setView(view === "dashboard" ? "settings" : "dashboard")}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 border"
-              style={{ borderColor: "#E7E2DB", color: "#6B665F", background: "#FFFFFF" }}
-            >
-              {view === "dashboard" ? <Settings size={15} /> : <LayoutDashboard size={15} />}
-              {view === "dashboard" ? "店舗設定" : "ダッシュボードに戻る"}
-            </button>
           </div>
         </div>
 
@@ -138,15 +150,11 @@ export default function App() {
 
         {loading && <p style={{ color: "#8A857D" }}>読み込み中…</p>}
 
-        {!loading && view === "settings" && (
-          <StoreSettings onChanged={() => loadDashboard(selectedYear)} />
-        )}
+        {!loading && view === "settings" && <StoreSettings onChanged={() => loadDashboard(selectedYear)} />}
 
-        {!loading && view === "dashboard" && dashboard && dashboard.year && (
-          <Dashboard data={dashboard} />
-        )}
+        {!loading && view !== "settings" && dashboard && dashboard.year && <PageComponent data={dashboard} />}
 
-        {!loading && view === "dashboard" && dashboard && !dashboard.year && (
+        {!loading && view !== "settings" && dashboard && !dashboard.year && (
           <p style={{ color: "#8A857D" }} className="text-sm py-12 text-center">
             {dashboard.message || "データがありません。"}
           </p>

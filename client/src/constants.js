@@ -14,3 +14,7 @@ export const FONT_BODY = "'Noto Sans JP', sans-serif";
 export function yen(n) {
   return "¥" + Math.round(n).toLocaleString("ja-JP");
 }
+
+export function makeStoreColor(storeMeta) {
+  return (name) => storeMeta?.[name]?.color || "#8A857D";
+}

@@ -56,9 +56,6 @@ export default function StoreSettings({ onChanged }) {
 
   return (
     <div className="mb-12">
-      <h2 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-xl font-bold mb-2">
-        店舗設定
-      </h2>
       <p style={{ color: "#8A857D" }} className="text-sm mb-6">
         営業開始日と1日あたりの稼働可能時間はここで管理します。営業開始日を空欄にすると、実績データ上の初回利用日から自動推定されます。
       </p>
