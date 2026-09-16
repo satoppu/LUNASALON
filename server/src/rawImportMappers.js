@@ -2,7 +2,7 @@
 // shared between the CLI tools (importRawBookings.js / importRawSubscriptions.js)
 // and the web /api/import endpoint (importService.js), so both paths apply
 // the exact same business rules.
-import { SUBSCRIPTION_STATUS, getTodayISO } from "./config.js";
+import { SUBSCRIPTION_STATUS, PENDING_STATUS, getTodayISO } from "./config.js";
 import { canonicalizeUserName, resolveStoreForUser } from "./importHelpers.js";
 
 const WEEKDAY_FROM_JS_DOW = ["日", "月", "火", "水", "木", "金", "土"];
@@ -51,20 +51,35 @@ function resolveYear(usageMonth, paymentISODate) {
 
 function mapBookingStatus(rawStatus, revenue) {
   if (rawStatus === "利用済み") return "利用済み";
+  if (rawStatus === "未確定") return PENDING_STATUS; // confirmed/paid, usage date hasn't happened yet.
   if (rawStatus === "キャンセル(顧客)") return revenue > 0 ? "キャンセル(返金あり)" : "キャンセル(顧客)";
   if (rawStatus === "キャンセル(オーナー)") return "キャンセル(オーナー)";
-  return null; // 未確定 or an unrecognized status
+  return null; // unrecognized status
+}
+
+// "決済元金" minus the "-"-placeholder-or-negative "割引金額" (e.g. a coupon
+// discount) nets to the same figure "利益" would eventually show once the
+// platform finalizes it — needed because 利益 is always blank while a
+// booking is still 未確定/PENDING_STATUS.
+function parseDiscountedAmount(raw) {
+  const base = Number(raw["決済元金"]) || 0;
+  const discountRaw = raw["割引金額"];
+  const discount = discountRaw == null || discountRaw === "-" || discountRaw === "" ? 0 : Number(discountRaw) || 0;
+  return base + discount;
 }
 
 /**
  * Maps one row of a raw booking export (columns: スペース名,顧客名,HN,決済元金,
  * 割引金額,返金額,利益確定後返金,利益,使用クーポン,決済方法,状態,決済日時,
  * 決済日時（データ入力用）,利用日時,売り上げ確定日時,決済ID) to a transactions
- * row, or null if the row should be skipped (状態="未確定"/unrecognized, or
- * unparseable). See spec 4.2-4.4 for the status/revenue business rules.
+ * row, or null if the row is unrecognized/unparseable. See spec 4.2-4.4 for
+ * the status/revenue business rules; a 状態="未確定" row (PENDING_STATUS,
+ * "利用前") counts toward revenue via 決済元金+割引金額 (利益 is still blank
+ * for these) but not toward hours_used, since the visit hasn't happened yet.
  */
 export function mapRawBookingRow(raw) {
-  const revenue = Number(raw["利益"]) || 0;
+  const isPending = raw["状態"] === "未確定";
+  const revenue = isPending ? parseDiscountedAmount(raw) : Number(raw["利益"]) || 0;
   const status = mapBookingStatus(raw["状態"], revenue);
   const usage = parseUsage(raw["利用日時"]);
   const paymentISO = raw["決済日時（データ入力用）"];

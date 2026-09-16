@@ -4,7 +4,7 @@
 // pre-baked revenue/hours figures — so a future CSV that includes raw
 // statuses (e.g. straight from the reservation system) aggregates correctly
 // without any UI changes.
-import { REVENUE_STATUSES, HOURS_USED_STATUSES, CHANNELS, WEEKDAYS, MONTH_LABELS, SUBSCRIPTION_STATUS } from "./config.js";
+import { REVENUE_STATUSES, HOURS_USED_STATUSES, CHANNELS, WEEKDAYS, MONTH_LABELS, SUBSCRIPTION_STATUS, PENDING_STATUS } from "./config.js";
 
 export function daysBetweenInclusive(startISO, endISO) {
   const start = new Date(startISO);
@@ -335,7 +335,7 @@ export function buildCustomerProfiles(allRows) {
         entry.subscriptionRevenue += effectiveRevenue(r);
       } else if (effectiveHours(r) > 0) {
         entry.count += 1;
-      } else {
+      } else if (r.status !== PENDING_STATUS) {
         entry.cancelCount += 1;
       }
     });

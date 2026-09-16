@@ -25,6 +25,15 @@ export const CHANNEL_COLOR = {
 // `status` and excluded from the channel-breakdown charts, not bucketed as "その他".
 export const SUBSCRIPTION_STATUS = "定期クーポン";
 
+// Status for a 自社サイト booking whose usage date hasn't happened yet (raw
+// export status "未確定", shown as "利用前" in the platform's own UI). It's a
+// confirmed/paid reservation, so it counts toward revenue, but the room
+// hasn't actually been used yet, so it's excluded from hours/occupancy. Once
+// the date passes, a later export reports it as "利用済み" instead (see
+// rawImportMappers.js), and the upsert-on-external_id import logic updates
+// the existing row in place rather than adding a duplicate.
+export const PENDING_STATUS = "利用前";
+
 // 月=0 .. 日=6, matches the WEEKDAYS order used throughout the app.
 export const WEEKDAYS = ["月", "火", "水", "木", "金", "土", "日"];
 
@@ -38,7 +47,7 @@ export const MONTH_LABELS = [
 // Rows counted as revenue per spec 4.2, plus 定期クーポン (subscription income),
 // which is now linked to a store via the subscriber's most-used store (see
 // server/src/importSubscriptions.js) rather than excluded outright.
-export const REVENUE_STATUSES = new Set(["利用済み", "キャンセル(返金あり)", SUBSCRIPTION_STATUS]);
+export const REVENUE_STATUSES = new Set(["利用済み", "キャンセル(返金あり)", SUBSCRIPTION_STATUS, PENDING_STATUS]);
 
 // Rows counted as actual room usage per spec 4.3 — cancellations never occupy the room.
 export const HOURS_USED_STATUSES = new Set(["利用済み"]);

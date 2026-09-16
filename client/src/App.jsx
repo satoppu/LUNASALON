@@ -56,6 +56,7 @@ export default function App() {
 
   function describeImportResult(result) {
     const parts = [`${result.inserted}件のデータを取り込みました。`];
+    if (result.updated) parts.push(`${result.updated}件は状況が更新されました(例: 利用前→利用済み)。`);
     if (result.format === "rawBooking" || result.format === "rawInstabase") {
       if (result.skippedPending) parts.push(`未確定の予約 ${result.skippedPending}件は対象外(実施後に再度アップロードしてください)。`);
       if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みのためスキップしました。`);

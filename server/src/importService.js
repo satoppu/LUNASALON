@@ -1,28 +1,53 @@
 import Papa from "papaparse";
 import db from "./db.js";
 import { normalizeImportRow } from "./importRows.js";
-import { SUBSCRIPTION_STATUS, getTodayISO } from "./config.js";
+import { SUBSCRIPTION_STATUS, PENDING_STATUS, getTodayISO } from "./config.js";
 import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow } from "./rawImportMappers.js";
 import { ensureStoreRegistered } from "./storeSettingsService.js";
 
-const insertStmt = db.prepare(`
-  INSERT OR IGNORE INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id)
+// A plain INSERT (external_id NULL, from the simple template) never
+// conflicts — SQLite's UNIQUE index treats each NULL as distinct. A raw
+// export row with an external_id that's already in the table gets its
+// fields refreshed instead of being ignored: this is how a 自社サイト
+// booking transitions from PENDING_STATUS ("利用前") to "利用済み" (or to a
+// cancellation) on a later export of the same 決済ID, without creating a
+// duplicate row.
+const upsertStmt = db.prepare(`
+  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id)
   VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id)
+  ON CONFLICT(external_id) DO UPDATE SET
+    date = excluded.date,
+    store = excluded.store,
+    user_name = excluded.user_name,
+    revenue = excluded.revenue,
+    hours_used = excluded.hours_used,
+    start_hour = excluded.start_hour,
+    weekday = excluded.weekday,
+    channel = excluded.channel,
+    status = excluded.status
+  WHERE external_id IS NOT NULL
 `);
+const existsStmt = db.prepare(`SELECT 1 FROM transactions WHERE external_id = ?`);
 
 function insertRows(rows) {
   const seenStores = new Set(rows.map((r) => r.store));
   let inserted = 0;
+  let updated = 0;
   db.exec("BEGIN");
   try {
     for (const store of seenStores) ensureStoreRegistered(store);
-    for (const r of rows) inserted += insertStmt.run(r).changes;
+    for (const r of rows) {
+      const alreadyExists = r.external_id ? !!existsStmt.get(r.external_id) : false;
+      upsertStmt.run(r);
+      if (alreadyExists) updated++;
+      else inserted++;
+    }
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");
     throw err;
   }
-  return inserted;
+  return { inserted, updated };
 }
 
 function importSimpleCsv(parsed) {
@@ -30,45 +55,48 @@ function importSimpleCsv(parsed) {
   if (rows.length === 0) {
     return { format: "simple", inserted: 0, skipped: parsed.data.length, error: "有効な行が見つかりませんでした。" };
   }
-  const inserted = insertRows(rows);
+  const { inserted } = insertRows(rows);
   return { format: "simple", inserted, skipped: parsed.data.length - rows.length, duplicates: rows.length - inserted, error: null };
 }
 
-// The bundled historical CSVs predate external_id tracking, so INSERT OR
-// IGNORE alone can't tell "already imported via a previous raw export" apart
-// from "already covered by the original historical data". Only importing
-// rows past the latest matching date already in transactions avoids
-// double-counting revenue from that overlap (see rawImportMappers.js).
+// The bundled historical CSVs predate external_id tracking, so the upsert
+// alone can't tell "already imported via a previous raw export" apart from
+// "already covered by the original historical data". Only importing rows
+// past the latest matching date among those *historical* (external_id-less)
+// rows avoids double-counting revenue from that overlap — computed that way,
+// rather than as a plain MAX(date) over the whole table, so it stays fixed
+// even as later imports add PENDING_STATUS ("利用前") rows dated months into
+// the future (see rawImportMappers.js). PENDING_STATUS itself is exempt from
+// this cutoff entirely: that status didn't exist in the historical export
+// (未確定 rows were skipped outright before this pipeline handled them), so a
+// row mapped to it can never actually be historical-CSV ground, even when its
+// date happens to land on/before the cutoff (e.g. a same-day booking for
+// later today, dated the same as the cutoff day itself).
 function importRawBookingCsv(parsed) {
-  const since = db.prepare("SELECT MAX(date) AS d FROM transactions").get().d ?? "0000-00-00";
-  let skippedPending = 0;
+  const since = db.prepare("SELECT MAX(date) AS d FROM transactions WHERE external_id IS NULL").get().d ?? "0000-00-00";
   let skippedUnparseable = 0;
   let skippedAlreadyCovered = 0;
   const rows = [];
 
   for (const raw of parsed.data) {
-    if (raw["状態"] === "未確定") {
-      skippedPending++;
-      continue;
-    }
     const row = mapRawBookingRow(raw);
     if (!row) {
       skippedUnparseable++;
       continue;
     }
-    if (row.date <= since) {
+    if (row.date <= since && row.status !== PENDING_STATUS) {
       skippedAlreadyCovered++;
       continue;
     }
     rows.push(row);
   }
 
-  const inserted = rows.length > 0 ? insertRows(rows) : 0;
+  const { inserted, updated } = rows.length > 0 ? insertRows(rows) : { inserted: 0, updated: 0 };
   return {
     format: "rawBooking",
     inserted,
-    duplicates: rows.length - inserted,
-    skippedPending,
+    updated,
+    duplicates: rows.length - inserted - updated,
     skippedUnparseable,
     skippedAlreadyCovered,
     error: null,
@@ -76,7 +104,9 @@ function importRawBookingCsv(parsed) {
 }
 
 function importRawSubscriptionCsv(parsed) {
-  const since = db.prepare("SELECT MAX(date) AS d FROM transactions WHERE status = ?").get(SUBSCRIPTION_STATUS).d ?? "0000-00-00";
+  const since =
+    db.prepare("SELECT MAX(date) AS d FROM transactions WHERE status = ? AND external_id IS NULL").get(SUBSCRIPTION_STATUS).d ??
+    "0000-00-00";
   let unresolvedOrBad = 0;
   let skippedAlreadyCovered = 0;
   const rows = [];
@@ -94,11 +124,12 @@ function importRawSubscriptionCsv(parsed) {
     rows.push(row);
   }
 
-  const inserted = rows.length > 0 ? insertRows(rows) : 0;
+  const { inserted, updated } = rows.length > 0 ? insertRows(rows) : { inserted: 0, updated: 0 };
   return {
     format: "rawSubscription",
     inserted,
-    duplicates: rows.length - inserted,
+    updated,
+    duplicates: rows.length - inserted - updated,
     unresolvedOrBad,
     skippedAlreadyCovered,
     error: null,
@@ -146,11 +177,12 @@ function importRawInstabaseCsv(parsed) {
     rows.push(row);
   }
 
-  const inserted = rows.length > 0 ? insertRows(rows) : 0;
+  const { inserted, updated } = rows.length > 0 ? insertRows(rows) : { inserted: 0, updated: 0 };
   return {
     format: "rawInstabase",
     inserted,
-    duplicates: rows.length - inserted,
+    updated,
+    duplicates: rows.length - inserted - updated,
     skippedPending,
     skippedUnparseable,
     skippedAlreadyCovered,
