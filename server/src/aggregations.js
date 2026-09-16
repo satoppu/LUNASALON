@@ -410,3 +410,39 @@ export function buildActiveCustomersByMonth(allRows) {
     return { yearMonth: ym, label: formatYearMonth(ym), count: active };
   });
 }
+
+// ---- Booking lead time (spans all years, independent of the selected year) ----
+
+const LEAD_TIME_BUCKETS = [
+  { label: "当日", min: 0, max: 0 },
+  { label: "1日前", min: 1, max: 1 },
+  { label: "2〜3日前", min: 2, max: 3 },
+  { label: "4〜7日前", min: 4, max: 7 },
+  { label: "8〜14日前", min: 8, max: 14 },
+  { label: "15〜30日前", min: 15, max: 30 },
+  { label: "31日以上前", min: 31, max: Infinity },
+];
+
+/**
+ * Distribution of "days between booking and usage" for 自社サイト/Instabase
+ * reservations (`booking_date` is only captured for those two raw-import
+ * paths — see rawImportMappers.js — so rows from the historical seed CSV or
+ * a simple-template import are silently excluded here, not treated as
+ * same-day bookings). Counts every row with a booking_date regardless of
+ * status (spec: this is about booking behavior, not just completed visits),
+ * discarding the rare negative-gap row as bad data.
+ */
+export function buildBookingLeadTime(allRows) {
+  const buckets = LEAD_TIME_BUCKETS.map((b) => ({ label: b.label, count: 0 }));
+  let total = 0;
+  allRows.forEach((r) => {
+    if (!r.booking_date) return;
+    const days = Math.round((new Date(r.date) - new Date(r.booking_date)) / 86400000);
+    if (days < 0) return;
+    const idx = LEAD_TIME_BUCKETS.findIndex((b) => days >= b.min && days <= b.max);
+    if (idx === -1) return;
+    buckets[idx].count += 1;
+    total += 1;
+  });
+  return { buckets, total };
+}

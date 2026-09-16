@@ -14,8 +14,8 @@ export default function OccupancyPage({ data }) {
         <div style={{ background: "#FFFFFF" }} className="p-4">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={occupancyData} layout="vertical" margin={{ left: 10 }}>
-              <CartesianGrid stroke="#EFEAE3" horizontal={false} />
-              <XAxis type="number" domain={[0, 100]} tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={{ stroke: "#E7E2DB" }} tickLine={false} tickFormatter={(v) => `${v}%`} />
+              <CartesianGrid stroke="#F0E3E7" horizontal={false} />
+              <XAxis type="number" domain={[0, 100]} tick={{ fill: "#8F7B82", fontSize: 12 }} axisLine={{ stroke: "#EAE0E3" }} tickLine={false} tickFormatter={(v) => `${v}%`} />
               <YAxis type="category" dataKey="store" tick={{ fill: "#262421", fontSize: 13 }} axisLine={false} tickLine={false} width={70} />
               <Tooltip formatter={(v) => `${v}%`} />
               <Bar dataKey="稼働率" radius={[0, 2, 2, 0]}>
@@ -36,9 +36,9 @@ export default function OccupancyPage({ data }) {
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={hourlyUsage}>
-                <CartesianGrid stroke="#EFEAE3" vertical={false} />
-                <XAxis dataKey="hour" tick={{ fill: "#8A857D", fontSize: 11 }} axisLine={{ stroke: "#E7E2DB" }} tickLine={false} interval={1} />
-                <YAxis tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}h`} />
+                <CartesianGrid stroke="#F0E3E7" vertical={false} />
+                <XAxis dataKey="hour" tick={{ fill: "#8F7B82", fontSize: 11 }} axisLine={{ stroke: "#EAE0E3" }} tickLine={false} interval={1} />
+                <YAxis tick={{ fill: "#8F7B82", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}h`} />
                 <Tooltip formatter={(v) => `${Number(v).toFixed(1)}h`} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {storeNames.map((name) => (
@@ -56,9 +56,9 @@ export default function OccupancyPage({ data }) {
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={weekdayOccupancy}>
-                <CartesianGrid stroke="#EFEAE3" vertical={false} />
-                <XAxis dataKey="weekday" tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={{ stroke: "#E7E2DB" }} tickLine={false} />
-                <YAxis tick={{ fill: "#8A857D", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+                <CartesianGrid stroke="#F0E3E7" vertical={false} />
+                <XAxis dataKey="weekday" tick={{ fill: "#8F7B82", fontSize: 12 }} axisLine={{ stroke: "#EAE0E3" }} tickLine={false} />
+                <YAxis tick={{ fill: "#8F7B82", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
                 <Tooltip formatter={(v) => `${v}%`} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {storeNames.map((name) => (

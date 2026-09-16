@@ -29,6 +29,17 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+// booking_date (when the reservation was made, vs. `date` which is when the
+// room is/was used) predates neither the historical CSV nor the simple
+// template, so it's added as a migration rather than the CREATE TABLE above —
+// existing rows just keep it NULL.
+const hasBookingDate = db
+  .prepare(`SELECT 1 FROM pragma_table_info('transactions') WHERE name = 'booking_date'`)
+  .get();
+if (!hasBookingDate) {
+  db.exec(`ALTER TABLE transactions ADD COLUMN booking_date TEXT;`);
+}
+
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store_date ON transactions(store, date);`);
@@ -55,6 +66,15 @@ const seedStoreStmt = db.prepare(`
 `);
 for (const s of DEFAULT_STORES) {
   seedStoreStmt.run(s.store, s.area, s.color, DEFAULT_OPERATING_HOURS_PER_DAY, s.sortOrder);
+}
+
+// Color isn't user-editable (店舗設定 only exposes open date/hours), so it's
+// safe to keep every default store's color in sync with DEFAULT_STORES on
+// every startup rather than only at first seed — otherwise a palette change
+// here would never reach a database that was seeded before it.
+const syncStoreColorStmt = db.prepare(`UPDATE store_settings SET color = ? WHERE store = ?`);
+for (const s of DEFAULT_STORES) {
+  syncStoreColorStmt.run(s.color, s.store);
 }
 
 export default db;

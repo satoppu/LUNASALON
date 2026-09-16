@@ -38,7 +38,7 @@ Vercel / Render などシンプルなホスティング先へは `server` をNod
 ```
 transactions(
   id, date, store, user_name, revenue, hours_used,
-  start_hour, weekday, channel, status, external_id, created_at
+  start_hour, weekday, channel, status, external_id, booking_date, created_at
 )
 store_settings(
   store, area, color, open_date, operating_hours_per_day, sort_order
@@ -46,6 +46,8 @@ store_settings(
 ```
 
 `store_settings` に開業日(`open_date`)・1日あたり稼働可能時間(`operating_hours_per_day`)を保存しており、画面右上の「店舗設定」から編集できます(仕様書 7.3 の「基準日・店舗開業日をハードコードしない」要件に対応)。`open_date` を空欄にすると、実績データ上のその店舗の初回利用日から自動推定されます。
+
+`booking_date`(予約が実際に行われた日。`date` は利用日)は自社サイト・Instabaseの生データ取り込み(決済日時/申込日時から取得)でのみ埋まり、履歴CSVやシンプルテンプレートのインポートでは常にNULLです。「顧客分析」ページの「予約は何日前にされているか」グラフはこの値が入っている行のみを対象にしているため、取り込み時期より前のデータは反映されません。
 
 基準日(本日)は仕様書 4.4 のとおりサーバーの現在日時(JST)から動的に算出しており、設定値としては保持していません。
 

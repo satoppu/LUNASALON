@@ -102,6 +102,7 @@ export function mapRawBookingRow(raw) {
     channel: BOOKING_CHANNEL,
     status,
     external_id: raw["決済ID"] || null,
+    booking_date: paymentISO.slice(0, 10),
   };
 }
 
@@ -195,5 +196,6 @@ export function mapRawInstabaseRow(raw) {
     channel: INSTABASE_CHANNEL,
     status,
     external_id: raw["予約ID"] || null,
+    booking_date: String(raw["申込日時"] || "").slice(0, 10) || null,
   };
 }

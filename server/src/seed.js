@@ -51,8 +51,8 @@ function seed() {
   const rows = [...usageRows, ...subscriptionRows];
 
   const insert = db.prepare(`
-    INSERT OR IGNORE INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id)
-    VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id)
+    INSERT OR IGNORE INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id, booking_date)
+    VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id, @booking_date)
   `);
   db.exec("BEGIN");
   try {

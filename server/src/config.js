@@ -4,19 +4,19 @@
 export const DEFAULT_OPERATING_HOURS_PER_DAY = 14;
 
 export const DEFAULT_STORES = [
-  { store: "Bellezza", area: "柏", color: "#345953", sortOrder: 0 },
-  { store: "Forest", area: "柏", color: "#7C8F4A", sortOrder: 1 },
-  { store: "Asteria", area: "つくば", color: "#5E6FA0", sortOrder: 2 },
+  { store: "Bellezza", area: "柏", color: "#B5306A", sortOrder: 0 },
+  { store: "Forest", area: "柏", color: "#C68A2E", sortOrder: 1 },
+  { store: "Asteria", area: "つくば", color: "#3E7FB0", sortOrder: 2 },
 ];
 
 export const CHANNELS = ["自社サイト", "Instabase", "スペースマーケット", "その他"];
 
 export const CHANNEL_COLOR = {
-  自社サイト: "#262421",
-  Instabase: "#3B6FA0",
-  スペースマーケット: "#4E8F5B",
-  その他: "#B0A99A",
-  定期クーポン: "#8C3B3B",
+  自社サイト: "#C2447A",
+  Instabase: "#3E7FB0",
+  スペースマーケット: "#C68A2E",
+  その他: "#5D3C8C",
+  定期クーポン: "#3E7FB0",
 };
 
 // Status for 定期利用/サブスクリプション revenue rows. Unlike the four channels

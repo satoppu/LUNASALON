@@ -1,11 +1,11 @@
 export const CHANNELS = ["自社サイト", "Instabase", "スペースマーケット", "その他"];
 
 export const CHANNEL_COLOR = {
-  自社サイト: "#262421",
-  Instabase: "#3B6FA0",
-  スペースマーケット: "#4E8F5B",
-  その他: "#B0A99A",
-  定期クーポン: "#8C3B3B",
+  自社サイト: "#C2447A",
+  Instabase: "#3E7FB0",
+  スペースマーケット: "#C68A2E",
+  その他: "#5D3C8C",
+  定期クーポン: "#3E7FB0",
 };
 
 export const FONT_HEAD = "'Shippori Mincho', serif";
@@ -16,5 +16,5 @@ export function yen(n) {
 }
 
 export function makeStoreColor(storeMeta) {
-  return (name) => storeMeta?.[name]?.color || "#8A857D";
+  return (name) => storeMeta?.[name]?.color || "#8F7B82";
 }

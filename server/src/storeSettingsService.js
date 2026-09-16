@@ -16,7 +16,7 @@ export function ensureStoreRegistered(store) {
   const maxOrder = db.prepare(`SELECT COALESCE(MAX(sort_order), -1) AS m FROM store_settings`).get().m;
   db.prepare(
     `INSERT INTO store_settings (store, area, color, operating_hours_per_day, sort_order) VALUES (?, NULL, ?, ?, ?)`
-  ).run(store, "#8A857D", DEFAULT_OPERATING_HOURS_PER_DAY, maxOrder + 1);
+  ).run(store, "#8F7B82", DEFAULT_OPERATING_HOURS_PER_DAY, maxOrder + 1);
   return getStoreSetting(store);
 }
 

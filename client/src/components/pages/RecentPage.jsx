@@ -66,7 +66,7 @@ export default function RecentPage({ data }) {
 
   const hasFilters = start || end || store || status || user;
   const selectClass = "text-sm px-3 py-2 border";
-  const selectStyle = { borderColor: "#E7E2DB", background: "#FFFFFF" };
+  const selectStyle = { borderColor: "#EAE0E3", background: "#FFFFFF" };
 
   return (
     <div>
@@ -82,7 +82,7 @@ export default function RecentPage({ data }) {
             className={selectClass}
             style={selectStyle}
           />
-          <span style={{ color: "#8A857D" }}>〜</span>
+          <span style={{ color: "#8F7B82" }}>〜</span>
           <input
             type="date"
             value={end}
@@ -114,7 +114,7 @@ export default function RecentPage({ data }) {
             className={selectClass}
             style={selectStyle}
           />
-          <button type="submit" className="text-sm px-3 py-2" style={{ background: "#345953", color: "#FAF8F5" }}>
+          <button type="submit" className="text-sm px-3 py-2" style={{ background: "#B5306A", color: "#FBF6F7" }}>
             検索
           </button>
           {hasFilters && (
@@ -122,7 +122,7 @@ export default function RecentPage({ data }) {
               type="button"
               onClick={handleClear}
               className="text-sm px-3 py-2 border"
-              style={{ borderColor: "#E7E2DB", color: "#6B665F", background: "#FFFFFF" }}
+              style={{ borderColor: "#EAE0E3", color: "#756269", background: "#FFFFFF" }}
             >
               クリア
             </button>
@@ -131,7 +131,7 @@ export default function RecentPage({ data }) {
       </div>
 
       {error && (
-        <p className="text-sm mb-4" style={{ color: "#8C3B3B" }}>
+        <p className="text-sm mb-4" style={{ color: "#A83A56" }}>
           {error}
         </p>
       )}
@@ -139,7 +139,7 @@ export default function RecentPage({ data }) {
       {result && (
         <>
           <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
-            <p className="text-xs" style={{ color: "#8A857D" }}>
+            <p className="text-xs" style={{ color: "#8F7B82" }}>
               {result.total}件中 {result.total === 0 ? 0 : result.offset + 1}〜{Math.min(result.offset + result.limit, result.total)}件を表示
             </p>
             {result.total > result.limit && (
@@ -149,7 +149,7 @@ export default function RecentPage({ data }) {
                   disabled={offset === 0}
                   onClick={() => setOffset(Math.max(offset - PAGE_SIZE, 0))}
                   className="text-sm px-3 py-1.5 border disabled:opacity-40"
-                  style={{ borderColor: "#E7E2DB", color: "#6B665F", background: "#FFFFFF" }}
+                  style={{ borderColor: "#EAE0E3", color: "#756269", background: "#FFFFFF" }}
                 >
                   前へ
                 </button>
@@ -158,7 +158,7 @@ export default function RecentPage({ data }) {
                   disabled={offset + result.limit >= result.total}
                   onClick={() => setOffset(offset + PAGE_SIZE)}
                   className="text-sm px-3 py-1.5 border disabled:opacity-40"
-                  style={{ borderColor: "#E7E2DB", color: "#6B665F", background: "#FFFFFF" }}
+                  style={{ borderColor: "#EAE0E3", color: "#756269", background: "#FFFFFF" }}
                 >
                   次へ
                 </button>
@@ -168,43 +168,43 @@ export default function RecentPage({ data }) {
           <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: "1px solid #E7E2DB" }}>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                <tr style={{ borderBottom: "1px solid #EAE0E3" }}>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
                     <button
                       onClick={() => {
                         setSort(sort === "desc" ? "asc" : "desc");
                         setOffset(0);
                       }}
                       className="flex items-center gap-1"
-                      style={{ color: "#8A857D" }}
+                      style={{ color: "#8F7B82" }}
                     >
                       日付
                       {sort === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </button>
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
                     店舗
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
                     利用者
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
                     導線
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
                     状態
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
                     売上
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8A857D" }}>
+                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7B82" }}>
                     利用時間
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {result.rows.map((r) => (
-                  <tr key={r.id} style={{ borderBottom: "1px solid #F1EDE7" }}>
+                  <tr key={r.id} style={{ borderBottom: "1px solid #F3E7EA" }}>
                     <td className="px-4 py-3">{r.date}</td>
                     <td className="px-4 py-3">
                       <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(r.store) }} />
@@ -212,11 +212,11 @@ export default function RecentPage({ data }) {
                     </td>
                     <td className="px-4 py-3">{r.user_name}</td>
                     <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-0.5" style={{ background: "#F1EDE7", color: CHANNEL_COLOR[r.channel] || "#6B665F" }}>
+                      <span className="text-xs px-2 py-0.5" style={{ background: "#F3E7EA", color: CHANNEL_COLOR[r.channel] || "#756269" }}>
                         {r.channel}
                       </span>
                     </td>
-                    <td className="px-4 py-3" style={{ color: "#8A857D" }}>
+                    <td className="px-4 py-3" style={{ color: "#8F7B82" }}>
                       {r.status}
                     </td>
                     <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
@@ -225,7 +225,7 @@ export default function RecentPage({ data }) {
                 ))}
                 {result.rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center" style={{ color: "#8A857D" }}>
+                    <td colSpan={7} className="px-4 py-6 text-center" style={{ color: "#8F7B82" }}>
                       該当する実績が見つかりません。
                     </td>
                   </tr>

@@ -13,8 +13,8 @@ import { ensureStoreRegistered } from "./storeSettingsService.js";
 // cancellation) on a later export of the same 決済ID, without creating a
 // duplicate row.
 const upsertStmt = db.prepare(`
-  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id)
-  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id)
+  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id, booking_date)
+  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id, @booking_date)
   ON CONFLICT(external_id) DO UPDATE SET
     date = excluded.date,
     store = excluded.store,
@@ -24,7 +24,8 @@ const upsertStmt = db.prepare(`
     start_hour = excluded.start_hour,
     weekday = excluded.weekday,
     channel = excluded.channel,
-    status = excluded.status
+    status = excluded.status,
+    booking_date = excluded.booking_date
   WHERE external_id IS NOT NULL
 `);
 const existsStmt = db.prepare(`SELECT 1 FROM transactions WHERE external_id = ?`);
