@@ -4,8 +4,8 @@ import { normalizeImportRow } from "./importRows.js";
 import { ensureStoreRegistered } from "./storeSettingsService.js";
 
 const insertStmt = db.prepare(`
-  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status)
-  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status)
+  INSERT OR IGNORE INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id)
+  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id)
 `);
 
 /**
@@ -23,15 +23,17 @@ export function importCsv(csvText) {
   }
 
   const seenStores = new Set(rows.map((r) => r.store));
+  let inserted = 0;
   db.exec("BEGIN");
   try {
     for (const store of seenStores) ensureStoreRegistered(store);
-    for (const r of rows) insertStmt.run(r);
+    for (const r of rows) inserted += insertStmt.run(r).changes;
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");
     throw err;
   }
 
-  return { inserted: rows.length, skipped: parsed.data.length - rows.length, error: null };
+  const duplicates = rows.length - inserted;
+  return { inserted, skipped: parsed.data.length - rows.length, duplicates, error: null };
 }

@@ -14,6 +14,7 @@ const HEADER_ALIASES = {
   weekday: ["weekday", "曜日"],
   channel: ["channel", "導線", "チャネル"],
   status: ["status", "ステータス"],
+  externalId: ["external_id", "決済ID", "支払いID"],
 };
 
 function matchHeader(row, keys) {
@@ -66,6 +67,8 @@ export function normalizeImportRow(raw) {
     else status = "キャンセル(顧客)";
   }
 
+  const externalIdRaw = matchHeader(raw, HEADER_ALIASES.externalId);
+
   return {
     date: dateStr,
     store: String(store).trim(),
@@ -76,6 +79,7 @@ export function normalizeImportRow(raw) {
     weekday: weekday || null,
     channel: String(channel).trim(),
     status: String(status).trim(),
+    external_id: externalIdRaw ? String(externalIdRaw).trim() : null,
   };
 }
 
@@ -102,5 +106,6 @@ export function normalizeSubscriptionRow(raw) {
     weekday: raw.weekday || null,
     channel: SUBSCRIPTION_STATUS,
     status: SUBSCRIPTION_STATUS,
+    external_id: raw.external_id ? String(raw.external_id).trim() : null,
   };
 }

@@ -25,12 +25,17 @@ db.exec(`
     weekday TEXT,
     channel TEXT NOT NULL DEFAULT '自社サイト',
     status TEXT NOT NULL DEFAULT '利用済み',
+    external_id TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store_date ON transactions(store, date);`);
+// external_id (決済ID/支払いID from the reservation platform) lets raw-export
+// imports be re-run safely — SQLite's UNIQUE index treats each NULL as
+// distinct, so historical rows without one never collide.
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_external_id ON transactions(external_id);`);
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS store_settings (

@@ -15,26 +15,12 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import XLSX from "xlsx";
-import db from "./db.js";
+import { canonicalizeUserName, resolveStoreForUser } from "./importHelpers.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = path.join(__dirname, "..", "data", "luna_subscriptions_2023-2026.csv");
 
 const SUBSCRIPTION_STATUS_LABEL = "定期クーポン";
-
-function resolveStore(name) {
-  const stmt = db.prepare(
-    "SELECT store, COUNT(*) c FROM transactions WHERE user_name = ? GROUP BY store ORDER BY c DESC LIMIT 1"
-  );
-  let row = stmt.get(name);
-  if (row) return row.store;
-  const normalized = name.replace(/[(（].*$/, "").trim();
-  if (normalized !== name) {
-    row = stmt.get(normalized);
-    if (row) return row.store;
-  }
-  return null;
-}
 
 function toISODate(s) {
   const m = String(s).trim().match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
@@ -65,8 +51,8 @@ function main() {
   const unresolved = [];
 
   for (const r of subs) {
-    const name = String(r[idx["氏名"]]).trim();
-    const store = resolveStore(name);
+    const name = canonicalizeUserName(r[idx["氏名"]]);
+    const store = resolveStoreForUser(name);
     const date = toISODate(r[idx["開始日付"]]);
     const revenue = Number(String(r[idx["金額"]]).replace(/,/g, "").trim());
     const weekday = r[idx["曜日"]];

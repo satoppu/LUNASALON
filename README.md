@@ -34,7 +34,7 @@ Vercel / Render などシンプルなホスティング先へは `server` をNod
 ```
 transactions(
   id, date, store, user_name, revenue, hours_used,
-  start_hour, weekday, channel, status, created_at
+  start_hour, weekday, channel, status, external_id, created_at
 )
 store_settings(
   store, area, color, open_date, operating_hours_per_day, sort_order
@@ -69,6 +69,22 @@ npm run seed
 ```
 
 利用履歴が1件もない購入者(店舗を特定できない行)はCSVに書き出されず、コンソールに警告として一覧表示される。
+
+### 予約プラットフォームの生エクスポートを直接取り込む
+
+チャネルの生の予約サイトエクスポート(自社サイト分、列: スペース名,顧客名,HN,決済元金,割引金額,返金額,利益確定後返金,利益,使用クーポン,決済方法,状態,決済日時,決済日時（データ入力用）,利用日時,売り上げ確定日時,決済ID)と、定額クーポン購入エクスポート(列: クーポン名,顧客名,金額,返金額,利益,支払いID,購入日時)は、上記のダッシュボード用CSVテンプレートとは全く別の生データ形式のため、専用のワンショットスクリプトで取り込む。
+
+```bash
+cd server
+node src/importRawBookings.js /path/to/booking-export.csv
+node src/importRawSubscriptions.js /path/to/coupon-export.csv   # 予約データの後に実行(店舗紐付けに利用実績を使うため)
+```
+
+- 状態「未確定」(まだ実施されていない未来予約)は取り込まない。「利用済み」→利用済み、「キャンセル(顧客)」は利益>0なら「キャンセル(返金あり)」・0なら「キャンセル(顧客)」、「キャンセル(オーナー)」はそのまま新しいステータスとして保存(売上・稼働時間ともに計上対象外)。
+- 売上は「利益」列(クーポン充当後の純額)を使用。クーポンで支払われた予約は、この行では売上0(その分の売上は定期クーポン購入時点で別途計上済み)だが `hours_used` はきちんと計上される。
+- 顧客名は既存の `transactions` の名前と空白を無視して突き合わせ、同一人物の実績が分裂しないようにしている(例:「HARUNA TAKAGI」→ 既存の「HARUNATAKAGI」に統合)。
+- 各行の決済ID/支払いIDを `external_id` として保存し、同じエクスポートを再実行しても重複登録されない(`INSERT OR IGNORE`)。ただし同梱の履歴データ(`luna_usage_2023-2026.csv` など)には `external_id` が無いため、**そのエクスポートが既にカバーしている期間を再度取り込むと二重計上になる**。デフォルトでは「DB内の最新日付より後」のみ取り込むことでこれを防いでいる(初回のみ範囲が離れている場合は `--since=YYYY-MM-DD` で明示可能)。
+- 取り込んだ行は即座に `server/luna.db` へ反映されると同時に、再現用として `server/data/luna_usage_<YYYY-MM>_raw_imports.csv` / `luna_subscriptions_<YYYY-MM>_raw_imports.csv` に追記される(`npm run seed` はこれらも自動的に読み込む)。
 
 ## CSVインポート
 
