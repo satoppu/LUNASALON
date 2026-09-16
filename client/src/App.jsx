@@ -37,6 +37,22 @@ export default function App() {
     await loadDashboard(y);
   }
 
+  function describeImportResult(result) {
+    const parts = [`${result.inserted}件のデータを取り込みました。`];
+    if (result.format === "rawBooking") {
+      if (result.skippedPending) parts.push(`未確定の予約 ${result.skippedPending}件は対象外(実施後に再度アップロードしてください)。`);
+      if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みの期間のためスキップしました。`);
+      if (result.skippedUnparseable) parts.push(`${result.skippedUnparseable}件は読み取れませんでした。`);
+    } else if (result.format === "rawSubscription") {
+      if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みの期間のためスキップしました。`);
+      if (result.unresolvedOrBad) parts.push(`${result.unresolvedOrBad}件は利用実績がなく店舗を特定できないため保留しました。`);
+    } else if (result.skipped) {
+      parts.push(`${result.skipped}件は列が読み取れずスキップしました。`);
+    }
+    if (result.duplicates) parts.push(`(うち${result.duplicates}件は取り込み済みでした)`);
+    return parts.join(" ");
+  }
+
   async function handleFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -44,7 +60,7 @@ export default function App() {
     setError(null);
     try {
       const result = await api.importCsv(file);
-      setImportMessage(`${result.inserted}件のデータを取り込みました。`);
+      setImportMessage(describeImportResult(result));
       await loadDashboard(selectedYear);
     } catch (err) {
       setError(err.message);

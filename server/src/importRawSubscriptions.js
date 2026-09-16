@@ -1,13 +1,12 @@
-// Imports a raw 定額クーポン (subscription) purchase export straight from the
-// reservation platform (columns: クーポン名,顧客名,金額,返金額,利益,支払いID,
-// 購入日時). Unlike server/src/importSubscriptions.js (which reads the older
-// bundled Excel "データ" sheet), this reads the platform's own coupon-sales
-// CSV export directly.
+// CLI wrapper around rawImportMappers.mapRawSubscriptionRow: reads a raw
+// 定期クーポン purchase export file, inserts new rows into server/luna.db, and
+// appends them to a dated CSV under server/data for reproducibility. See
+// rawImportMappers.js for the column shape and store-linking rule — the same
+// mapper backs the web /api/import upload path (importService.js), so
+// uploading this file through the dashboard's own "CSVインポート" button
+// works too.
 //
-// These rows aren't tied to a store in the source data, so — same as the
-// Excel-based importer — each purchase is linked to whichever store the
-// customer has the most other (non-subscription) transactions at. Run this
-// *after* importing any booking data covering the same period, so the
+// Run this *after* importing any booking data covering the same period, so
 // store-resolution has the fullest possible history to work from.
 //
 // Every row carries 支払いID as external_id, so re-running this on an export
@@ -24,12 +23,10 @@ import { fileURLToPath } from "node:url";
 import Papa from "papaparse";
 import db from "./db.js";
 import { SUBSCRIPTION_STATUS } from "./config.js";
-import { canonicalizeUserName, resolveStoreForUser } from "./importHelpers.js";
+import { mapRawSubscriptionRow } from "./rawImportMappers.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "..", "data");
-
-const WEEKDAY_FROM_JS_DOW = ["日", "月", "火", "水", "木", "金", "土"];
 
 const insertStmt = db.prepare(`
   INSERT OR IGNORE INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id)
@@ -56,38 +53,20 @@ function main() {
   let inserted = 0;
   let ignoredDuplicate = 0;
   let skippedAlreadyCovered = 0;
-  const unresolved = [];
+  let unresolvedOrBad = 0;
 
   db.exec("BEGIN");
   try {
     for (const raw of parsed.data) {
-      const date = String(raw["購入日時"] || "").slice(0, 10);
-      const revenueRaw = raw["利益"] !== "" && raw["利益"] != null ? raw["利益"] : raw["金額"];
-      const revenue = Number(String(revenueRaw).replace(/,/g, ""));
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(revenue)) continue;
-      if (date <= since) {
+      const row = mapRawSubscriptionRow(raw);
+      if (!row) {
+        unresolvedOrBad++;
+        continue;
+      }
+      if (row.date <= since) {
         skippedAlreadyCovered++;
         continue;
       }
-
-      const userName = canonicalizeUserName(raw["顧客名"]);
-      const store = resolveStoreForUser(userName);
-      if (!store) {
-        unresolved.push({ name: userName, date, revenue });
-        continue;
-      }
-
-      const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];
-      const row = {
-        date,
-        store,
-        user_name: userName,
-        revenue,
-        weekday,
-        channel: SUBSCRIPTION_STATUS,
-        status: SUBSCRIPTION_STATUS,
-        external_id: raw["支払いID"] || null,
-      };
 
       const result = insertStmt.run(row);
       if (result.changes > 0) {
@@ -103,10 +82,11 @@ function main() {
     throw err;
   }
 
-  console.log({ inserted, ignoredDuplicate, skippedAlreadyCovered, unresolved: unresolved.length });
-  if (unresolved.length > 0) {
-    console.warn("Could not link to a store (no matching usage history yet) — not imported:");
-    console.warn(unresolved);
+  console.log({ inserted, ignoredDuplicate, skippedAlreadyCovered, unresolvedOrBad });
+  if (unresolvedOrBad > 0) {
+    console.warn(
+      "Some rows had an unparseable date/amount, or the customer has no usage history yet to resolve a store from — not imported."
+    );
   }
 
   if (outRows.length > 0) {
