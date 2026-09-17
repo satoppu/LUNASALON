@@ -496,3 +496,48 @@ export function buildBookingLeadTime(allRows) {
   });
   return { buckets, total };
 }
+
+const LEAD_MONTH_BUCKET_LABELS = ["同月予約", "1ヶ月前予約", "2ヶ月前予約", "3ヶ月以上前予約"];
+
+function monthDiff(fromYM, toYM) {
+  const [fy, fm] = fromYM.split("-").map(Number);
+  const [ty, tm] = toYM.split("-").map(Number);
+  return (ty - fy) * 12 + (tm - fm);
+}
+
+/**
+ * For each usage month over the last 36 months, splits that month's 自社サイト
+ * revenue by how far ahead it was booked (同月/1ヶ月前/2ヶ月前/3ヶ月以上前),
+ * based on 決済日時（データ入力用）(booking_date) — same scope as
+ * buildBookingLeadTime. Answers "how much of this month's usage was booked
+ * how far in advance", e.g. to see a June booking rush feeding July/August
+ * usage, and to compare that seasonal pattern year over year.
+ */
+export function buildBookingToUsageMonthly(allRows) {
+  const byUsageMonth = new Map();
+  allRows.forEach((r) => {
+    if (r.channel !== OWN_SITE_CHANNEL || !r.booking_date) return;
+    const usageYM = r.date.slice(0, 7);
+    const bookingYM = r.booking_date.slice(0, 7);
+    const diff = monthDiff(bookingYM, usageYM);
+    if (diff < 0) return;
+    const bucket = LEAD_MONTH_BUCKET_LABELS[Math.min(diff, 3)];
+    if (!byUsageMonth.has(usageYM)) {
+      const entry = { yearMonth: usageYM };
+      LEAD_MONTH_BUCKET_LABELS.forEach((label) => { entry[label] = 0; });
+      byUsageMonth.set(usageYM, entry);
+    }
+    byUsageMonth.get(usageYM)[bucket] += effectiveRevenue(r);
+  });
+
+  const yms = [...byUsageMonth.keys()].sort();
+  if (yms.length === 0) return [];
+  const maxYM = yms[yms.length - 1];
+  const minYM = shiftYearMonth(maxYM, -35);
+  return enumerateYearMonths(minYM, maxYM).map((ym) => {
+    const entry = byUsageMonth.get(ym);
+    const row = { yearMonth: ym, label: formatYearMonth(ym) };
+    LEAD_MONTH_BUCKET_LABELS.forEach((label) => { row[label] = entry?.[label] || 0; });
+    return row;
+  });
+}

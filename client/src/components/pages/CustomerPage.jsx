@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
 import { FONT_HEAD, yen } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
@@ -214,6 +214,50 @@ export default function CustomerPage() {
         </div>
         <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
           自社サイトの予約データのうち、決済日時(データ入力用)を取得できた分のみが対象です(過去にインポートした一部のデータは対象外)。
+        </p>
+      </div>
+
+      <div className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          月別 予約→利用の対応(過去3年)
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="p-4">
+          {state.bookingToUsageMonthly.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={state.bookingToUsageMonthly} margin={{ bottom: 24 }}>
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: "#8F7D6E", fontSize: 10 }}
+                  axisLine={{ stroke: "#EDE3D5" }}
+                  tickLine={false}
+                  interval={labelInterval(state.bookingToUsageMonthly.length)}
+                  angle={-40}
+                  textAnchor="end"
+                  height={50}
+                />
+                <YAxis
+                  tick={{ fill: "#8F7D6E", fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip formatter={(v) => yen(v)} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="同月予約" stackId="lead" fill="#D9738F" />
+                <Bar dataKey="1ヶ月前予約" stackId="lead" fill="#D4A644" />
+                <Bar dataKey="2ヶ月前予約" stackId="lead" fill="#D66B5C" />
+                <Bar dataKey="3ヶ月以上前予約" stackId="lead" fill="#8F4A28" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
+              対象データがありません。
+            </p>
+          )}
+        </div>
+        <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
+          横軸は利用月。その月に利用された予約が、何ヶ月前に決済(予約)されたかを積み上げで表示します(自社サイトのみ、決済日時(データ入力用)が取得できた分が対象)。年をまたいだ季節的な予約傾向の比較にご利用ください。
         </p>
       </div>
 
