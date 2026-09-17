@@ -9,6 +9,16 @@ function labelInterval(length) {
   return Math.max(0, Math.ceil(length / 8) - 1);
 }
 
+// Ordered (0/1/2/3+ months) so a light-to-dark ramp in one hue reads more
+// clearly than unrelated categorical colors, which put 同月予約 and
+// 2ヶ月前予約 too close in hue to tell apart at a glance.
+const LEAD_MONTH_COLORS = {
+  同月予約: "#F0DFB0",
+  "1ヶ月前予約": "#E3B563",
+  "2ヶ月前予約": "#C48A3A",
+  "3ヶ月以上前予約": "#8F4A28",
+};
+
 export default function CustomerPage() {
   const [state, setState] = useState(null);
   const [error, setError] = useState(null);
@@ -244,10 +254,10 @@ export default function CustomerPage() {
                 />
                 <Tooltip formatter={(v) => yen(v)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="同月予約" stackId="lead" fill="#D9738F" />
-                <Bar dataKey="1ヶ月前予約" stackId="lead" fill="#D4A644" />
-                <Bar dataKey="2ヶ月前予約" stackId="lead" fill="#D66B5C" />
-                <Bar dataKey="3ヶ月以上前予約" stackId="lead" fill="#8F4A28" />
+                <Bar dataKey="同月予約" stackId="lead" fill={LEAD_MONTH_COLORS.同月予約} />
+                <Bar dataKey="1ヶ月前予約" stackId="lead" fill={LEAD_MONTH_COLORS["1ヶ月前予約"]} />
+                <Bar dataKey="2ヶ月前予約" stackId="lead" fill={LEAD_MONTH_COLORS["2ヶ月前予約"]} />
+                <Bar dataKey="3ヶ月以上前予約" stackId="lead" fill={LEAD_MONTH_COLORS["3ヶ月以上前予約"]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -283,10 +293,10 @@ export default function CustomerPage() {
                 <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}h`} />
                 <Tooltip formatter={(v) => `${Number(v).toFixed(1)}h`} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="同月予約" stackId="lead" fill="#D9738F" />
-                <Bar dataKey="1ヶ月前予約" stackId="lead" fill="#D4A644" />
-                <Bar dataKey="2ヶ月前予約" stackId="lead" fill="#D66B5C" />
-                <Bar dataKey="3ヶ月以上前予約" stackId="lead" fill="#8F4A28" />
+                <Bar dataKey="同月予約" stackId="lead" fill={LEAD_MONTH_COLORS.同月予約} />
+                <Bar dataKey="1ヶ月前予約" stackId="lead" fill={LEAD_MONTH_COLORS["1ヶ月前予約"]} />
+                <Bar dataKey="2ヶ月前予約" stackId="lead" fill={LEAD_MONTH_COLORS["2ヶ月前予約"]} />
+                <Bar dataKey="3ヶ月以上前予約" stackId="lead" fill={LEAD_MONTH_COLORS["3ヶ月以上前予約"]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
