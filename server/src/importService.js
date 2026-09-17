@@ -183,6 +183,83 @@ function importRawInstabaseCsv(parsed) {
   };
 }
 
+// Groups rows sharing the same content-derived key from date/store/user_name/
+// revenue/status/hours_used. Used to line up a raw export's rows against
+// already-imported transactions that have no external_id to match on
+// directly (the historical bundled CSV predates that tracking).
+function bookingContentKey(r) {
+  return [r.date, r.store, r.user_name, r.revenue, r.status, Math.round(r.hours_used * 100)].join("|");
+}
+
+function groupByKey(rows, keyFn) {
+  const map = new Map();
+  for (const r of rows) {
+    const key = keyFn(r);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(r);
+  }
+  return map;
+}
+
+/**
+ * Backfills `booking_date` onto already-imported 自社サイト rows that predate
+ * external_id tracking (the historical bundled CSV) and have no booking_date
+ * yet, by matching a raw booking export's rows to them on content (date,
+ * store, user_name, revenue, status, hours_used) rather than 決済ID. A key
+ * where the file and the DB don't have the exact same row count is left
+ * alone rather than guessed at, so this can never misassign a payment date
+ * to the wrong row — see backfillMismatched in the result for anything that
+ * needs a closer look.
+ */
+export function backfillBookingDate(csvText) {
+  const cleaned = csvText.replace(/^﻿/, "");
+  const parsed = Papa.parse(cleaned, { header: true, skipEmptyLines: true });
+  const format = detectRawFormat(parsed.meta.fields);
+  if (format !== "rawBooking") {
+    return { format, backfillUpdated: 0, error: "この機能は自社サイトの予約エクスポートCSVのみ対応しています。" };
+  }
+
+  const rows = parsed.data.map(mapRawBookingRow).filter((r) => r && r.booking_date);
+  const fileByKey = groupByKey(rows, bookingContentKey);
+
+  const existing = db
+    .prepare(
+      `SELECT id, date, store, user_name, revenue, status, hours_used FROM transactions
+       WHERE external_id IS NULL AND booking_date IS NULL AND channel = '自社サイト'`
+    )
+    .all();
+  const dbByKey = groupByKey(existing, bookingContentKey);
+
+  let updated = 0;
+  let mismatched = 0;
+  let notFound = 0;
+  const updateStmt = db.prepare(`UPDATE transactions SET booking_date = @booking_date WHERE id = @id`);
+  db.exec("BEGIN");
+  try {
+    for (const [key, fileRows] of fileByKey) {
+      const dbRows = dbByKey.get(key);
+      if (!dbRows || dbRows.length === 0) {
+        notFound += fileRows.length;
+        continue;
+      }
+      if (dbRows.length !== fileRows.length) {
+        mismatched += fileRows.length;
+        continue;
+      }
+      for (let i = 0; i < dbRows.length; i++) {
+        updateStmt.run({ booking_date: fileRows[i].booking_date, id: dbRows[i].id });
+        updated++;
+      }
+    }
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
+
+  return { format, backfillUpdated: updated, backfillMismatched: mismatched, backfillNotFound: notFound, error: null };
+}
+
 /**
  * Parses an uploaded CSV and appends valid rows to the transactions table.
  * Auto-detects four shapes: the dashboard's own simple template, a raw

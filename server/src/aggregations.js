@@ -96,11 +96,20 @@ export function buildDashboard({
   });
 
   // ---- Monthly revenue trend (通常予約 vs 定期クーポン, all stores combined) ----
-  const monthlyTrend = MONTH_LABELS.map((label) => ({ label, 通常予約: 0, 定期クーポン: 0 }));
+  // 決済日ベース is the same rows' revenue grouped by when payment actually
+  // happened (booking_date — 自社サイト's 決済日時(データ入力用), Instabase's
+  // 申込日時, or the row's own date for 定期クーポン / anything not yet
+  // backfilled) rather than by usage date, so the two bases can be compared
+  // on one chart. A booking paid in one year for usage early the next still
+  // lands in this year-scoped array under its payment month (spec: this is a
+  // same-page visual comparison, not a strict per-year accounting split).
+  const monthlyTrend = MONTH_LABELS.map((label) => ({ label, 通常予約: 0, 定期クーポン: 0, 決済日ベース: 0 }));
   yearRows.forEach((r) => {
     const m = Number(r.date.slice(5, 7)) - 1;
     const key = r.status === SUBSCRIPTION_STATUS ? "定期クーポン" : "通常予約";
     monthlyTrend[m][key] += effectiveRevenue(r);
+    const bm = Number((r.booking_date || r.date).slice(5, 7)) - 1;
+    monthlyTrend[bm].決済日ベース += effectiveRevenue(r);
   });
 
   // ---- Occupancy rate by store ----

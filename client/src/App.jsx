@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Upload, Download, AlertCircle } from "lucide-react";
+import { Upload, Download, AlertCircle, CalendarClock } from "lucide-react";
 import { api } from "./api.js";
 import { FONT_BODY, FONT_HEAD } from "./constants.js";
 import Sidebar, { NAV_ITEMS } from "./components/Sidebar.jsx";
@@ -30,6 +30,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [importMessage, setImportMessage] = useState(null);
   const fileInput = useRef(null);
+  const backfillInput = useRef(null);
 
   async function loadDashboard(year) {
     setLoading(true);
@@ -78,6 +79,25 @@ export default function App() {
     try {
       const result = await api.importCsv(file);
       setImportMessage(describeImportResult(result));
+      await loadDashboard(selectedYear);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      e.target.value = "";
+    }
+  }
+
+  async function handleBackfillFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportMessage(null);
+    setError(null);
+    try {
+      const result = await api.backfillBookingDate(file);
+      const parts = [`${result.backfillUpdated}件の決済日を過去データに反映しました。`];
+      if (result.backfillMismatched) parts.push(`${result.backfillMismatched}件は件数が一致せず、確認のためスキップしました。`);
+      if (result.backfillNotFound) parts.push(`${result.backfillNotFound}件は対応する過去データが見つかりませんでした(取り込み済みの可能性があります)。`);
+      setImportMessage(parts.join(" "));
       await loadDashboard(selectedYear);
     } catch (err) {
       setError(err.message);
@@ -135,6 +155,16 @@ export default function App() {
               CSVインポート
             </button>
             <input ref={fileInput} type="file" accept=".csv" onChange={handleFile} className="hidden" />
+            <button
+              onClick={() => backfillInput.current?.click()}
+              className="flex items-center gap-1.5 text-sm px-3 py-2 border"
+              style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
+              title="自社サイトの予約エクスポートCSVから、過去データの決済日を反映します"
+            >
+              <CalendarClock size={15} />
+              決済日を過去データへ反映
+            </button>
+            <input ref={backfillInput} type="file" accept=".csv" onChange={handleBackfillFile} className="hidden" />
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { ResponsiveContainer, LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
 export default function RevenuePage({ data }) {
@@ -18,7 +18,7 @@ export default function RevenuePage({ data }) {
         </h3>
         <div style={{ background: "#FFFFFF" }} className="p-4">
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyTrend}>
+            <ComposedChart data={monthlyTrend}>
               <CartesianGrid stroke="#F0E6D8" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
               <YAxis
@@ -29,11 +29,22 @@ export default function RevenuePage({ data }) {
               />
               <Tooltip formatter={(v) => yen(v)} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="通常予約" stackId="revenue" fill="#D4A644" />
-              <Bar dataKey="定期クーポン" stackId="revenue" fill={CHANNEL_COLOR["定期クーポン"]} />
-            </BarChart>
+              <Bar dataKey="通常予約" stackId="revenue" fill="#D4A644" name="通常予約(利用日ベース)" />
+              <Bar dataKey="定期クーポン" stackId="revenue" fill={CHANNEL_COLOR["定期クーポン"]} name="定期クーポン(利用日ベース)" />
+              <Line
+                type="monotone"
+                dataKey="決済日ベース"
+                name="決済日ベース(合計)"
+                stroke="#262421"
+                strokeWidth={2.5}
+                dot={{ r: 3 }}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
+        <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
+          棒グラフは利用日基準、線グラフは決済日(自社サイト: 決済日時(データ入力用)、Instabase: 申込日時)基準の合計売上です。決済日が取得できない行は利用日を代用しています。
+        </p>
       </div>
 
       <div>

@@ -52,5 +52,13 @@ export const api = {
     if (!res.ok) throw new Error(body.error || "インポートに失敗しました。");
     return body;
   },
+  backfillBookingDate: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${BASE}/import/backfill-booking-date`, { method: "POST", body: formData });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || "反映に失敗しました。");
+    return body;
+  },
   templateUrl: `${BASE}/template`,
 };
