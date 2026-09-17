@@ -12,9 +12,9 @@ export const DEFAULT_OPERATING_HOURS_PER_DAY = 14;
 // neighbors even for full-color vision — so each carries just enough
 // saturation to stay a real, distinguishable color at this lightness.
 export const DEFAULT_STORES = [
-  { store: "Bellezza", area: "柏", color: "#5EC2E0", sortOrder: 0 },
-  { store: "Forest", area: "柏", color: "#6FC26A", sortOrder: 1 },
-  { store: "Asteria", area: "つくば", color: "#A292DC", sortOrder: 2 },
+  { store: "Bellezza", area: "柏", color: "#55C2E8", sortOrder: 0 },
+  { store: "Forest", area: "柏", color: "#69CD60", sortOrder: 1 },
+  { store: "Asteria", area: "つくば", color: "#A492EA", sortOrder: 2 },
 ];
 
 export const CHANNELS = ["自社サイト", "Instabase", "スペースマーケット", "その他"];
