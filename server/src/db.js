@@ -39,6 +39,17 @@ const hasBookingDate = db
 if (!hasBookingDate) {
   db.exec(`ALTER TABLE transactions ADD COLUMN booking_date TEXT;`);
 }
+// revenue_confirmed_date (自社サイトの「売り上げ確定日時」) — for a cancelled
+// row this is when the cancellation was actually processed, which can be a
+// different month than booking_date. Lets 決済日ベース revenue book a
+// cancellation's impact in the month it happened rather than retroactively
+// inside the original booking month.
+const hasRevenueConfirmedDate = db
+  .prepare(`SELECT 1 FROM pragma_table_info('transactions') WHERE name = 'revenue_confirmed_date'`)
+  .get();
+if (!hasRevenueConfirmedDate) {
+  db.exec(`ALTER TABLE transactions ADD COLUMN revenue_confirmed_date TEXT;`);
+}
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);

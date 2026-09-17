@@ -31,6 +31,23 @@ export function countWeekdayOccurrences(weekdayIndex, startISO, endISO) {
 export const effectiveRevenue = (row) => (REVENUE_STATUSES.has(row.status) ? row.revenue : 0);
 export const effectiveHours = (row) => (HOURS_USED_STATUSES.has(row.status) ? row.hours_used : 0);
 
+const isCancellationStatus = (status) => typeof status === "string" && status.startsWith("キャンセル");
+
+// Which month a row's revenue counts against on a 決済日ベース (booking-date)
+// chart. Normally that's booking_date (when the money changed hands). For a
+// cancelled row, though, revenue_confirmed_date (自社サイトの「売り上げ確定
+// 日時」) is when the cancellation was actually processed — often a later
+// month than the original booking — so the cancellation's impact books
+// against that month instead of retroactively inside the booking month. Only
+// populated for 自社サイト rows today; anything else falls back to the
+// existing booking_date/date behavior unchanged.
+function bookingBucketMonth(row) {
+  if (isCancellationStatus(row.status) && row.revenue_confirmed_date) {
+    return row.revenue_confirmed_date.slice(0, 7);
+  }
+  return (row.booking_date || row.date).slice(0, 7);
+}
+
 function availableHoursForStore(store, yearStartISO, yearEndISO, storeMeta, todayISO) {
   const meta = storeMeta[store];
   const open = meta?.openDate || yearStartISO;
@@ -108,7 +125,7 @@ export function buildDashboard({
     const m = Number(r.date.slice(5, 7)) - 1;
     const key = r.status === SUBSCRIPTION_STATUS ? "定期クーポン" : "通常予約";
     monthlyTrend[m][key] += effectiveRevenue(r);
-    const bm = Number((r.booking_date || r.date).slice(5, 7)) - 1;
+    const bm = Number(bookingBucketMonth(r).slice(5, 7)) - 1;
     monthlyTrend[bm].決済日ベース += effectiveRevenue(r);
   });
 
@@ -309,13 +326,15 @@ export function buildAnnualTrend(allRows, storeNames) {
  * booking-date-having data, grouped by booking_date (自社サイト's 決済日時
  * (データ入力用), Instabase's 申込日時, or the row's own date as a fallback
  * for anything not yet backfilled/dated that way — 定期クーポン's date is
- * already its purchase date, so it needs no fallback distinction).
+ * already its purchase date, so it needs no fallback distinction) — except a
+ * cancelled 自社サイト row, which books against revenue_confirmed_date
+ * (when the cancellation was processed) instead; see bookingBucketMonth.
  * Independent of the selected year, like buildAnnualTrend.
  */
 export function buildBookingDateMonthlyTrend(allRows) {
   const byYM = new Map();
   allRows.forEach((r) => {
-    const ym = (r.booking_date || r.date).slice(0, 7);
+    const ym = bookingBucketMonth(r);
     byYM.set(ym, (byYM.get(ym) || 0) + effectiveRevenue(r));
   });
   const yms = [...byYM.keys()].sort();

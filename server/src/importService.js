@@ -13,8 +13,8 @@ import { ensureStoreRegistered } from "./storeSettingsService.js";
 // cancellation) on a later export of the same 決済ID, without creating a
 // duplicate row.
 const upsertStmt = db.prepare(`
-  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id, booking_date)
-  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id, @booking_date)
+  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id, booking_date, revenue_confirmed_date)
+  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id, @booking_date, @revenue_confirmed_date)
   ON CONFLICT(external_id) DO UPDATE SET
     date = excluded.date,
     store = excluded.store,
@@ -25,7 +25,8 @@ const upsertStmt = db.prepare(`
     weekday = excluded.weekday,
     channel = excluded.channel,
     status = excluded.status,
-    booking_date = excluded.booking_date
+    booking_date = excluded.booking_date,
+    revenue_confirmed_date = excluded.revenue_confirmed_date
   WHERE external_id IS NOT NULL
 `);
 const existsStmt = db.prepare(`SELECT 1 FROM transactions WHERE external_id = ?`);
@@ -202,14 +203,17 @@ function groupByKey(rows, keyFn) {
 }
 
 /**
- * Backfills `booking_date` onto already-imported 自社サイト rows that predate
- * external_id tracking (the historical bundled CSV) and have no booking_date
- * yet, by matching a raw booking export's rows to them on content (date,
- * store, user_name, revenue, status, hours_used) rather than 決済ID. A key
+ * Backfills `booking_date` and `revenue_confirmed_date` onto already-imported
+ * 自社サイト rows that predate external_id tracking (the historical bundled
+ * CSV) and are still missing revenue_confirmed_date, by matching a raw
+ * booking export's rows to them on content (date, store, user_name, revenue,
+ * status, hours_used) rather than 決済ID. Re-running this after an earlier
+ * booking_date-only backfill is safe — matched rows just get
+ * revenue_confirmed_date filled in alongside an unchanged booking_date. A key
  * where the file and the DB don't have the exact same row count is left
- * alone rather than guessed at, so this can never misassign a payment date
- * to the wrong row — see backfillMismatched in the result for anything that
- * needs a closer look.
+ * alone rather than guessed at, so this can never misassign a date to the
+ * wrong row — see backfillMismatched in the result for anything that needs a
+ * closer look.
  */
 export function backfillBookingDate(csvText) {
   const cleaned = csvText.replace(/^﻿/, "");
@@ -225,7 +229,7 @@ export function backfillBookingDate(csvText) {
   const existing = db
     .prepare(
       `SELECT id, date, store, user_name, revenue, status, hours_used FROM transactions
-       WHERE external_id IS NULL AND booking_date IS NULL AND channel = '自社サイト'`
+       WHERE external_id IS NULL AND revenue_confirmed_date IS NULL AND channel = '自社サイト'`
     )
     .all();
   const dbByKey = groupByKey(existing, bookingContentKey);
@@ -233,7 +237,9 @@ export function backfillBookingDate(csvText) {
   let updated = 0;
   let mismatched = 0;
   let notFound = 0;
-  const updateStmt = db.prepare(`UPDATE transactions SET booking_date = @booking_date WHERE id = @id`);
+  const updateStmt = db.prepare(
+    `UPDATE transactions SET booking_date = @booking_date, revenue_confirmed_date = @revenue_confirmed_date WHERE id = @id`
+  );
   db.exec("BEGIN");
   try {
     for (const [key, fileRows] of fileByKey) {
@@ -247,7 +253,11 @@ export function backfillBookingDate(csvText) {
         continue;
       }
       for (let i = 0; i < dbRows.length; i++) {
-        updateStmt.run({ booking_date: fileRows[i].booking_date, id: dbRows[i].id });
+        updateStmt.run({
+          booking_date: fileRows[i].booking_date,
+          revenue_confirmed_date: fileRows[i].revenue_confirmed_date,
+          id: dbRows[i].id,
+        });
         updated++;
       }
     }

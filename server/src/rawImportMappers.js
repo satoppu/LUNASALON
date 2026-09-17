@@ -41,6 +41,13 @@ function parseUsage(raw) {
   };
 }
 
+// "07/02 (木) 15:06:10" — no end time, unlike 利用日時.
+function parseMonthDay(raw) {
+  const m = String(raw).match(/^(\d{2})\/(\d{2})\s*\(.\)/u);
+  if (!m) return null;
+  return { month: Number(m[1]), day: Number(m[2]) };
+}
+
 // Usage normally happens on/after the payment date; if the usage month is
 // earlier than the payment month, the booking crosses a New Year boundary.
 function resolveYear(usageMonth, paymentISODate) {
@@ -91,6 +98,17 @@ export function mapRawBookingRow(raw) {
   const hoursUsed =
     status === "利用済み" ? (usage.endHour * 60 + usage.endMin - (usage.startHour * 60 + usage.startMin)) / 60 : 0;
 
+  // 売り上げ確定日時: for a completed/pending booking this tracks close behind
+  // 決済日時, but for a cancellation it's when the cancellation was actually
+  // processed — which can land in a different month than the original
+  // booking. Captured so 決済日ベース revenue can book that cancellation's
+  // impact against the month it happened, not retroactively inside the
+  // booking month.
+  const confirmed = parseMonthDay(raw["売り上げ確定日時"]);
+  const revenueConfirmedDate = confirmed
+    ? `${resolveYear(confirmed.month, paymentISO)}-${String(confirmed.month).padStart(2, "0")}-${String(confirmed.day).padStart(2, "0")}`
+    : null;
+
   return {
     date,
     store: String(raw["スペース名"]).replace(STORE_PREFIX, "").trim(),
@@ -103,6 +121,7 @@ export function mapRawBookingRow(raw) {
     status,
     external_id: raw["決済ID"] || null,
     booking_date: paymentISO.slice(0, 10),
+    revenue_confirmed_date: revenueConfirmedDate,
   };
 }
 
