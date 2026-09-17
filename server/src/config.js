@@ -3,10 +3,13 @@
 
 export const DEFAULT_OPERATING_HOURS_PER_DAY = 14;
 
+// Each store's color carries its own theme — Bellezza (海/ocean), Forest
+// (木/forest), Asteria (宇宙/cosmos) — validated CVD-safe as a set via
+// dataviz's validate_palette.js (adjacent pairs, light mode).
 export const DEFAULT_STORES = [
-  { store: "Bellezza", area: "柏", color: "#D9738F", sortOrder: 0 },
-  { store: "Forest", area: "柏", color: "#D4A644", sortOrder: 1 },
-  { store: "Asteria", area: "つくば", color: "#D66B5C", sortOrder: 2 },
+  { store: "Bellezza", area: "柏", color: "#0E7FA3", sortOrder: 0 },
+  { store: "Forest", area: "柏", color: "#2F8F46", sortOrder: 1 },
+  { store: "Asteria", area: "つくば", color: "#6B4FA0", sortOrder: 2 },
 ];
 
 export const CHANNELS = ["自社サイト", "Instabase", "スペースマーケット", "その他"];
