@@ -304,6 +304,31 @@ export function buildAnnualTrend(allRows, storeNames) {
   return Object.values(byYear).sort((a, b) => a.year - b.year);
 }
 
+/**
+ * Monthly revenue for the last 36 months (3 years) ending at the latest
+ * booking-date-having data, grouped by booking_date (自社サイト's 決済日時
+ * (データ入力用), Instabase's 申込日時, or the row's own date as a fallback
+ * for anything not yet backfilled/dated that way — 定期クーポン's date is
+ * already its purchase date, so it needs no fallback distinction).
+ * Independent of the selected year, like buildAnnualTrend.
+ */
+export function buildBookingDateMonthlyTrend(allRows) {
+  const byYM = new Map();
+  allRows.forEach((r) => {
+    const ym = (r.booking_date || r.date).slice(0, 7);
+    byYM.set(ym, (byYM.get(ym) || 0) + effectiveRevenue(r));
+  });
+  const yms = [...byYM.keys()].sort();
+  if (yms.length === 0) return [];
+  const maxYM = yms[yms.length - 1];
+  const minYM = shiftYearMonth(maxYM, -35);
+  return enumerateYearMonths(minYM, maxYM).map((ym) => ({
+    yearMonth: ym,
+    label: formatYearMonth(ym),
+    revenue: byYM.get(ym) || 0,
+  }));
+}
+
 // ---- Customer analysis (spans all years, independent of the selected year) ----
 
 function shiftYearMonth(ym, delta) {

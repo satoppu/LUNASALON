@@ -1,9 +1,24 @@
-import { ResponsiveContainer, LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { ResponsiveContainer, LineChart, Line, ComposedChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
+function labelInterval(length) {
+  return Math.max(0, Math.ceil(length / 12) - 1);
+}
+
 export default function RevenuePage({ data }) {
-  const { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, storeMeta, monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyByStore } =
-    data;
+  const {
+    year,
+    priorYear,
+    hasPriorYear,
+    priorYear2,
+    hasPriorYear2,
+    storeMeta,
+    monthlyTrend,
+    bookingDateMonthlyTrend,
+    yoyMonthly,
+    yoyMonthlyCount,
+    yoyByStore,
+  } = data;
   const storeColor = makeStoreColor(storeMeta);
   const yoyLabel = [year, hasPriorYear && priorYear, hasPriorYear2 && priorYear2]
     .filter(Boolean)
@@ -44,6 +59,46 @@ export default function RevenuePage({ data }) {
         </div>
         <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
           棒グラフは利用日基準、線グラフは決済日(自社サイト: 決済日時(データ入力用)、Instabase: 申込日時)基準の合計売上です。決済日が取得できない行は利用日を代用しています。
+        </p>
+      </div>
+
+      <div className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          決済日ベース売上推移(月別・過去3年)
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="p-4">
+          {bookingDateMonthlyTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={bookingDateMonthlyTrend} margin={{ bottom: 24 }}>
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: "#8F7D6E", fontSize: 10 }}
+                  axisLine={{ stroke: "#EDE3D5" }}
+                  tickLine={false}
+                  interval={labelInterval(bookingDateMonthlyTrend.length)}
+                  angle={-40}
+                  textAnchor="end"
+                  height={50}
+                />
+                <YAxis
+                  tick={{ fill: "#8F7D6E", fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip formatter={(v) => yen(v)} />
+                <Bar dataKey="revenue" name="決済日ベース売上" fill="#D9738F" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
+              対象データがありません。
+            </p>
+          )}
+        </div>
+        <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
+          決済日(自社サイト: 決済日時(データ入力用)、Instabase: 申込日時、定期クーポン: 購入日時)を基準にした月別合計売上です。選択中の年度に関わらず、直近36か月分を表示します。
         </p>
       </div>
 
