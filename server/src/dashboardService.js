@@ -1,6 +1,6 @@
 import db from "./db.js";
 import { getTodayISO } from "./config.js";
-import { buildDashboard, buildAnnualTrend, buildBookingDateMonthlyTrend } from "./aggregations.js";
+import { buildDashboard, buildAnnualTrend, buildBookingDateMonthlyTrend, buildHoursMonthlyTrend } from "./aggregations.js";
 
 export function getAvailableYears() {
   const rows = db.prepare(`SELECT DISTINCT substr(date, 1, 4) AS y FROM transactions ORDER BY y DESC`).all();
@@ -21,7 +21,7 @@ function getRowsForYear(year) {
 }
 
 function getAllRows() {
-  return db.prepare(`SELECT date, store, revenue, status, booking_date FROM transactions`).all();
+  return db.prepare(`SELECT date, store, revenue, hours_used, status, booking_date FROM transactions`).all();
 }
 
 export function getDashboard(requestedYear) {
@@ -73,6 +73,7 @@ export function getDashboard(requestedYear) {
   const allRows = getAllRows();
   const annualTrend = buildAnnualTrend(allRows, storeNames);
   const bookingDateMonthlyTrend = buildBookingDateMonthlyTrend(allRows);
+  const hoursMonthlyTrend = buildHoursMonthlyTrend(allRows);
 
-  return { ...dashboard, years, storeMeta, annualTrend, bookingDateMonthlyTrend, todayISO: getTodayISO() };
+  return { ...dashboard, years, storeMeta, annualTrend, bookingDateMonthlyTrend, hoursMonthlyTrend, todayISO: getTodayISO() };
 }

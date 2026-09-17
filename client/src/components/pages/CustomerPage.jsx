@@ -261,6 +261,45 @@ export default function CustomerPage() {
         </p>
       </div>
 
+      <div className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          月別 予約→利用の対応(利用時間ベース・過去3年)
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="p-4">
+          {state.bookingToUsageMonthlyHours.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={state.bookingToUsageMonthlyHours} margin={{ bottom: 24 }}>
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: "#8F7D6E", fontSize: 10 }}
+                  axisLine={{ stroke: "#EDE3D5" }}
+                  tickLine={false}
+                  interval={labelInterval(state.bookingToUsageMonthlyHours.length)}
+                  angle={-40}
+                  textAnchor="end"
+                  height={50}
+                />
+                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}h`} />
+                <Tooltip formatter={(v) => `${Number(v).toFixed(1)}h`} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="同月予約" stackId="lead" fill="#D9738F" />
+                <Bar dataKey="1ヶ月前予約" stackId="lead" fill="#D4A644" />
+                <Bar dataKey="2ヶ月前予約" stackId="lead" fill="#D66B5C" />
+                <Bar dataKey="3ヶ月以上前予約" stackId="lead" fill="#8F4A28" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
+              対象データがありません。
+            </p>
+          )}
+        </div>
+        <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
+          上のグラフと同じ区分けですが、金額ではなく利用時間を積み上げています。定期クーポンの影響を受けないため、実際の部屋の稼働状況をより正確に反映します。
+        </p>
+      </div>
+
       <div>
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">

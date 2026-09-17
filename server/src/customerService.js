@@ -5,6 +5,7 @@ import {
   buildActiveCustomersByMonth,
   buildBookingLeadTime,
   buildBookingToUsageMonthly,
+  buildBookingToUsageMonthlyHours,
 } from "./aggregations.js";
 
 function getAllRows() {
@@ -20,5 +21,6 @@ export function getCustomerAnalysis() {
     activeCustomersByMonth: buildActiveCustomersByMonth(allRows),
     bookingLeadTime: buildBookingLeadTime(allRows),
     bookingToUsageMonthly: buildBookingToUsageMonthly(allRows),
+    bookingToUsageMonthlyHours: buildBookingToUsageMonthlyHours(allRows),
   };
 }

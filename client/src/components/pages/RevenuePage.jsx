@@ -15,6 +15,7 @@ export default function RevenuePage({ data }) {
     storeMeta,
     monthlyTrend,
     bookingDateMonthlyTrend,
+    hoursMonthlyTrend,
     yoyMonthly,
     yoyMonthlyCount,
     yoyByStore,
@@ -99,6 +100,41 @@ export default function RevenuePage({ data }) {
         </div>
         <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
           決済日(自社サイト: 決済日時(データ入力用)、Instabase: 申込日時、定期クーポン: 購入日時)を基準にした月別合計売上です。選択中の年度に関わらず、直近36か月分を表示します。
+        </p>
+      </div>
+
+      <div className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          利用時間推移(月別・過去3年)
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="p-4">
+          {hoursMonthlyTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={hoursMonthlyTrend} margin={{ bottom: 24 }}>
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: "#8F7D6E", fontSize: 10 }}
+                  axisLine={{ stroke: "#EDE3D5" }}
+                  tickLine={false}
+                  interval={labelInterval(hoursMonthlyTrend.length)}
+                  angle={-40}
+                  textAnchor="end"
+                  height={50}
+                />
+                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}h`} />
+                <Tooltip formatter={(v) => `${v}h`} />
+                <Bar dataKey="hours" name="利用時間" fill="#D4A644" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
+              対象データがありません。
+            </p>
+          )}
+        </div>
+        <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
+          利用月ベースの合計利用時間です(全店舗・全チャネル)。定期クーポンは購入時にまとめて売上計上され実際の利用月には売上が乗らないため、金額より実際の稼働状況を正しく反映します。
         </p>
       </div>
 

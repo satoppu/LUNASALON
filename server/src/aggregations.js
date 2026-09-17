@@ -507,13 +507,14 @@ function monthDiff(fromYM, toYM) {
 
 /**
  * For each usage month over the last 36 months, splits that month's 自社サイト
- * revenue by how far ahead it was booked (同月/1ヶ月前/2ヶ月前/3ヶ月以上前),
+ * activity by how far ahead it was booked (同月/1ヶ月前/2ヶ月前/3ヶ月以上前),
  * based on 決済日時（データ入力用）(booking_date) — same scope as
- * buildBookingLeadTime. Answers "how much of this month's usage was booked
- * how far in advance", e.g. to see a June booking rush feeding July/August
- * usage, and to compare that seasonal pattern year over year.
+ * buildBookingLeadTime. valueFn picks what's summed per row (revenue or
+ * hours). Answers "how much of this month's usage was booked how far in
+ * advance", e.g. to see a June booking rush feeding July/August usage, and
+ * to compare that seasonal pattern year over year.
  */
-export function buildBookingToUsageMonthly(allRows) {
+function buildBookingToUsageMonthlyBy(allRows, valueFn) {
   const byUsageMonth = new Map();
   allRows.forEach((r) => {
     if (r.channel !== OWN_SITE_CHANNEL || !r.booking_date) return;
@@ -527,7 +528,7 @@ export function buildBookingToUsageMonthly(allRows) {
       LEAD_MONTH_BUCKET_LABELS.forEach((label) => { entry[label] = 0; });
       byUsageMonth.set(usageYM, entry);
     }
-    byUsageMonth.get(usageYM)[bucket] += effectiveRevenue(r);
+    byUsageMonth.get(usageYM)[bucket] += valueFn(r);
   });
 
   const yms = [...byUsageMonth.keys()].sort();
@@ -540,4 +541,41 @@ export function buildBookingToUsageMonthly(allRows) {
     LEAD_MONTH_BUCKET_LABELS.forEach((label) => { row[label] = entry?.[label] || 0; });
     return row;
   });
+}
+
+export function buildBookingToUsageMonthly(allRows) {
+  return buildBookingToUsageMonthlyBy(allRows, effectiveRevenue);
+}
+
+/**
+ * Same breakdown as buildBookingToUsageMonthly, but by 利用時間(hours used)
+ * instead of revenue — 定期クーポン's flat pre-paid fee means revenue alone
+ * understates how busy a month with heavy subscription use actually was, so
+ * hours is the more reliable read on real room demand.
+ */
+export function buildBookingToUsageMonthlyHours(allRows) {
+  return buildBookingToUsageMonthlyBy(allRows, effectiveHours);
+}
+
+/**
+ * Total 利用時間(hours used) per usage month for the last 36 months, across
+ * all channels — the hours-based counterpart to buildBookingDateMonthlyTrend,
+ * for reading actual room demand independent of how revenue was booked
+ * (subscription vs per-visit).
+ */
+export function buildHoursMonthlyTrend(allRows) {
+  const byYM = new Map();
+  allRows.forEach((r) => {
+    const ym = r.date.slice(0, 7);
+    byYM.set(ym, (byYM.get(ym) || 0) + effectiveHours(r));
+  });
+  const yms = [...byYM.keys()].sort();
+  if (yms.length === 0) return [];
+  const maxYM = yms[yms.length - 1];
+  const minYM = shiftYearMonth(maxYM, -35);
+  return enumerateYearMonths(minYM, maxYM).map((ym) => ({
+    yearMonth: ym,
+    label: formatYearMonth(ym),
+    hours: Math.round((byYM.get(ym) || 0) * 10) / 10,
+  }));
 }
