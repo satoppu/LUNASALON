@@ -17,6 +17,7 @@ const HEADER_ALIASES = {
   externalId: ["external_id", "決済ID", "支払いID"],
   bookingDate: ["booking_date", "予約日"],
   revenueConfirmedDate: ["revenue_confirmed_date"],
+  bookingAmount: ["booking_amount"],
 };
 
 function matchHeader(row, keys) {
@@ -72,6 +73,7 @@ export function normalizeImportRow(raw) {
   const externalIdRaw = matchHeader(raw, HEADER_ALIASES.externalId);
   const bookingDateRaw = matchHeader(raw, HEADER_ALIASES.bookingDate);
   const revenueConfirmedDateRaw = matchHeader(raw, HEADER_ALIASES.revenueConfirmedDate);
+  const bookingAmountRaw = matchHeader(raw, HEADER_ALIASES.bookingAmount);
 
   return {
     date: dateStr,
@@ -86,6 +88,7 @@ export function normalizeImportRow(raw) {
     external_id: externalIdRaw ? String(externalIdRaw).trim() : null,
     booking_date: bookingDateRaw ? String(bookingDateRaw).trim() : null,
     revenue_confirmed_date: revenueConfirmedDateRaw ? String(revenueConfirmedDateRaw).trim() : null,
+    booking_amount: bookingAmountRaw !== undefined && bookingAmountRaw !== "" ? Number(bookingAmountRaw) : null,
   };
 }
 

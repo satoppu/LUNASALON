@@ -33,8 +33,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "..", "data");
 
 const upsertStmt = db.prepare(`
-  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id, booking_date, revenue_confirmed_date)
-  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id, @booking_date, @revenue_confirmed_date)
+  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, weekday, channel, status, external_id, booking_date, revenue_confirmed_date, booking_amount)
+  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @weekday, @channel, @status, @external_id, @booking_date, @revenue_confirmed_date, @booking_amount)
   ON CONFLICT(external_id) DO UPDATE SET
     date = excluded.date,
     store = excluded.store,
@@ -46,7 +46,8 @@ const upsertStmt = db.prepare(`
     channel = excluded.channel,
     status = excluded.status,
     booking_date = excluded.booking_date,
-    revenue_confirmed_date = excluded.revenue_confirmed_date
+    revenue_confirmed_date = excluded.revenue_confirmed_date,
+    booking_amount = excluded.booking_amount
   WHERE external_id IS NOT NULL
 `);
 const existsStmt = db.prepare(`SELECT 1 FROM transactions WHERE external_id = ?`);
@@ -105,7 +106,8 @@ function main() {
 
   if (outRows.length > 0) {
     const outPath = path.join(DATA_DIR, `luna_usage_${outRows[0].date.slice(0, 7)}_raw_imports.csv`);
-    const header = "date,store,user,revenue,hoursUsed,hour,weekday,channel,status,external_id,booking_date,revenue_confirmed_date";
+    const header =
+      "date,store,user,revenue,hoursUsed,hour,weekday,channel,status,external_id,booking_date,revenue_confirmed_date,booking_amount";
     const esc = (v) => (String(v).includes(",") ? `"${v}"` : v);
     const lines = outRows.map((r) =>
       [
@@ -121,6 +123,7 @@ function main() {
         r.external_id,
         r.booking_date,
         r.revenue_confirmed_date,
+        r.booking_amount,
       ].join(",")
     );
     const isNew = !fs.existsSync(outPath);

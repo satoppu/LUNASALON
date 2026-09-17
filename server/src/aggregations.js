@@ -48,6 +48,45 @@ function bookingBucketMonth(row) {
   return (row.booking_date || row.date).slice(0, 7);
 }
 
+// 決済日ベース revenue, split into up to two dated contributions per row:
+// the full amount charged at booking time (決済元金+割引金額, "予約時の
+// 売上") always lands in booking_date's month, and — only for a cancelled
+// 自社サイト row whose cancellation was processed in a *different* month —
+// a second, negative contribution equal to what was lost (booking_amount
+// minus the row's current settled revenue) lands in revenue_confirmed_date's
+// month instead of being netted invisibly into the booking month. For a
+// completed booking booking_amount equals revenue, so this is a no-op there;
+// rows without booking_amount (other channels, not-yet-backfilled data) fall
+// back to the single-contribution booking_date/date behavior unchanged.
+function bookingRevenueContributions(row) {
+  if (row.channel === OWN_SITE_CHANNEL && row.booking_amount != null) {
+    const bookingMonth = (row.booking_date || row.date).slice(0, 7);
+    let bookingMonthAmount = row.booking_amount;
+    const contributions = [];
+    if (isCancellationStatus(row.status)) {
+      const lost = row.booking_amount - effectiveRevenue(row);
+      if (lost !== 0) {
+        const confirmMonth = row.revenue_confirmed_date ? row.revenue_confirmed_date.slice(0, 7) : bookingMonth;
+        if (confirmMonth !== bookingMonth) {
+          // Cancellation processed in a later (or earlier) month than the
+          // booking: keep the full booking-time amount in the booking month
+          // and book the loss as its own negative entry in the month the
+          // cancellation actually happened.
+          contributions.push({ month: confirmMonth, amount: -lost });
+        } else {
+          // Cancellation processed the same month it was booked: nothing to
+          // split across months, so net the loss directly into that month's
+          // single entry (equal to effectiveRevenue(row)).
+          bookingMonthAmount -= lost;
+        }
+      }
+    }
+    contributions.unshift({ month: bookingMonth, amount: bookingMonthAmount });
+    return contributions;
+  }
+  return [{ month: bookingBucketMonth(row), amount: effectiveRevenue(row) }];
+}
+
 function availableHoursForStore(store, yearStartISO, yearEndISO, storeMeta, todayISO) {
   const meta = storeMeta[store];
   const open = meta?.openDate || yearStartISO;
@@ -119,14 +158,20 @@ export function buildDashboard({
   // backfilled) rather than by usage date, so the two bases can be compared
   // on one chart. A booking paid in one year for usage early the next still
   // lands in this year-scoped array under its payment month (spec: this is a
-  // same-page visual comparison, not a strict per-year accounting split).
+  // same-page visual comparison, not a strict per-year accounting split). For
+  // 自社サイト rows, this is now the double-entry split from
+  // bookingRevenueContributions: the full amount stays in the booking month
+  // even after a later cancellation, and the cancellation itself shows up as
+  // a separate negative dip in whatever month it was actually processed.
   const monthlyTrend = MONTH_LABELS.map((label) => ({ label, 通常予約: 0, 定期クーポン: 0, 決済日ベース: 0 }));
   yearRows.forEach((r) => {
     const m = Number(r.date.slice(5, 7)) - 1;
     const key = r.status === SUBSCRIPTION_STATUS ? "定期クーポン" : "通常予約";
     monthlyTrend[m][key] += effectiveRevenue(r);
-    const bm = Number(bookingBucketMonth(r).slice(5, 7)) - 1;
-    monthlyTrend[bm].決済日ベース += effectiveRevenue(r);
+    bookingRevenueContributions(r).forEach(({ month, amount }) => {
+      const bm = Number(month.slice(5, 7)) - 1;
+      monthlyTrend[bm].決済日ベース += amount;
+    });
   });
 
   // ---- Occupancy rate by store ----
@@ -326,16 +371,20 @@ export function buildAnnualTrend(allRows, storeNames) {
  * booking-date-having data, grouped by booking_date (自社サイト's 決済日時
  * (データ入力用), Instabase's 申込日時, or the row's own date as a fallback
  * for anything not yet backfilled/dated that way — 定期クーポン's date is
- * already its purchase date, so it needs no fallback distinction) — except a
- * cancelled 自社サイト row, which books against revenue_confirmed_date
- * (when the cancellation was processed) instead; see bookingBucketMonth.
- * Independent of the selected year, like buildAnnualTrend.
+ * already its purchase date, so it needs no fallback distinction). For
+ * 自社サイト rows with a captured booking_amount, each row contributes via
+ * bookingRevenueContributions: the full booking-time amount in the booking
+ * month, plus (for a cancellation processed in a later month) a separate
+ * negative entry in the month the cancellation actually happened, instead of
+ * netting it invisibly back into the booking month. Independent of the
+ * selected year, like buildAnnualTrend.
  */
 export function buildBookingDateMonthlyTrend(allRows) {
   const byYM = new Map();
   allRows.forEach((r) => {
-    const ym = bookingBucketMonth(r);
-    byYM.set(ym, (byYM.get(ym) || 0) + effectiveRevenue(r));
+    bookingRevenueContributions(r).forEach(({ month, amount }) => {
+      byYM.set(month, (byYM.get(month) || 0) + amount);
+    });
   });
   const yms = [...byYM.keys()].sort();
   if (yms.length === 0) return [];

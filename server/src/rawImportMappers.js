@@ -109,6 +109,17 @@ export function mapRawBookingRow(raw) {
     ? `${resolveYear(confirmed.month, paymentISO)}-${String(confirmed.month).padStart(2, "0")}-${String(confirmed.day).padStart(2, "0")}`
     : null;
 
+  // The amount actually charged at booking time (決済元金+割引金額), captured
+  // for every status — not just PENDING_STATUS, which is all `revenue` uses
+  // it for elsewhere. For a completed booking this equals `revenue` (利益)
+  // once finalized (see parseDiscountedAmount's comment), so it only
+  // diverges from `revenue` for a cancellation, where `revenue` has since
+  // been reduced to whatever was refunded/kept. That gap is exactly the
+  // cancellation's impact, which the 決済日ベース aggregation books against
+  // revenue_confirmed_date's month instead of leaving it baked into
+  // booking_date's month.
+  const bookingAmount = parseDiscountedAmount(raw);
+
   return {
     date,
     store: String(raw["スペース名"]).replace(STORE_PREFIX, "").trim(),
@@ -120,6 +131,7 @@ export function mapRawBookingRow(raw) {
     channel: BOOKING_CHANNEL,
     status,
     external_id: raw["決済ID"] || null,
+    booking_amount: bookingAmount,
     booking_date: paymentISO.slice(0, 10),
     revenue_confirmed_date: revenueConfirmedDate,
   };

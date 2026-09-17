@@ -21,7 +21,9 @@ function getRowsForYear(year) {
 }
 
 function getAllRows() {
-  return db.prepare(`SELECT date, store, revenue, hours_used, status, booking_date, revenue_confirmed_date FROM transactions`).all();
+  return db
+    .prepare(`SELECT date, store, revenue, hours_used, status, channel, booking_date, revenue_confirmed_date, booking_amount FROM transactions`)
+    .all();
 }
 
 export function getDashboard(requestedYear) {

@@ -50,6 +50,17 @@ const hasRevenueConfirmedDate = db
 if (!hasRevenueConfirmedDate) {
   db.exec(`ALTER TABLE transactions ADD COLUMN revenue_confirmed_date TEXT;`);
 }
+// booking_amount (自社サイトの決済元金+割引金額) — the amount actually charged
+// at booking time, captured regardless of what the row's status later became.
+// For a completed booking this equals `revenue`; for a cancelled one it lets
+// 決済日ベース revenue book the original amount in booking_date's month and
+// the cancellation's loss separately in revenue_confirmed_date's month.
+const hasBookingAmount = db
+  .prepare(`SELECT 1 FROM pragma_table_info('transactions') WHERE name = 'booking_amount'`)
+  .get();
+if (!hasBookingAmount) {
+  db.exec(`ALTER TABLE transactions ADD COLUMN booking_amount INTEGER;`);
+}
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);
