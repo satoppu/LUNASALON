@@ -3,6 +3,7 @@ import { Upload, Download, AlertCircle } from "lucide-react";
 import { api } from "./api.js";
 import { FONT_BODY, FONT_HEAD } from "./constants.js";
 import Sidebar, { NAV_ITEMS } from "./components/Sidebar.jsx";
+import PageNotes from "./components/PageNotes.jsx";
 import SummaryPage from "./components/pages/SummaryPage.jsx";
 import RevenuePage from "./components/pages/RevenuePage.jsx";
 import OccupancyPage from "./components/pages/OccupancyPage.jsx";
@@ -149,6 +150,8 @@ export default function App() {
             <span>{error}</span>
           </div>
         )}
+
+        <PageNotes pageKey={view} />
 
         {loading && <p style={{ color: "#8F7D6E" }}>読み込み中…</p>}
 

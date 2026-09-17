@@ -77,4 +77,16 @@ for (const s of DEFAULT_STORES) {
   syncStoreColorStmt.run(s.color, s.store);
 }
 
+// Free-text notes ("振り返り"/"やる事") kept per dashboard page (サマリー,
+// 売上分析, etc.), so a page's history of decisions/follow-ups lives next to
+// the data it's about instead of in a separate document.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS page_notes (
+    page_key TEXT PRIMARY KEY,
+    reflection TEXT NOT NULL DEFAULT '',
+    todo TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 export default db;

@@ -53,4 +53,11 @@ export const api = {
     return body;
   },
   templateUrl: `${BASE}/template`,
+  getPageNote: (pageKey) => request(`/page-notes/${encodeURIComponent(pageKey)}`),
+  savePageNote: (pageKey, payload) =>
+    request(`/page-notes/${encodeURIComponent(pageKey)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 };
