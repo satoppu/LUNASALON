@@ -200,13 +200,10 @@ export default function RevenuePage({ data }) {
                     店舗
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    月
+                    当月売上
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    {year}年 売上
-                  </th>
-                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    {priorYear}年同月 売上
+                    前年売上
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     前年同月比
@@ -220,7 +217,6 @@ export default function RevenuePage({ data }) {
                       <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(y.store) }} />
                       {y.store}
                     </td>
-                    <td className="px-4 py-3">{y.latestMonth}月</td>
                     <td className="px-4 py-3 text-right">{yen(y.curRevenue)}</td>
                     <td className="px-4 py-3 text-right">{y.hasPrev ? yen(y.prevRevenue) : "—"}</td>
                     <td className="px-4 py-3 text-right" style={{ color: y.pct == null ? "#8F7D6E" : y.pct >= 0 ? "#D4A644" : "#D66B5C" }}>
