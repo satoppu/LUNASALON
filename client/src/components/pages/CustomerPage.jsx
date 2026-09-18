@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
-import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import { FONT_HEAD, yen, makeStoreColor, formatDateShort } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 
@@ -146,23 +146,23 @@ export default function CustomerPage({ data }) {
             </button>
           </div>
           <div style={{ background: "#FFFFFF" }} className="overflow-x-auto max-h-[420px] overflow-y-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead className="sticky top-0" style={{ background: "#FFFFFF" }}>
                 <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用者
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    主な店舗
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    初回利用日
+                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    売上
                   </th>
                   <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    累計利用回数
+                    回数
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    累計売上
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    初回
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    店舗
                   </th>
                 </tr>
               </thead>
@@ -175,12 +175,12 @@ export default function CustomerPage({ data }) {
                     style={{ borderBottom: "1px solid #F3EBDF" }}
                   >
                     <td className="px-4 py-3">{c.user}</td>
+                    <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
+                    <td className="px-4 py-3 text-right">{c.totalCount}</td>
+                    <td className="px-4 py-3">{formatDateShort(c.firstUseDate)}</td>
                     <td className="px-4 py-3">
                       <StoreBadge store={c.primaryStore} storeColor={storeColor} />
                     </td>
-                    <td className="px-4 py-3">{c.firstUseDate}</td>
-                    <td className="px-4 py-3 text-right">{c.totalCount}</td>
-                    <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
                   </tr>
                 ))}
                 {monthFilteredCustomers.length === 0 && (
