@@ -9,6 +9,12 @@ import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
 
 const PAGE_SIZE = 100;
 
+// "2026-09-17" -> "260917", compact enough for the date column to fit next
+// to 利用者/売上/利用時間 on a phone without horizontal scrolling.
+function formatDateShort(dateStr) {
+  return dateStr.slice(2).replace(/-/g, "");
+}
+
 export default function RecentPage({ data }) {
   const storeColor = makeStoreColor(data?.storeMeta);
   const [start, setStart] = useState("");
@@ -182,7 +188,7 @@ export default function RecentPage({ data }) {
             </div>
           </div>
           <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -199,16 +205,7 @@ export default function RecentPage({ data }) {
                     </button>
                   </th>
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    店舗
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用者
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    導線
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    状態
                   </th>
                   <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     売上
@@ -216,17 +213,28 @@ export default function RecentPage({ data }) {
                   <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用時間
                   </th>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    店舗
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    導線
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    状態
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {result.rows.map((r) => (
                   <tr key={r.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                    <td className="px-4 py-3">{r.date}</td>
-                    <td className="px-4 py-3">
-                      <StoreBadge store={r.store} storeColor={storeColor} />
-                    </td>
+                    <td className="px-4 py-3">{formatDateShort(r.date)}</td>
                     <td className="px-4 py-3">
                       <ClickableUserName name={r.user_name} customerByName={customerByName} onSelect={setSelectedCustomer} />
+                    </td>
+                    <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
+                    <td className="px-4 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
+                    <td className="px-4 py-3">
+                      <StoreBadge store={r.store} storeColor={storeColor} />
                     </td>
                     <td className="px-4 py-3">
                       {CHANNEL_BADGE[r.channel] ? (
@@ -258,8 +266,6 @@ export default function RecentPage({ data }) {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
-                    <td className="px-4 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
                   </tr>
                 ))}
                 {result.rows.length === 0 && (

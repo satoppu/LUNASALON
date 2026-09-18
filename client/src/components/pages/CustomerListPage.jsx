@@ -146,7 +146,7 @@ export default function CustomerListPage({ data }) {
       </div>
 
       <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm whitespace-nowrap">
           <thead>
             <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
               <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
