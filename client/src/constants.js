@@ -48,3 +48,23 @@ export function makeStoreColor(storeMeta) {
 export function formatDateShort(dateStr) {
   return dateStr.slice(2).replace(/-/g, ".");
 }
+
+// Full-width characters (kanji/kana) count as 2, half-width (ASCII romaji)
+// as 1 — so this caps a name at "6 full-width chars or 12 half-width
+// chars", whichever the name is made of, to keep the 利用者 column from
+// stretching the table on narrow screens.
+function charWidth(ch) {
+  const code = ch.codePointAt(0);
+  return code > 0x2000 ? 2 : 1;
+}
+
+export function truncateName(name, maxWidth = 12) {
+  let width = 0;
+  let result = "";
+  for (const ch of name) {
+    width += charWidth(ch);
+    if (width > maxWidth) return result + "…";
+    result += ch;
+  }
+  return result;
+}

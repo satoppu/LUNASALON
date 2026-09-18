@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Papa from "papaparse";
 import { Download } from "lucide-react";
 import { api } from "../../api.js";
-import { FONT_HEAD, yen, makeStoreColor, formatDateShort } from "../../constants.js";
+import { FONT_HEAD, yen, makeStoreColor, formatDateShort, truncateName } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 
@@ -180,7 +180,9 @@ export default function CustomerListPage({ data }) {
                 className="cursor-pointer"
                 style={{ borderBottom: "1px solid #F3EBDF" }}
               >
-                <td className="px-4 py-3">{c.user}</td>
+                <td className="px-4 py-3" title={c.user}>
+                  {truncateName(c.user)}
+                </td>
                 <td className="px-4 py-3 text-center font-medium">{yen(c.totalRevenue)}</td>
                 <td className="px-4 py-3 text-right">{c.totalCount}</td>
                 <td className="px-4 py-3 text-right">{c.totalSubscriptionCount}</td>

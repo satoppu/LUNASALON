@@ -175,7 +175,7 @@ export default function CustomerPage({ data }) {
                     style={{ borderBottom: "1px solid #F3EBDF" }}
                   >
                     <td className="px-4 py-3">{c.user}</td>
-                    <td className="px-4 py-3 text-center font-medium">{yen(c.totalRevenue)}</td>
+                    <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
                     <td className="px-4 py-3 text-right">{c.totalCount}</td>
                     <td className="px-4 py-3">{formatDateShort(c.firstUseDate)}</td>
                     <td className="px-4 py-3 text-center">
