@@ -250,7 +250,7 @@ export default function RevenuePage({ data }) {
                     </td>
                     <td className="px-4 py-3 text-right">{yen(y.curRevenue)}</td>
                     <td className="px-4 py-3 text-right">{y.hasPrev ? yen(y.prevRevenue) : "—"}</td>
-                    <td className="px-4 py-3 text-right" style={{ color: y.pct == null ? "#8F7D6E" : y.pct >= 0 ? "#D4A644" : "#D66B5C" }}>
+                    <td className="px-4 py-3 text-center" style={{ color: y.pct == null ? "#8F7D6E" : y.pct >= 0 ? "#D4A644" : "#D66B5C" }}>
                       {y.pct == null ? "前年データなし" : `${y.pct >= 0 ? "+" : ""}${y.pct.toFixed(1)}%`}
                     </td>
                   </tr>
@@ -267,7 +267,7 @@ export default function RevenuePage({ data }) {
                       <td className="px-4 py-3 text-right font-medium">{yen(totalCur)}</td>
                       <td className="px-4 py-3 text-right font-medium">{hasTotalPrev ? yen(totalPrev) : "—"}</td>
                       <td
-                        className="px-4 py-3 text-right font-medium"
+                        className="px-4 py-3 text-center font-medium"
                         style={{ color: totalPct == null ? "#8F7D6E" : totalPct >= 0 ? "#D4A644" : "#D66B5C" }}
                       >
                         {totalPct == null ? "前年データなし" : `${totalPct >= 0 ? "+" : ""}${totalPct.toFixed(1)}%`}
