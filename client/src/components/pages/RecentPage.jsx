@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, Download } from "lucide-react";
 import { api } from "../../api.js";
-import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import { CHANNEL_BADGE, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import CustomerDetailModal from "../CustomerDetailModal.jsx";
 
 const PAGE_SIZE = 100;
 
@@ -17,9 +18,15 @@ export default function RecentPage({ data }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({ stores: [], statuses: [] });
+  const [customerByName, setCustomerByName] = useState(new Map());
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   useEffect(() => {
     api.getTransactionFilters().then(setFilters).catch(() => {});
+    api
+      .getCustomers()
+      .then((res) => setCustomerByName(new Map(res.customers.map((c) => [c.user, c]))))
+      .catch(() => {});
   }, []);
 
   async function load(params, offsetArg) {
@@ -220,11 +227,34 @@ export default function RecentPage({ data }) {
                       <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(r.store) }} />
                       {r.store}
                     </td>
-                    <td className="px-4 py-3">{r.user_name}</td>
                     <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-0.5" style={{ background: "#F3EBDF", color: CHANNEL_COLOR[r.channel] || "#7A6A5C" }}>
-                        {r.channel}
-                      </span>
+                      {customerByName.has(r.user_name) ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCustomer(customerByName.get(r.user_name))}
+                          className="underline decoration-dotted"
+                          style={{ color: "#262421" }}
+                        >
+                          {r.user_name}
+                        </button>
+                      ) : (
+                        r.user_name
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {CHANNEL_BADGE[r.channel] ? (
+                        <span
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold"
+                          style={{ background: CHANNEL_BADGE[r.channel].bg, color: CHANNEL_BADGE[r.channel].text }}
+                          title={r.channel}
+                        >
+                          {CHANNEL_BADGE[r.channel].label}
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5" style={{ background: "#F3EBDF", color: "#7A6A5C" }}>
+                          {r.channel}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3" style={{ color: "#8F7D6E" }}>
                       {r.status}
@@ -245,6 +275,7 @@ export default function RecentPage({ data }) {
           </div>
         </>
       )}
+      <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
     </div>
   );
 }
