@@ -191,7 +191,7 @@ export default function RecentPage({ data }) {
                         setSort(sort === "desc" ? "asc" : "desc");
                         setOffset(0);
                       }}
-                      className="flex items-center gap-1"
+                      className="inline-flex items-center gap-1"
                       style={{ color: "#8F7D6E" }}
                     >
                       日付
