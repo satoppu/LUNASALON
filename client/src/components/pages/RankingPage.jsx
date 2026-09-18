@@ -26,20 +26,20 @@ export default function RankingPage({ data }) {
               <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 利用者
               </th>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                売上
+              </th>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                回数
+              </th>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                利用時間
+              </th>
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                平均
+              </th>
               <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                主な店舗
-              </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                利用回数
-              </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                総利用時間
-              </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                平均利用時間
-              </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                総売上
+                店舗
               </th>
             </tr>
           </thead>
@@ -52,13 +52,13 @@ export default function RankingPage({ data }) {
                 <td className="px-4 py-3">
                   <ClickableUserName name={u.user} customerByName={customerByName} onSelect={setSelectedCustomer} />
                 </td>
-                <td className="px-4 py-3">
-                  <StoreBadge store={u.mainStore} storeColor={storeColor} />
-                </td>
+                <td className="px-4 py-3 text-right font-medium">{yen(u.revenue)}</td>
                 <td className="px-4 py-3 text-right">{u.count}</td>
                 <td className="px-4 py-3 text-right">{u.hoursUsed.toFixed(1)}h</td>
                 <td className="px-4 py-3 text-right">{u.avgHours.toFixed(1)}h</td>
-                <td className="px-4 py-3 text-right font-medium">{yen(u.revenue)}</td>
+                <td className="px-4 py-3">
+                  <StoreBadge store={u.mainStore} storeColor={storeColor} />
+                </td>
               </tr>
             ))}
           </tbody>
