@@ -12,6 +12,7 @@ async function request(path, options) {
 export const api = {
   getDashboard: (year) => request(`/dashboard${year ? `?year=${year}` : ""}`),
   getYears: () => request("/years"),
+  getYoyByStore: (year, month) => request(`/revenue/yoy-by-store?year=${year}${month ? `&month=${month}` : ""}`),
   getCustomers: () => request("/customers"),
   searchTransactions: ({ start, end, store, status, user, offset, sort } = {}) => {
     const params = new URLSearchParams();

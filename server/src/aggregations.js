@@ -110,6 +110,32 @@ export function yen(n) {
 }
 
 /**
+ * Compares one month's revenue across stores, this year vs. the same month
+ * last year. `month` (1-12) picks which month to compare; when omitted,
+ * each store falls back to the latest month it has data for.
+ */
+export function buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorYear, month }) {
+  return storeNames
+    .map((name) => {
+      const storeYearRows = yearRows.filter((r) => r.store === name);
+      if (storeYearRows.length === 0) return null;
+      const monthsWithData = Array.from(new Set(storeYearRows.map((r) => Number(r.date.slice(5, 7)))));
+      const latestMonth = month ?? Math.max(...monthsWithData);
+      const curRevenue = storeYearRows
+        .filter((r) => Number(r.date.slice(5, 7)) === latestMonth)
+        .reduce((sum, r) => sum + effectiveRevenue(r), 0);
+      const prevRevenueRows = priorYearRows.filter(
+        (r) => r.store === name && Number(r.date.slice(5, 7)) === latestMonth
+      );
+      const hasPrev = hasPriorYear && prevRevenueRows.length > 0;
+      const prevRevenue = hasPrev ? prevRevenueRows.reduce((sum, r) => sum + effectiveRevenue(r), 0) : null;
+      const pct = hasPrev && prevRevenue > 0 ? ((curRevenue - prevRevenue) / prevRevenue) * 100 : null;
+      return { store: name, latestMonth, curRevenue, prevRevenue, pct, hasPrev };
+    })
+    .filter(Boolean);
+}
+
+/**
  * @param {object} params
  * @param {number} params.year
  * @param {number} params.priorYear
@@ -301,31 +327,15 @@ export function buildDashboard({
   });
 
   // Compare the same month across stores. For the current calendar year, use
-  // the current (possibly in-progress) month. Past years use their actual
-  // last month with data (a store that opened mid-year has no earlier
-  // months to show).
+  // the current (possibly in-progress) month by default. Past years use
+  // their actual last month with data (a store that opened mid-year has no
+  // earlier months to show). The month can be overridden by the caller (see
+  // buildYoyByStore), e.g. when the user picks a different month on the UI.
   const todayYear = Number(todayISO.slice(0, 4));
   const todayMonth = Number(todayISO.slice(5, 7));
   const currentMonthTarget = year === todayYear ? todayMonth : null;
 
-  const yoyByStore = storeNames
-    .map((name) => {
-      const storeYearRows = yearRows.filter((r) => r.store === name);
-      if (storeYearRows.length === 0) return null;
-      const monthsWithData = Array.from(new Set(storeYearRows.map((r) => Number(r.date.slice(5, 7)))));
-      const latestMonth = currentMonthTarget ?? Math.max(...monthsWithData);
-      const curRevenue = storeYearRows
-        .filter((r) => Number(r.date.slice(5, 7)) === latestMonth)
-        .reduce((sum, r) => sum + effectiveRevenue(r), 0);
-      const prevRevenueRows = priorYearRows.filter(
-        (r) => r.store === name && Number(r.date.slice(5, 7)) === latestMonth
-      );
-      const hasPrev = hasPriorYear && prevRevenueRows.length > 0;
-      const prevRevenue = hasPrev ? prevRevenueRows.reduce((sum, r) => sum + effectiveRevenue(r), 0) : null;
-      const pct = hasPrev && prevRevenue > 0 ? ((curRevenue - prevRevenue) / prevRevenue) * 100 : null;
-      return { store: name, latestMonth, curRevenue, prevRevenue, pct, hasPrev };
-    })
-    .filter(Boolean);
+  const yoyByStore = buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorYear, month: currentMonthTarget });
 
   return {
     year,

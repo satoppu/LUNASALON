@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { ResponsiveContainer, LineChart, Line, ComposedChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { api } from "../../api.js";
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
 function labelInterval(length) {
@@ -18,13 +20,24 @@ export default function RevenuePage({ data }) {
     hoursMonthlyTrend,
     yoyMonthly,
     yoyMonthlyCount,
-    yoyByStore,
+    yoyByStore: initialYoyByStore,
   } = data;
   const storeColor = makeStoreColor(storeMeta);
   const yoyLabel = [year, hasPriorYear && priorYear, hasPriorYear2 && priorYear2]
     .filter(Boolean)
     .map((y) => `${y}年`)
     .join(" vs ");
+
+  const [month, setMonth] = useState(initialYoyByStore[0]?.latestMonth ?? new Date().getMonth() + 1);
+  const [yoyByStore, setYoyByStore] = useState(initialYoyByStore);
+
+  useEffect(() => {
+    api
+      .getYoyByStore(year, month)
+      .then((res) => setYoyByStore(res.yoyByStore))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, month]);
 
   return (
     <>
@@ -191,13 +204,31 @@ export default function RevenuePage({ data }) {
           )}
         </div>
 
+        <div className="flex items-center justify-end gap-2 mb-2">
+          <label className="text-xs" style={{ color: "#8F7D6E" }}>
+            対象月
+          </label>
+          <select
+            value={month}
+            onChange={(e) => setMonth(Number(e.target.value))}
+            className="text-sm px-3 py-1.5 border"
+            style={{ borderColor: "#EDE3D5", color: "#262421", background: "#FFFFFF" }}
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {m}月
+              </option>
+            ))}
+          </select>
+        </div>
+
         {yoyByStore.length > 0 && (
           <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    店舗({yoyByStore[0].latestMonth}月)
+                    店舗({month}月)
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     当月売上

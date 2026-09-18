@@ -1,6 +1,6 @@
 import db from "./db.js";
 import { getTodayISO } from "./config.js";
-import { buildDashboard, buildAnnualTrend, buildBookingDateMonthlyTrend, buildHoursMonthlyTrend } from "./aggregations.js";
+import { buildDashboard, buildAnnualTrend, buildBookingDateMonthlyTrend, buildHoursMonthlyTrend, buildYoyByStore } from "./aggregations.js";
 
 export function getAvailableYears() {
   const rows = db.prepare(`SELECT DISTINCT substr(date, 1, 4) AS y FROM transactions ORDER BY y DESC`).all();
@@ -18,6 +18,19 @@ function getStoreOpenDates() {
 
 function getRowsForYear(year) {
   return db.prepare(`SELECT * FROM transactions WHERE substr(date, 1, 4) = ? ORDER BY date`).all(String(year));
+}
+
+export function getYoyByStore(year, month) {
+  const storeSettingsRows = getStoreSettings();
+  const storeNames = storeSettingsRows.map((s) => s.store);
+  const priorYear = year - 1;
+  const years = getAvailableYears();
+  const hasPriorYear = years.includes(priorYear);
+
+  const yearRows = getRowsForYear(year);
+  const priorYearRows = hasPriorYear ? getRowsForYear(priorYear) : [];
+
+  return buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorYear, month });
 }
 
 function getAllRows() {
