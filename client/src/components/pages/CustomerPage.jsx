@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
-import { FONT_HEAD, yen } from "../../constants.js";
+import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
+import StoreBadge from "../StoreBadge.jsx";
 
 function labelInterval(length) {
   return Math.max(0, Math.ceil(length / 8) - 1);
@@ -19,7 +20,8 @@ const LEAD_MONTH_COLORS = {
   "3ヶ月以上前予約": "#8F4A28",
 };
 
-export default function CustomerPage() {
+export default function CustomerPage({ data }) {
+  const storeColor = makeStoreColor(data?.storeMeta);
   const [state, setState] = useState(null);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState("");
@@ -182,7 +184,9 @@ export default function CustomerPage() {
                     style={{ borderBottom: "1px solid #F3EBDF" }}
                   >
                     <td className="px-4 py-3">{c.user}</td>
-                    <td className="px-4 py-3">{c.primaryStore}</td>
+                    <td className="px-4 py-3">
+                      <StoreBadge store={c.primaryStore} storeColor={storeColor} />
+                    </td>
                     <td className="px-4 py-3">{c.firstUseDate}</td>
                     <td className="px-4 py-3 text-right">{c.totalCount}</td>
                     <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
@@ -363,7 +367,9 @@ export default function CustomerPage() {
                   style={{ borderBottom: "1px solid #F3EBDF" }}
                 >
                   <td className="px-4 py-3">{c.user}</td>
-                  <td className="px-4 py-3">{c.primaryStore}</td>
+                  <td className="px-4 py-3">
+                    <StoreBadge store={c.primaryStore} storeColor={storeColor} />
+                  </td>
                   <td className="px-4 py-3">{c.firstUseDate}</td>
                   <td className="px-4 py-3 text-right">{c.totalCount}</td>
                   <td className="px-4 py-3 text-right">{c.totalCancelCount}</td>

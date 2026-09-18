@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import ClickableUserName from "../ClickableUserName.jsx";
+import StoreBadge from "../StoreBadge.jsx";
 import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
 
 export default function RankingPage({ data }) {
@@ -52,8 +53,7 @@ export default function RankingPage({ data }) {
                   <ClickableUserName name={u.user} customerByName={customerByName} onSelect={setSelectedCustomer} />
                 </td>
                 <td className="px-4 py-3">
-                  <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(u.mainStore) }} />
-                  {u.mainStore}
+                  <StoreBadge store={u.mainStore} storeColor={storeColor} />
                 </td>
                 <td className="px-4 py-3 text-right">{u.count}</td>
                 <td className="px-4 py-3 text-right">{u.hoursUsed.toFixed(1)}h</td>
