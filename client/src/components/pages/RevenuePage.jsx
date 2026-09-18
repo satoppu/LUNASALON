@@ -197,7 +197,7 @@ export default function RevenuePage({ data }) {
               <thead>
                 <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    店舗
+                    店舗({yoyByStore[0].latestMonth}月)
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     当月売上
@@ -224,6 +224,26 @@ export default function RevenuePage({ data }) {
                     </td>
                   </tr>
                 ))}
+                {(() => {
+                  const totalCur = yoyByStore.reduce((sum, y) => sum + y.curRevenue, 0);
+                  const prevStores = yoyByStore.filter((y) => y.hasPrev);
+                  const totalPrev = prevStores.reduce((sum, y) => sum + y.prevRevenue, 0);
+                  const hasTotalPrev = prevStores.length > 0;
+                  const totalPct = hasTotalPrev && totalPrev > 0 ? ((totalCur - totalPrev) / totalPrev) * 100 : null;
+                  return (
+                    <tr style={{ borderTop: "2px solid #EDE3D5" }}>
+                      <td className="px-4 py-3 font-medium">合計</td>
+                      <td className="px-4 py-3 text-right font-medium">{yen(totalCur)}</td>
+                      <td className="px-4 py-3 text-right font-medium">{hasTotalPrev ? yen(totalPrev) : "—"}</td>
+                      <td
+                        className="px-4 py-3 text-right font-medium"
+                        style={{ color: totalPct == null ? "#8F7D6E" : totalPct >= 0 ? "#D4A644" : "#D66B5C" }}
+                      >
+                        {totalPct == null ? "前年データなし" : `${totalPct >= 0 ? "+" : ""}${totalPct.toFixed(1)}%`}
+                      </td>
+                    </tr>
+                  );
+                })()}
               </tbody>
             </table>
           </div>

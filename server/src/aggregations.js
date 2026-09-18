@@ -300,14 +300,13 @@ export function buildDashboard({
     return entry;
   });
 
-  // Compare the same month across stores. For the current calendar year, the
-  // latest month is usually still in progress, so use the last *completed*
-  // month instead — otherwise a handful of this-month bookings gets compared
-  // against a full prior-year month. Past years use their actual last month
-  // with data (a store that opened mid-year has no earlier months to show).
+  // Compare the same month across stores. For the current calendar year, use
+  // the current (possibly in-progress) month. Past years use their actual
+  // last month with data (a store that opened mid-year has no earlier
+  // months to show).
   const todayYear = Number(todayISO.slice(0, 4));
   const todayMonth = Number(todayISO.slice(5, 7));
-  const currentMonthTarget = year === todayYear && todayMonth > 1 ? todayMonth - 1 : null;
+  const currentMonthTarget = year === todayYear ? todayMonth : null;
 
   const yoyByStore = storeNames
     .map((name) => {
