@@ -149,19 +149,19 @@ export default function CustomerPage({ data }) {
             <table className="w-full text-sm whitespace-nowrap">
               <thead className="sticky top-0" style={{ background: "#FFFFFF" }}>
                 <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用者
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     売上
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     回数
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     初回
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     店舗
                   </th>
                 </tr>

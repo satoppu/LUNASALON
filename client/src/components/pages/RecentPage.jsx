@@ -185,7 +185,7 @@ export default function RecentPage({ data }) {
             <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     <button
                       onClick={() => {
                         setSort(sort === "desc" ? "asc" : "desc");
@@ -198,22 +198,22 @@ export default function RecentPage({ data }) {
                       {sort === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </button>
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用者
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     売上
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用時間
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     店舗
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     導線
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     状態
                   </th>
                 </tr>

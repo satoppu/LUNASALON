@@ -20,25 +20,25 @@ export default function RankingPage({ data }) {
         <table className="w-full text-sm whitespace-nowrap">
           <thead>
             <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 順位
               </th>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 利用者
               </th>
               <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 売上
               </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 回数
               </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 利用時間
               </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 平均
               </th>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 店舗
               </th>
             </tr>
