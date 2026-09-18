@@ -60,15 +60,10 @@ export default function App() {
   function describeImportResult(result) {
     const parts = [`${result.inserted}件のデータを取り込みました。`];
     if (result.updated) parts.push(`${result.updated}件は状況が更新されました(例: 利用前→利用済み)。`);
-    if (result.format === "rawBooking" || result.format === "rawInstabase") {
-      if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みのためスキップしました。`);
-      if (result.skippedUnparseable) parts.push(`${result.skippedUnparseable}件は読み取れませんでした。`);
-    } else if (result.format === "rawSubscription") {
-      if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みの期間のためスキップしました。`);
-      if (result.unresolvedOrBad) parts.push(`${result.unresolvedOrBad}件は利用実績がなく店舗を特定できないため保留しました。`);
-    } else if (result.skipped) {
-      parts.push(`${result.skipped}件は列が読み取れずスキップしました。`);
-    }
+    if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みのためスキップしました。`);
+    if (result.skippedUnparseable) parts.push(`${result.skippedUnparseable}件は読み取れませんでした。`);
+    if (result.unresolvedOrBad) parts.push(`${result.unresolvedOrBad}件は利用実績がなく店舗を特定できないため保留しました。`);
+    if (result.skipped) parts.push(`${result.skipped}件は列が読み取れずスキップしました。`);
     if (result.duplicates) parts.push(`(うち${result.duplicates}件は取り込み済みでした)`);
     return parts.join(" ");
   }
@@ -135,9 +130,9 @@ export default function App() {
               style={{ background: "#D4A644", color: "#262421" }}
             >
               <Upload size={15} />
-              CSVインポート
+              CSV/ZIPインポート
             </button>
-            <input ref={fileInput} type="file" accept=".csv" onChange={handleFile} className="hidden" />
+            <input ref={fileInput} type="file" accept=".csv,.zip" onChange={handleFile} className="hidden" />
           </div>
         </div>
 
