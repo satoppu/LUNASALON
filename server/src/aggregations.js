@@ -465,6 +465,7 @@ export function buildCustomerProfiles(allRows) {
       user,
       primaryStore,
       firstUseDate: visits[0].date,
+      lastUseDate: visits[visits.length - 1].date,
       totalCount: visits.length,
       totalCancelCount: byYearList.reduce((sum, y) => sum + y.cancelCount, 0),
       totalRevenue: rows.reduce((sum, r) => sum + effectiveRevenue(r), 0),
