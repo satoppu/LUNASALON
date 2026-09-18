@@ -1,6 +1,10 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
+function shortYear(y) {
+  return String(y).slice(-2);
+}
+
 export default function SummaryPage({ data }) {
   const { year, storeNames, storeMeta, summary, occupancyData, overallStats, annualTrend } = data;
   const storeColor = makeStoreColor(storeMeta);
@@ -26,9 +30,9 @@ export default function SummaryPage({ data }) {
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={annualTrend}>
               <CartesianGrid stroke="#F0E6D8" vertical={false} />
-              <XAxis dataKey="year" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} tickFormatter={(v) => `${v}年`} />
+              <XAxis dataKey="year" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} tickFormatter={(v) => `${shortYear(v)}年`} />
               <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${(v / 10000).toFixed(0)}万`} />
-              <Tooltip formatter={(v) => yen(v)} labelFormatter={(v) => `${v}年`} />
+              <Tooltip formatter={(v) => yen(v)} labelFormatter={(v) => `${shortYear(v)}年`} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               {storeNames.map((name) => (
                 <Bar key={name} dataKey={name} stackId="revenue" fill={storeColor(name)} />
@@ -64,7 +68,7 @@ export default function SummaryPage({ data }) {
                 const pct = prevTotal != null && prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : null;
                 return (
                   <tr key={y.year} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                    <td className="px-4 py-3">{y.year}年</td>
+                    <td className="px-4 py-3">{shortYear(y.year)}年</td>
                     {storeNames.map((name) => (
                       <td key={name} className="px-4 py-3 text-right">
                         {yen(y[name] || 0)}
@@ -104,7 +108,7 @@ export default function SummaryPage({ data }) {
             {overallStats.totalUses}
           </p>
           <p style={{ color: "#8F7D6E" }} className="text-xs">
-            利用件数({year}年)
+            利用件数({shortYear(year)}年)
           </p>
         </div>
         <div>
@@ -112,7 +116,7 @@ export default function SummaryPage({ data }) {
             {overallStats.uniqueUsers}
           </p>
           <p style={{ color: "#8F7D6E" }} className="text-xs">
-            利用者数({year}年)
+            利用者数({shortYear(year)}年)
           </p>
         </div>
       </div>
@@ -139,7 +143,7 @@ export default function SummaryPage({ data }) {
                 {yen(s.revenue)}
               </p>
               <p style={{ color: "#8F7D6E" }} className="text-xs mb-4">
-                {year}年 累計売上
+                {shortYear(year)}年 累計売上
               </p>
               <div className="grid grid-cols-2 gap-y-3 text-sm">
                 <div>

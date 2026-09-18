@@ -193,22 +193,22 @@ export default function RevenuePage({ data }) {
 
         {yoyByStore.length > 0 && (
           <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm whitespace-nowrap">
               <thead>
                 <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     店舗
                   </th>
-                  <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    対象月
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    月
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     {year}年 売上
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     {priorYear}年同月 売上
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     前年同月比
                   </th>
                 </tr>

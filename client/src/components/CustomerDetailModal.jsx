@@ -102,7 +102,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
                   <td className="px-6 py-3">{y.year}年</td>
                   <td className="px-6 py-3 text-right">{y.count}</td>
                   <td className="px-6 py-3 text-right">{y.cancelCount}</td>
-                  <td className="px-6 py-3 text-center font-medium">{yen(y.revenue)}</td>
+                  <td className="px-6 py-3 text-right font-medium">{yen(y.revenue)}</td>
                   <td className="px-6 py-3 text-right">{y.subscriptionCount}</td>
                   <td className="px-6 py-3 text-right">{yen(y.subscriptionRevenue)}</td>
                 </tr>

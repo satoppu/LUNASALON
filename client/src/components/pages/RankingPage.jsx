@@ -52,7 +52,7 @@ export default function RankingPage({ data }) {
                 <td className="px-4 py-3">
                   <ClickableUserName name={u.user} customerByName={customerByName} onSelect={setSelectedCustomer} />
                 </td>
-                <td className="px-4 py-3 text-center font-medium">{yen(u.revenue)}</td>
+                <td className="px-4 py-3 text-right font-medium">{yen(u.revenue)}</td>
                 <td className="px-4 py-3 text-right">{u.count}</td>
                 <td className="px-4 py-3 text-right">{u.hoursUsed.toFixed(1)}h</td>
                 <td className="px-4 py-3 text-right">{u.avgHours.toFixed(1)}h</td>

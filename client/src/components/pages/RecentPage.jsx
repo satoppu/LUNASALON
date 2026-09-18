@@ -225,7 +225,7 @@ export default function RecentPage({ data }) {
                     <td className="px-4 py-3">
                       <ClickableUserName name={r.user_name} customerByName={customerByName} onSelect={setSelectedCustomer} />
                     </td>
-                    <td className="px-4 py-3 text-center">{yen(r.revenue)}</td>
+                    <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
                     <td className="px-4 py-3 text-center">{r.hours_used.toFixed(1)}h</td>
                     <td className="px-4 py-3 text-center">
                       <StoreBadge store={r.store} storeColor={storeColor} />
