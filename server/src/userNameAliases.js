@@ -10,7 +10,7 @@
 export const USER_NAME_ALIASES = [
   { canonical: "高木春菜", aliases: ["HARUNATAKAGI", "高木 春菜"] },
   { canonical: "五十嵐健一", aliases: ["五十嵐", "五十嵐賢一", "五十嵐 賢一", "五十嵐 健一"] },
-  { canonical: "小串健志", aliases: ["オグシケンジ", "小串健次", "小串 健志"] },
+  { canonical: "小串健司", aliases: ["オグシケンジ", "小串健次", "小串健志", "小串 健志"] },
   { canonical: "藤田聡之", aliases: ["藤田聡之(藤田聡之（さとっぷ）)"] },
   { canonical: "川北紫明", aliases: ["川北紫朗"] },
   { canonical: "中川舞", aliases: ["MAINAKAGAWA"] },
