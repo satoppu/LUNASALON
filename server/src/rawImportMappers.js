@@ -10,10 +10,14 @@ const STORE_PREFIX = "レンタルサロン ";
 const BOOKING_CHANNEL = "自社サイト"; // this export shape is 自社サイト-only bookings.
 const INSTABASE_CHANNEL = "Instabase";
 
-// 施設名 (facility name) substrings -> store, per the actual listing titles.
-const INSTABASE_FACILITY_STORE = [
-  { match: "つくば市初", store: "Asteria" },
-  { match: "柏駅徒歩3分", store: "Bellezza" },
+// スペース名 (listing/space name) substrings -> store. One 施設名 (facility/
+// building) can host multiple スペース (rooms) that map to different stores —
+// e.g. the "柏駅徒歩3分" facility lists both a Bellezza room and a separate
+// Forest room — so matching has to key off スペース名, not 施設名.
+const INSTABASE_SPACE_STORE = [
+  { match: "柏唯一の年間ゴールドスペース", store: "Bellezza" },
+  { match: "Bellezzaの2号店", store: "Forest" },
+  { match: "はじめての一歩を応援する完全個室レンタルサロンAsteria", store: "Asteria" },
 ];
 
 /**
@@ -169,8 +173,8 @@ export function mapRawSubscriptionRow(raw) {
   };
 }
 
-function mapInstabaseStore(facilityName) {
-  const hit = INSTABASE_FACILITY_STORE.find((f) => String(facilityName).includes(f.match));
+function mapInstabaseStore(spaceName) {
+  const hit = INSTABASE_SPACE_STORE.find((f) => String(spaceName).includes(f.match));
   return hit ? hit.store : "Forest";
 }
 
@@ -178,10 +182,13 @@ function mapInstabaseStore(facilityName) {
 // "confirmed, usage date still ahead" the way 自社サイト's 状態="未確定" does
 // — a future-dated booking shows the same "予約確定" as a past, completed one
 // — so isFuture (derived from 利用開始日時 vs. today) is what decides that
-// split here instead.
-function mapInstabaseStatus(rawStatus, revenue, isFuture) {
+// split here instead. Both of Instabase's own cancellation labels
+// (利用者キャンセル, 特別キャンセル) always book as キャンセル(顧客) — unlike
+// 自社サイト, this export doesn't carry enough detail to distinguish a
+// refunded cancellation from one that wasn't.
+function mapInstabaseStatus(rawStatus, isFuture) {
   if (rawStatus === "予約確定") return isFuture ? PENDING_STATUS : "利用済み";
-  if (rawStatus.includes("キャンセル")) return revenue > 0 ? "キャンセル(返金あり)" : "キャンセル(顧客)";
+  if (rawStatus.includes("キャンセル")) return "キャンセル(顧客)";
   return null;
 }
 
@@ -209,7 +216,7 @@ export function mapRawInstabaseRow(raw) {
   const date = String(raw["利用開始日時"] || "").slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   const isFuture = date > getTodayISO();
-  const status = mapInstabaseStatus(rawStatus, revenue, isFuture);
+  const status = mapInstabaseStatus(rawStatus, isFuture);
   if (!status) return null;
 
   const startHour = Number(String(raw["利用開始日時"]).slice(11, 13));
@@ -218,7 +225,7 @@ export function mapRawInstabaseRow(raw) {
 
   return {
     date,
-    store: mapInstabaseStore(raw["施設名"]),
+    store: mapInstabaseStore(raw["スペース名"]),
     user_name: canonicalizeUserName(raw["予約者名"]),
     revenue,
     hours_used: hoursUsed,
