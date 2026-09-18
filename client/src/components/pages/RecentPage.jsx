@@ -1,19 +1,13 @@
 import { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, Download } from "lucide-react";
 import { api } from "../../api.js";
-import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatDateShort } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import ClickableUserName from "../ClickableUserName.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
 
 const PAGE_SIZE = 100;
-
-// "2026-09-17" -> "260917", compact enough for the date column to fit next
-// to 利用者/売上/利用時間 on a phone without horizontal scrolling.
-function formatDateShort(dateStr) {
-  return dateStr.slice(2).replace(/-/g, "");
-}
 
 export default function RecentPage({ data }) {
   const storeColor = makeStoreColor(data?.storeMeta);

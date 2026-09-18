@@ -40,3 +40,9 @@ export function yen(n) {
 export function makeStoreColor(storeMeta) {
   return (name) => storeMeta?.[name]?.color || "#8F7D6E";
 }
+
+// "2026-09-17" -> "260917", compact enough for a date column to fit next to
+// name/revenue columns on a phone without horizontal scrolling.
+export function formatDateShort(dateStr) {
+  return dateStr.slice(2).replace(/-/g, "");
+}
