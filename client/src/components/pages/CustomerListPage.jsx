@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import Papa from "papaparse";
+import { Download } from "lucide-react";
 import { api } from "../../api.js";
 import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
@@ -42,6 +44,28 @@ export default function CustomerListPage({ data }) {
     setEnd("");
     setStore("");
     setUser("");
+  }
+
+  function handleExport() {
+    const csv = Papa.unparse(
+      filtered.map((c) => ({
+        利用者: c.user,
+        主な店舗: c.primaryStore,
+        初回利用日: c.firstUseDate,
+        最終利用日: c.lastUseDate,
+        累計利用回数: c.totalCount,
+        キャンセル数: c.totalCancelCount,
+        クーポン購入回数: c.totalSubscriptionCount,
+        累計売上: c.totalRevenue,
+      }))
+    );
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "luna_customers.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   if (error) {
@@ -106,9 +130,20 @@ export default function CustomerListPage({ data }) {
         </div>
       </div>
 
-      <p className="text-xs mb-2" style={{ color: "#8F7D6E" }}>
-        {filtered.length}人を表示(全{customers.length}人・クリックで詳細)
-      </p>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+        <p className="text-xs" style={{ color: "#8F7D6E" }}>
+          {filtered.length}人を表示(全{customers.length}人・クリックで詳細)
+        </p>
+        <button
+          type="button"
+          onClick={handleExport}
+          className="flex items-center gap-1.5 text-sm px-3 py-1.5 border"
+          style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
+        >
+          <Download size={14} />
+          エクスポート
+        </button>
+      </div>
 
       <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
         <table className="w-full text-sm">
