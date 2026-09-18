@@ -222,8 +222,13 @@ export default function RecentPage({ data }) {
                   <tr key={r.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
                     <td className="px-4 py-3">{r.date}</td>
                     <td className="px-4 py-3">
-                      <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(r.store) }} />
-                      {r.store}
+                      <span
+                        className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold"
+                        style={{ background: storeColor(r.store), color: "#262421" }}
+                        title={r.store}
+                      >
+                        {r.store.charAt(0)}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <ClickableUserName name={r.user_name} customerByName={customerByName} onSelect={setSelectedCustomer} />
