@@ -15,6 +15,7 @@ export const CHANNEL_BADGE = {
   自社サイト: { label: "自", bg: "#D4A644", text: "#262421" },
   Instabase: { label: "I", bg: "#3D6FB5", text: "#FFFFFF" },
   スペースマーケット: { label: "S", bg: "#347A50", text: "#FFFFFF" },
+  定期クーポン: { label: "定", bg: "#B54F72", text: "#FFFFFF" },
 };
 
 // Same one-glyph badge treatment for 状態 (booking status). Each status gets
