@@ -17,6 +17,18 @@ export const CHANNEL_BADGE = {
   スペースマーケット: { label: "S", bg: "#347A50", text: "#FFFFFF" },
 };
 
+// Same one-glyph badge treatment for 状態 (booking status). Each status gets
+// its own character, so two similarly-toned cancellation variants still read
+// unambiguously without depending on the viewer telling the colors apart.
+export const STATUS_BADGE = {
+  利用済み: { label: "済", bg: "#D4A644", text: "#262421" },
+  利用前: { label: "予", bg: "#756253", text: "#FFFFFF" },
+  定期クーポン: { label: "定", bg: "#B54F72", text: "#FFFFFF" },
+  "キャンセル(顧客)": { label: "キ", bg: "#A84434", text: "#FFFFFF" },
+  "キャンセル(返金あり)": { label: "返", bg: "#B8543F", text: "#FFFFFF" },
+  "キャンセル(オーナー)": { label: "オ", bg: "#8F4A28", text: "#FFFFFF" },
+};
+
 export const FONT_HEAD = "'Shippori Mincho', serif";
 export const FONT_BODY = "'Noto Sans JP', sans-serif";
 

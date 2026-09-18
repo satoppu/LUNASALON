@@ -1,8 +1,14 @@
+import { useState } from "react";
 import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import CustomerDetailModal from "../CustomerDetailModal.jsx";
+import ClickableUserName from "../ClickableUserName.jsx";
+import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
 
 export default function RankingPage({ data }) {
   const { year, storeMeta, userSummary } = data;
   const storeColor = makeStoreColor(storeMeta);
+  const customerByName = useCustomerLookup();
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   return (
     <div>
@@ -42,7 +48,9 @@ export default function RankingPage({ data }) {
                 <td className="px-4 py-3" style={{ fontFamily: FONT_HEAD, color: "#D4A644" }}>
                   {i + 1}
                 </td>
-                <td className="px-4 py-3">{u.user}</td>
+                <td className="px-4 py-3">
+                  <ClickableUserName name={u.user} customerByName={customerByName} onSelect={setSelectedCustomer} />
+                </td>
                 <td className="px-4 py-3">
                   <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(u.mainStore) }} />
                   {u.mainStore}
@@ -56,6 +64,7 @@ export default function RankingPage({ data }) {
           </tbody>
         </table>
       </div>
+      <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
     </div>
   );
 }

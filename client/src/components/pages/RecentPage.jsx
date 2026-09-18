@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, Download } from "lucide-react";
 import { api } from "../../api.js";
-import { CHANNEL_BADGE, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
+import ClickableUserName from "../ClickableUserName.jsx";
+import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
 
 const PAGE_SIZE = 100;
 
@@ -18,15 +20,11 @@ export default function RecentPage({ data }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({ stores: [], statuses: [] });
-  const [customerByName, setCustomerByName] = useState(new Map());
+  const customerByName = useCustomerLookup();
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   useEffect(() => {
     api.getTransactionFilters().then(setFilters).catch(() => {});
-    api
-      .getCustomers()
-      .then((res) => setCustomerByName(new Map(res.customers.map((c) => [c.user, c]))))
-      .catch(() => {});
   }, []);
 
   async function load(params, offsetArg) {
@@ -228,18 +226,7 @@ export default function RecentPage({ data }) {
                       {r.store}
                     </td>
                     <td className="px-4 py-3">
-                      {customerByName.has(r.user_name) ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCustomer(customerByName.get(r.user_name))}
-                          className="underline decoration-dotted"
-                          style={{ color: "#262421" }}
-                        >
-                          {r.user_name}
-                        </button>
-                      ) : (
-                        r.user_name
-                      )}
+                      <ClickableUserName name={r.user_name} customerByName={customerByName} onSelect={setSelectedCustomer} />
                     </td>
                     <td className="px-4 py-3">
                       {CHANNEL_BADGE[r.channel] ? (
@@ -256,8 +243,20 @@ export default function RecentPage({ data }) {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3" style={{ color: "#8F7D6E" }}>
-                      {r.status}
+                    <td className="px-4 py-3">
+                      {STATUS_BADGE[r.status] ? (
+                        <span
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold"
+                          style={{ background: STATUS_BADGE[r.status].bg, color: STATUS_BADGE[r.status].text }}
+                          title={r.status}
+                        >
+                          {STATUS_BADGE[r.status].label}
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5" style={{ background: "#F3EBDF", color: "#7A6A5C" }}>
+                          {r.status}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
                     <td className="px-4 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
