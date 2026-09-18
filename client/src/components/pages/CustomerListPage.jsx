@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import { api } from "../../api.js";
 import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
@@ -7,9 +6,13 @@ import StoreBadge from "../StoreBadge.jsx";
 
 export default function CustomerListPage({ data }) {
   const storeColor = makeStoreColor(data?.storeMeta);
+  const storeNames = data?.storeNames || [];
   const [customers, setCustomers] = useState(null);
   const [error, setError] = useState(null);
-  const [query, setQuery] = useState("");
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  const [store, setStore] = useState("");
+  const [user, setUser] = useState("");
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
@@ -21,10 +24,25 @@ export default function CustomerListPage({ data }) {
 
   const filtered = useMemo(() => {
     if (!customers) return [];
-    const q = query.trim();
-    if (!q) return customers;
-    return customers.filter((c) => c.user.includes(q));
-  }, [customers, query]);
+    return customers.filter((c) => {
+      if (user.trim() && !c.user.includes(user.trim())) return false;
+      if (store && c.primaryStore !== store) return false;
+      if (start && c.firstUseDate < start) return false;
+      if (end && c.firstUseDate > end) return false;
+      return true;
+    });
+  }, [customers, start, end, store, user]);
+
+  const hasFilters = start || end || store || user;
+  const selectClass = "text-sm px-3 py-2 border";
+  const selectStyle = { borderColor: "#EDE3D5", background: "#FFFFFF" };
+
+  function handleClear() {
+    setStart("");
+    setEnd("");
+    setStore("");
+    setUser("");
+  }
 
   if (error) {
     return (
@@ -41,20 +59,57 @@ export default function CustomerListPage({ data }) {
     <>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">
-          顧客一覧({customers.length}人・クリックで詳細)
+          顧客一覧
         </h3>
-        <div className="flex items-center gap-2 px-3 py-2" style={{ background: "#FFFFFF", border: "1px solid #EDE3D5" }}>
-          <Search size={14} style={{ color: "#8F7D6E" }} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="date"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            className={selectClass}
+            style={selectStyle}
+          />
+          <span style={{ color: "#8F7D6E" }}>〜</span>
+          <input
+            type="date"
+            value={end}
+            onChange={(e) => setEnd(e.target.value)}
+            className={selectClass}
+            style={selectStyle}
+          />
+          <select value={store} onChange={(e) => setStore(e.target.value)} className={selectClass} style={selectStyle}>
+            <option value="">店舗(すべて)</option>
+            {storeNames.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={user}
+            onChange={(e) => setUser(e.target.value)}
             placeholder="顧客名で検索"
-            className="text-sm outline-none"
-            style={{ background: "transparent" }}
+            className={selectClass}
+            style={selectStyle}
           />
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="text-sm px-3 py-2 border"
+              style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
+            >
+              クリア
+            </button>
+          )}
         </div>
       </div>
+
+      <p className="text-xs mb-2" style={{ color: "#8F7D6E" }}>
+        {filtered.length}人を表示(全{customers.length}人・クリックで詳細)
+      </p>
+
       <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
