@@ -152,23 +152,23 @@ export default function CustomerListPage({ data }) {
               <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 利用者
               </th>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                主な店舗
-              </th>
-              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                初回利用日
+              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                累計売上
               </th>
               <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 累計利用回数
               </th>
               <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                キャンセル数
-              </th>
-              <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 クーポン購入回数
               </th>
               <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                累計売上
+                キャンセル数
+              </th>
+              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                初回利用日
+              </th>
+              <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                主な店舗
               </th>
             </tr>
           </thead>
@@ -181,14 +181,14 @@ export default function CustomerListPage({ data }) {
                 style={{ borderBottom: "1px solid #F3EBDF" }}
               >
                 <td className="px-4 py-3">{c.user}</td>
+                <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
+                <td className="px-4 py-3 text-right">{c.totalCount}</td>
+                <td className="px-4 py-3 text-right">{c.totalSubscriptionCount}</td>
+                <td className="px-4 py-3 text-right">{c.totalCancelCount}</td>
+                <td className="px-4 py-3">{c.firstUseDate}</td>
                 <td className="px-4 py-3">
                   <StoreBadge store={c.primaryStore} storeColor={storeColor} />
                 </td>
-                <td className="px-4 py-3">{c.firstUseDate}</td>
-                <td className="px-4 py-3 text-right">{c.totalCount}</td>
-                <td className="px-4 py-3 text-right">{c.totalCancelCount}</td>
-                <td className="px-4 py-3 text-right">{c.totalSubscriptionCount}</td>
-                <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
               </tr>
             ))}
             {filtered.length === 0 && (
