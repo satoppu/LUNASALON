@@ -25,8 +25,7 @@ const NUMERIC_RESULT_KEYS = ["inserted", "updated", "duplicates", "skipped", "sk
 function mergeResults(results) {
   const merged = { format: results.map((r) => r.format).join("+"), error: null };
   for (const key of NUMERIC_RESULT_KEYS) {
-    const sum = results.reduce((s, r) => s + (r[key] || 0), 0);
-    if (sum > 0) merged[key] = sum;
+    merged[key] = results.reduce((s, r) => s + (r[key] || 0), 0);
   }
   return merged;
 }
