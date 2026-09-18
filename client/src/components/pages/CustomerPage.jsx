@@ -152,7 +152,7 @@ export default function CustomerPage({ data }) {
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用者
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     売上
                   </th>
                   <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -175,7 +175,7 @@ export default function CustomerPage({ data }) {
                     style={{ borderBottom: "1px solid #F3EBDF" }}
                   >
                     <td className="px-4 py-3">{c.user}</td>
-                    <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
+                    <td className="px-4 py-3 text-center font-medium">{yen(c.totalRevenue)}</td>
                     <td className="px-4 py-3 text-right">{c.totalCount}</td>
                     <td className="px-4 py-3">{formatDateShort(c.firstUseDate)}</td>
                     <td className="px-4 py-3">

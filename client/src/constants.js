@@ -41,8 +41,10 @@ export function makeStoreColor(storeMeta) {
   return (name) => storeMeta?.[name]?.color || "#8F7D6E";
 }
 
-// "2026-09-17" -> "260917", compact enough for a date column to fit next to
-// name/revenue columns on a phone without horizontal scrolling.
+// "2026-09-17" -> "26.09.17" (yy.mm.dd) — compact enough for a date column
+// to fit next to name/revenue columns on a phone without horizontal
+// scrolling, while keeping the year-month-day order used everywhere else
+// in the app (date pickers, ISO dates) so it doesn't read backwards.
 export function formatDateShort(dateStr) {
-  return dateStr.slice(2).replace(/-/g, "");
+  return dateStr.slice(2).replace(/-/g, ".");
 }

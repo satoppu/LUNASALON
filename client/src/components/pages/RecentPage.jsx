@@ -201,7 +201,7 @@ export default function RecentPage({ data }) {
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用者
                   </th>
-                  <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     売上
                   </th>
                   <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -225,7 +225,7 @@ export default function RecentPage({ data }) {
                     <td className="px-4 py-3">
                       <ClickableUserName name={r.user_name} customerByName={customerByName} onSelect={setSelectedCustomer} />
                     </td>
-                    <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
+                    <td className="px-4 py-3 text-center">{yen(r.revenue)}</td>
                     <td className="px-4 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
                     <td className="px-4 py-3">
                       <StoreBadge store={r.store} storeColor={storeColor} />
