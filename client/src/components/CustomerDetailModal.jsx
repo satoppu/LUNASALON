@@ -73,26 +73,26 @@ export default function CustomerDetailModal({ customer, onClose }) {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                <th className="text-left px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                <th className="text-center px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   年度
                 </th>
-                <th className="text-right px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  利用回数
+                <th className="text-center px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  回数
                 </th>
-                <th className="text-right px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  キャンセル数
+                <th className="text-center px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  キャンセル
                 </th>
-                <th className="text-right px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  利用金額(クーポン含む)
+                <th className="text-center px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  売上
                 </th>
-                <th className="text-right px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  うちクーポン購入回数
+                <th className="text-center px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  クーポン
                 </th>
-                <th className="text-right px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  うちクーポン購入金額
+                <th className="text-center px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  クーポン金額
                 </th>
               </tr>
             </thead>
@@ -102,7 +102,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
                   <td className="px-6 py-3">{y.year}年</td>
                   <td className="px-6 py-3 text-right">{y.count}</td>
                   <td className="px-6 py-3 text-right">{y.cancelCount}</td>
-                  <td className="px-6 py-3 text-right font-medium">{yen(y.revenue)}</td>
+                  <td className="px-6 py-3 text-center font-medium">{yen(y.revenue)}</td>
                   <td className="px-6 py-3 text-right">{y.subscriptionCount}</td>
                   <td className="px-6 py-3 text-right">{yen(y.subscriptionRevenue)}</td>
                 </tr>
