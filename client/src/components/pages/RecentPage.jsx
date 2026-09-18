@@ -226,11 +226,11 @@ export default function RecentPage({ data }) {
                       <ClickableUserName name={r.user_name} customerByName={customerByName} onSelect={setSelectedCustomer} />
                     </td>
                     <td className="px-4 py-3 text-center">{yen(r.revenue)}</td>
-                    <td className="px-4 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">{r.hours_used.toFixed(1)}h</td>
+                    <td className="px-4 py-3 text-center">
                       <StoreBadge store={r.store} storeColor={storeColor} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       {CHANNEL_BADGE[r.channel] ? (
                         <span
                           className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold"
@@ -245,7 +245,7 @@ export default function RecentPage({ data }) {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">
                       {STATUS_BADGE[r.status] ? (
                         <span
                           className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold"
