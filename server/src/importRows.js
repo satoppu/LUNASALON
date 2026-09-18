@@ -3,6 +3,7 @@
 // so exports from the reservation system or the dashboard's own template both work.
 
 import { SUBSCRIPTION_STATUS } from "./config.js";
+import { canonicalizeUserName } from "./importHelpers.js";
 
 const HEADER_ALIASES = {
   date: ["日付", "date"],
@@ -78,7 +79,7 @@ export function normalizeImportRow(raw) {
   return {
     date: dateStr,
     store: String(store).trim(),
-    user_name: matchHeader(raw, HEADER_ALIASES.user)?.toString().trim() || "不明",
+    user_name: canonicalizeUserName(matchHeader(raw, HEADER_ALIASES.user)?.toString().trim() || "不明"),
     revenue,
     hours_used: hoursUsedSafe,
     start_hour: hour === null || Number.isNaN(hour) ? null : hour,
@@ -108,7 +109,7 @@ export function normalizeSubscriptionRow(raw) {
   return {
     date: String(date).trim(),
     store: String(store).trim(),
-    user_name: String(raw.user || "不明").trim(),
+    user_name: canonicalizeUserName(raw.user || "不明"),
     revenue,
     hours_used: 0,
     start_hour: null,

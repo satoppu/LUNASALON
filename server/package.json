@@ -12,6 +12,7 @@
     "seed": "node src/seed.js",
     "import-subscriptions": "node src/importSubscriptions.js",
     "backfill-booking-date": "node src/backfillBookingDate.js",
+    "dedupe-user-names": "node src/dedupeUserNames.js",
     "auto-import": "node scripts/autoFetchImport.js",
     "auto-import:debug": "node scripts/autoFetchImport.js --debug"
   },
