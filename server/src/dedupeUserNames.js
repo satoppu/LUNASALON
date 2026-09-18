@@ -8,9 +8,10 @@
 // (importHelpers.js), which only dedupes at raw-import time going forward —
 // it can't retroactively fix rows already sitting in the table under two
 // spellings. This runs two merge passes: first the explicit
-// USER_NAME_ALIASES pairings, then automatic whitespace-stripped grouping
-// for everything else, each group merging onto whichever spelling has the
-// most rows (ties go to the no-space form).
+// USER_NAME_ALIASES pairings, then house policy for everything else — no
+// whitespace between surname and given name — renaming every remaining name
+// to its whitespace-stripped form (which merges it with any other spelling
+// that strips to the same string).
 //
 // Usage: node src/dedupeUserNames.js [--dry-run]
 import db from "./db.js";
@@ -46,7 +47,8 @@ function main() {
       rowsUpdated += mergeGroup(updateStmt, canonical, others, dryRun);
     }
 
-    // Pass 2: automatic whitespace-only grouping for everything else.
+    // Pass 2: house policy — strip whitespace from every remaining name,
+    // merging any spellings that collapse onto the same stripped string.
     const names = db.prepare(`SELECT user_name, COUNT(*) AS n FROM transactions GROUP BY user_name`).all();
     const groups = new Map();
     for (const { user_name, n } of names) {
@@ -54,13 +56,9 @@ function main() {
       if (!groups.has(stripped)) groups.set(stripped, []);
       groups.get(stripped).push({ user_name, n });
     }
-    for (const variants of groups.values()) {
-      if (variants.length <= 1) continue;
-      const canonical = [...variants].sort((a, b) => {
-        if (b.n !== a.n) return b.n - a.n;
-        return a.user_name.length - b.user_name.length;
-      })[0].user_name;
+    for (const [canonical, variants] of groups) {
       const others = variants.filter((v) => v.user_name !== canonical);
+      if (others.length === 0) continue;
       groupsMerged++;
       rowsUpdated += mergeGroup(updateStmt, canonical, others, dryRun);
     }
