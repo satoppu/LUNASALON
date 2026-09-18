@@ -186,7 +186,7 @@ export default function CustomerListPage({ data }) {
                 <td className="px-4 py-3 text-right">{c.totalSubscriptionCount}</td>
                 <td className="px-4 py-3 text-right">{c.totalCancelCount}</td>
                 <td className="px-4 py-3">{formatDateShort(c.firstUseDate)}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-center">
                   <StoreBadge store={c.primaryStore} storeColor={storeColor} />
                 </td>
               </tr>

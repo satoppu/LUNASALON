@@ -56,7 +56,7 @@ export default function RankingPage({ data }) {
                 <td className="px-4 py-3 text-right">{u.count}</td>
                 <td className="px-4 py-3 text-right">{u.hoursUsed.toFixed(1)}h</td>
                 <td className="px-4 py-3 text-right">{u.avgHours.toFixed(1)}h</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-center">
                   <StoreBadge store={u.mainStore} storeColor={storeColor} />
                 </td>
               </tr>
