@@ -26,6 +26,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { importFileBuffer } from "../src/importFileBuffer.js";
+import { sendResultEmail } from "../src/notifyEmail.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, "..", ".env");
@@ -169,11 +170,33 @@ async function main() {
 
     const result = importFileBuffer(buffer, filename);
     console.log(new Date().toISOString(), JSON.stringify(result));
-    if (result.error) process.exitCode = 1;
+    if (result.error) {
+      process.exitCode = 1;
+      await sendResultEmail({
+        subject: "【LUNA】自動取り込み失敗",
+        text: `よやクルProからの自動取り込みでエラーが発生しました。\n\n${result.error}`,
+      }).catch((e) => console.error("メール通知に失敗しました:", e.message));
+    } else {
+      await sendResultEmail({
+        subject: "【LUNA】自動取り込み成功",
+        text:
+          `よやクルProからの自動取り込みが完了しました。\n\n` +
+          `新規登録: ${result.inserted}件\n` +
+          `更新: ${result.updated}件\n` +
+          `重複スキップ: ${result.duplicates}件\n` +
+          `期間対象外スキップ: ${result.skipped}件\n` +
+          `解析不能スキップ: ${result.skippedUnparseable}件\n` +
+          `解決不能/不正: ${result.unresolvedOrBad}件`,
+      }).catch((e) => console.error("メール通知に失敗しました:", e.message));
+    }
   } catch (err) {
     console.error(new Date().toISOString(), "自動取り込みに失敗しました:", err.message);
     await shot(page, "99-error");
     process.exitCode = 1;
+    await sendResultEmail({
+      subject: "【LUNA】自動取り込み失敗",
+      text: `よやクルProからの自動取り込みが失敗しました。\n\n${err.message}`,
+    }).catch((e) => console.error("メール通知に失敗しました:", e.message));
   } finally {
     await browser.close();
   }
