@@ -4,12 +4,20 @@ async function request(path, options) {
   const res = await fetch(`${BASE}${path}`, options);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Request failed: ${res.status}`);
+    const err = new Error(body.error || `Request failed: ${res.status}`);
+    err.status = res.status;
+    throw err;
   }
   return res.json();
 }
 
 export const api = {
+  login: (username, password) =>
+    request("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    }),
   getDashboard: (year) => request(`/dashboard${year ? `?year=${year}` : ""}`),
   getYears: () => request("/years"),
   getYoyByStore: (year, month) => request(`/revenue/yoy-by-store?year=${year}${month ? `&month=${month}` : ""}`),

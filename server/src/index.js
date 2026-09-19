@@ -9,23 +9,29 @@ import importRoutes from "./routes/importRoute.js";
 import customerRoutes from "./routes/customers.js";
 import transactionRoutes from "./routes/transactions.js";
 import pageNotesRoutes from "./routes/pageNotes.js";
+import { login, requireAuth } from "./auth.js";
 import "./seed.js"; // seeds transactions from the bundled CSV on first run only
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.join(__dirname, "..", ".env");
+if (fs.existsSync(envPath)) process.loadEnvFile?.(envPath);
+
 const PORT = process.env.PORT || 3001;
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.post("/api/login", login);
+app.get("/api/health", (req, res) => res.json({ ok: true }));
+
+app.use("/api", requireAuth);
 app.use("/api", dashboardRoutes);
 app.use("/api", storeSettingsRoutes);
 app.use("/api", importRoutes);
 app.use("/api", customerRoutes);
 app.use("/api", transactionRoutes);
 app.use("/api", pageNotesRoutes);
-
-app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 // Serve the built client in production (single-deployment setup per spec 7.4).
 const clientDist = path.join(__dirname, "..", "..", "client", "dist");

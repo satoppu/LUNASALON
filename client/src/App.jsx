@@ -12,6 +12,7 @@ import CustomerPage from "./components/pages/CustomerPage.jsx";
 import CustomerListPage from "./components/pages/CustomerListPage.jsx";
 import RecentPage from "./components/pages/RecentPage.jsx";
 import SettingsPage from "./components/pages/SettingsPage.jsx";
+import LoginPage from "./components/LoginPage.jsx";
 
 // 顧客一覧/利用履歴は全期間の累計データを見る、または独自の日付範囲フィルタを
 // 持つページで、年度による絞り込みを行わない(dashboardのyearを使わず、
@@ -36,6 +37,7 @@ export default function App() {
   const [selectedYear, setSelectedYear] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [authenticated, setAuthenticated] = useState(null);
 
   async function loadDashboard(year) {
     setLoading(true);
@@ -44,8 +46,13 @@ export default function App() {
       const data = await api.getDashboard(year);
       setDashboard(data);
       setSelectedYear(data.year);
+      setAuthenticated(true);
     } catch (err) {
-      setError(err.message);
+      if (err.status === 401) {
+        setAuthenticated(false);
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -62,6 +69,10 @@ export default function App() {
 
   const PageComponent = PAGES[view];
   const currentLabel = NAV_ITEMS.find((n) => n.key === view)?.label ?? "";
+
+  if (authenticated === false) {
+    return <LoginPage onSuccess={() => loadDashboard(undefined)} />;
+  }
 
   return (
     <div style={{ background: "#FCF8F0", color: "#262421", fontFamily: FONT_BODY, minHeight: "100vh" }} className="flex flex-col md:flex-row">
