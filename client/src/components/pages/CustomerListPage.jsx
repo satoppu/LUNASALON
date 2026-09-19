@@ -162,7 +162,7 @@ export default function CustomerListPage({ data }) {
                 クーポン
               </th>
               <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                キャンセル
+                取消
               </th>
               <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 初回
@@ -180,14 +180,14 @@ export default function CustomerListPage({ data }) {
                 className="cursor-pointer"
                 style={{ borderBottom: "1px solid #F3EBDF" }}
               >
-                <td className="px-4 py-3" title={c.user}>
+                <td className="px-4 py-3 text-left" title={c.user}>
                   {truncateName(c.user)}
                 </td>
                 <td className="px-4 py-3 text-right font-medium">{yen(c.totalRevenue)}</td>
-                <td className="px-4 py-3 text-right">{c.totalCount}</td>
-                <td className="px-4 py-3 text-right">{c.totalSubscriptionCount}</td>
-                <td className="px-4 py-3 text-right">{c.totalCancelCount}</td>
-                <td className="px-4 py-3">{formatDateShort(c.firstUseDate)}</td>
+                <td className="px-4 py-3 text-center">{c.totalCount}</td>
+                <td className="px-4 py-3 text-center">{c.totalSubscriptionCount}</td>
+                <td className="px-4 py-3 text-center">{c.totalCancelCount}</td>
+                <td className="px-4 py-3 text-center">{formatDateShort(c.firstUseDate)}</td>
                 <td className="px-4 py-3 text-center">
                   <StoreBadge store={c.primaryStore} storeColor={storeColor} />
                 </td>

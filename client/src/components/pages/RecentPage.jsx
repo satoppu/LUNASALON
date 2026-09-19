@@ -221,12 +221,12 @@ export default function RecentPage({ data }) {
               <tbody>
                 {result.rows.map((r) => (
                   <tr key={r.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                    <td className="px-4 py-3">{formatDateShort(r.date)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-center">{formatDateShort(r.date)}</td>
+                    <td className="px-4 py-3 text-left">
                       <ClickableUserName name={r.user_name} customerByName={customerByName} onSelect={setSelectedCustomer} />
                     </td>
                     <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
-                    <td className="px-4 py-3 text-center">{r.hours_used.toFixed(1)}h</td>
+                    <td className="px-4 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
                     <td className="px-4 py-3 text-center">
                       <StoreBadge store={r.store} storeColor={storeColor} />
                     </td>

@@ -1,5 +1,14 @@
 export const CHANNELS = ["自社サイト", "Instabase", "スペースマーケット", "その他"];
 
+// Short labels for column headers where the full channel name is too wide
+// (e.g. 導線分析's per-channel columns).
+export const CHANNEL_SHORT = {
+  自社サイト: "自社",
+  Instabase: "インスタ",
+  スペースマーケット: "スペマ",
+  その他: "他",
+};
+
 export const CHANNEL_COLOR = {
   自社サイト: "#D9738F",
   Instabase: "#D4A644",

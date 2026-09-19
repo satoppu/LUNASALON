@@ -83,7 +83,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
                   回数
                 </th>
                 <th className="text-center px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  キャンセル
+                  取消
                 </th>
                 <th className="text-center px-6 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   売上
@@ -99,11 +99,11 @@ export default function CustomerDetailModal({ customer, onClose }) {
             <tbody>
               {customer.byYear.map((y) => (
                 <tr key={y.year} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                  <td className="px-6 py-3">{y.year}年</td>
-                  <td className="px-6 py-3 text-right">{y.count}</td>
-                  <td className="px-6 py-3 text-right">{y.cancelCount}</td>
+                  <td className="px-6 py-3 text-center">{y.year}年</td>
+                  <td className="px-6 py-3 text-center">{y.count}</td>
+                  <td className="px-6 py-3 text-center">{y.cancelCount}</td>
                   <td className="px-6 py-3 text-right font-medium">{yen(y.revenue)}</td>
-                  <td className="px-6 py-3 text-right">{y.subscriptionCount}</td>
+                  <td className="px-6 py-3 text-center">{y.subscriptionCount}</td>
                   <td className="px-6 py-3 text-right">{yen(y.subscriptionRevenue)}</td>
                 </tr>
               ))}

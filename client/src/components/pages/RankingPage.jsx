@@ -46,14 +46,14 @@ export default function RankingPage({ data }) {
           <tbody>
             {userSummary.map((u, i) => (
               <tr key={u.user} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                <td className="px-4 py-3" style={{ fontFamily: FONT_HEAD, color: "#D4A644" }}>
+                <td className="px-4 py-3 text-center" style={{ fontFamily: FONT_HEAD, color: "#D4A644" }}>
                   {i + 1}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-left">
                   <ClickableUserName name={u.user} customerByName={customerByName} onSelect={setSelectedCustomer} />
                 </td>
                 <td className="px-4 py-3 text-right font-medium">{yen(u.revenue)}</td>
-                <td className="px-4 py-3 text-right">{u.count}</td>
+                <td className="px-4 py-3 text-center">{u.count}</td>
                 <td className="px-4 py-3 text-right">{u.hoursUsed.toFixed(1)}h</td>
                 <td className="px-4 py-3 text-right">{u.avgHours.toFixed(1)}h</td>
                 <td className="px-4 py-3 text-center">

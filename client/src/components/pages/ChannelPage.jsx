@@ -1,5 +1,5 @@
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { CHANNELS, CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import { CHANNELS, CHANNEL_COLOR, CHANNEL_SHORT, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
 export default function ChannelPage({ data }) {
   const { year, storeMeta, channelSummary, channelByStore } = data;
@@ -32,12 +32,12 @@ export default function ChannelPage({ data }) {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   店舗
                 </th>
                 {CHANNELS.map((c) => (
-                  <th key={c} className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    {c}
+                  <th key={c} className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    {CHANNEL_SHORT[c] || c}
                   </th>
                 ))}
                 <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -48,12 +48,12 @@ export default function ChannelPage({ data }) {
             <tbody>
               {channelByStore.map((row) => (
                 <tr key={row.store} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(row.store) }} />
                     {row.store}
                   </td>
                   {CHANNELS.map((c) => (
-                    <td key={c} className="px-4 py-3 text-right">
+                    <td key={c} className="px-4 py-3 text-center">
                       {row.total > 0 ? `${Math.round((row[c] / row.total) * 100)}%` : "—"}
                     </td>
                   ))}
