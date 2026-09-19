@@ -64,6 +64,8 @@ export const REVENUE_STATUSES = new Set(["利用済み", "キャンセル(返金
 // scheduled room-time, same treatment as revenue already gets for it.
 export const HOURS_USED_STATUSES = new Set(["利用済み", PENDING_STATUS]);
 
+export const isCancellationStatus = (status) => typeof status === "string" && status.startsWith("キャンセル");
+
 /** Today's date in JST as YYYY-MM-DD, computed dynamically per spec 4.4/7.3 (never hardcoded). */
 export function getTodayISO() {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(new Date());
