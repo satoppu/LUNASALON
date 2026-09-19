@@ -62,16 +62,16 @@ export default function App() {
       <Sidebar view={view} onChange={setView} />
 
       <div className="flex-1 min-w-0 px-6 py-8 md:px-10 md:py-10">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
-          <div>
+        <div className="flex flex-row items-center justify-between gap-3 mb-6">
+          <div className="min-w-0">
             <p style={{ color: "#8F7D6E", letterSpacing: "0.02em" }} className="text-sm mb-1">
               店舗運営ダッシュボード
             </p>
-            <h1 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-2xl md:text-3xl font-bold">
+            <h1 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-2xl md:text-3xl font-bold truncate">
               {currentLabel}
             </h1>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             {dashboard?.years?.length > 0 && (
               <select
                 value={selectedYear ?? ""}
