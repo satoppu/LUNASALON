@@ -130,7 +130,7 @@ export default function App() {
               style={{ background: "#D4A644", color: "#262421" }}
             >
               <Upload size={15} />
-              CSV/ZIP/Excelインポート
+              インポート
             </button>
             <input ref={fileInput} type="file" accept=".csv,.zip,.xlsx,.xls" onChange={handleFile} className="hidden" />
           </div>

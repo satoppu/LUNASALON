@@ -29,7 +29,7 @@ export default function ChannelPage({ data }) {
           </div>
         </div>
         <div className="lg:col-span-3 overflow-x-auto" style={{ background: "#FFFFFF" }}>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -48,8 +48,7 @@ export default function ChannelPage({ data }) {
             <tbody>
               {channelByStore.map((row) => (
                 <tr key={row.store} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                  <td className="px-4 py-3 text-center">
-                    <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: storeColor(row.store) }} />
+                  <td className="px-4 py-3 text-center font-medium" style={{ color: storeColor(row.store) }}>
                     {row.store}
                   </td>
                   {CHANNELS.map((c) => (

@@ -47,6 +47,19 @@ export default function CustomerPage({ data }) {
     return (entry?.users || []).map((name) => customersByName.get(name)).filter(Boolean);
   }, [state, monthFilter, customersByName]);
 
+  // Customers with 5+ lifetime visits who haven't returned in 2.5〜4 months
+  // (4+ months is excluded — by then they're likely just gone, not "about to
+  // churn," which is the window worth reaching out to).
+  const dormantCustomers = useMemo(() => {
+    if (!state) return [];
+    const now = new Date();
+    return state.customers
+      .filter((c) => c.totalCount >= 5)
+      .map((c) => ({ ...c, monthsSinceLastUse: (now - new Date(c.lastUseDate)) / (1000 * 60 * 60 * 24 * 30.44) }))
+      .filter((c) => c.monthsSinceLastUse >= 2.5 && c.monthsSinceLastUse < 4)
+      .sort((a, b) => b.monthsSinceLastUse - a.monthsSinceLastUse);
+  }, [state]);
+
   if (error) {
     return (
       <p className="text-sm" style={{ color: "#A84434" }}>
@@ -195,6 +208,60 @@ export default function CustomerPage({ data }) {
           </div>
         </div>
       )}
+
+      <div className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          長期未来店のお客様(利用5回以上・2.5〜4ヶ月未来店・{dormantCustomers.length}人・クリックで詳細)
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="overflow-x-auto max-h-[420px] overflow-y-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead className="sticky top-0" style={{ background: "#FFFFFF" }}>
+              <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  利用者
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  店舗
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  回数
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  最終利用日
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  未来店期間
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {dormantCustomers.map((c) => (
+                <tr
+                  key={c.user}
+                  onClick={() => setSelected(c)}
+                  className="cursor-pointer"
+                  style={{ borderBottom: "1px solid #F3EBDF" }}
+                >
+                  <td className="px-4 py-3 text-left">{c.user}</td>
+                  <td className="px-4 py-3 text-center">
+                    <StoreBadge store={c.primaryStore} storeColor={storeColor} />
+                  </td>
+                  <td className="px-4 py-3 text-center">{c.totalCount}</td>
+                  <td className="px-4 py-3 text-center">{formatDateShort(c.lastUseDate)}</td>
+                  <td className="px-4 py-3 text-center">{c.monthsSinceLastUse.toFixed(1)}ヶ月</td>
+                </tr>
+              ))}
+              {dormantCustomers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                    該当する顧客が見つかりません。
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
