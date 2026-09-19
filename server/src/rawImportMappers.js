@@ -255,14 +255,22 @@ function mapSpaceMarketStore(spaceName) {
   return hit ? hit.store : "Forest";
 }
 
-// "9/20/23" (M/D/YY) -> "2023-09-20".
+// Handles both date shapes seen from this channel: the one-off historical
+// xlsx used "9/20/23" (M/D/YY), while the recurring monthly CSV uses
+// "2026/8/4" (YYYY/M/D). Both -> "2023-09-20"/"2026-08-04".
 function parseSpaceMarketDate(raw) {
-  const m = String(raw).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
-  if (!m) return null;
-  const month = m[1].padStart(2, "0");
-  const day = m[2].padStart(2, "0");
-  const year = 2000 + Number(m[3]);
-  return `${year}-${month}-${day}`;
+  const s = String(raw).trim();
+  let m = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (m) {
+    const [, year, month, day] = m;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (m) {
+    const [, month, day, yy] = m;
+    return `${2000 + Number(yy)}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
+  return null;
 }
 
 // "¥2,475" -> 2475.
@@ -271,17 +279,26 @@ function parseYen(raw) {
   return Number.isNaN(n) ? 0 : n;
 }
 
+// "9:00" -> 540 (minutes since midnight).
+function parseHourMinute(raw) {
+  const m = String(raw).trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
 /**
  * Maps one row of a raw スペースマーケット sales-detail export (columns:
- * 対象月,元ファイル名,予約ID,予約リクエスト日,成約日,実施日,振込予定日,成約金額,
- * 振込予定金額,シェア設定,お支払い方法,施設名,スペース名,プラン名,ゲスト名,
- * 利用目的) to a transactions row, or null if the row is unrecognized/
- * unparseable. This export only lists closed deals (成約) — a cancelled
- * request never appears in it — so every row maps to 利用済み, unless 実施日
- * (usage date) is still ahead of today, in which case it's PENDING_STATUS
- * (same treatment as 自社サイト's 未確定 and Instabase's future-dated 予約確定
- * rows). There's no duration column in this export, so hours_used is always
- * 0 for this channel.
+ * 予約ID,予約リクエスト日,成約日,実施日,振込予定日,成約金額,振込予定金額,
+ * シェア設定,お支払い方法,施設名,スペース名,プラン名,ゲスト名,利用目的, and —
+ * on the recurring monthly export, though not on the one-off historical
+ * xlsx bulk-load — 開始時間,終了時間) to a transactions row, or null if the
+ * row is unrecognized/unparseable. This export only lists closed deals
+ * (成約) — a cancelled request never appears in it — so every row maps to
+ * 利用済み, unless 実施日 (usage date) is still ahead of today, in which case
+ * it's PENDING_STATUS (same treatment as 自社サイト's 未確定 and Instabase's
+ * future-dated 予約確定 rows). 開始時間/終了時間 are optional: when present,
+ * hours_used is the actual booked duration; when absent (the historical
+ * xlsx), hours_used stays 0, same as before.
  */
 export function mapRawSpaceMarketRow(raw) {
   const date = parseSpaceMarketDate(raw["実施日"]);
@@ -291,13 +308,23 @@ export function mapRawSpaceMarketRow(raw) {
   const status = isFuture ? PENDING_STATUS : "利用済み";
   const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];
 
+  const startMin = parseHourMinute(raw["開始時間"]);
+  const endMin = parseHourMinute(raw["終了時間"]);
+  const startHour = startMin != null ? Math.floor(startMin / 60) : null;
+  let hoursUsed = 0;
+  if (status === "利用済み" && startMin != null && endMin != null) {
+    let diffMin = endMin - startMin;
+    if (diffMin <= 0) diffMin += 24 * 60;
+    hoursUsed = diffMin / 60;
+  }
+
   return {
     date,
     store: mapSpaceMarketStore(raw["スペース名"]),
     user_name: canonicalizeUserName(raw["ゲスト名"]),
     revenue: parseYen(raw["成約金額"]),
-    hours_used: 0,
-    start_hour: null,
+    hours_used: hoursUsed,
+    start_hour: startHour,
     weekday,
     channel: SPACEMARKET_CHANNEL,
     status,
