@@ -13,10 +13,11 @@ import CustomerListPage from "./components/pages/CustomerListPage.jsx";
 import RecentPage from "./components/pages/RecentPage.jsx";
 import SettingsPage from "./components/pages/SettingsPage.jsx";
 
-// 顧客分析/顧客一覧は全期間の累計データを見るページで、年度による絞り込みを
-// 行わない(CustomerPage/CustomerListPageはdashboardのyearを使わず、
-// api.getCustomers()で全期間を取得する)ため、年度セレクタを表示しない。
-const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customers", "customerList"]);
+// 顧客一覧/利用履歴は全期間の累計データを見る、または独自の日付範囲フィルタを
+// 持つページで、年度による絞り込みを行わない(dashboardのyearを使わず、
+// api.getCustomers()/api.searchTransactions()で直接取得する)ため、
+// 年度セレクタを表示しない。
+const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customerList", "recent"]);
 
 const PAGES = {
   summary: SummaryPage,

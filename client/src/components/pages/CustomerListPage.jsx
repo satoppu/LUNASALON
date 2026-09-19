@@ -86,47 +86,51 @@ export default function CustomerListPage({ data }) {
           顧客一覧
         </h3>
         <div className="flex items-center gap-2 flex-wrap">
-          <input
-            type="date"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            className={selectClass}
-            style={selectStyle}
-          />
-          <span style={{ color: "#8F7D6E" }}>〜</span>
-          <input
-            type="date"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            className={selectClass}
-            style={selectStyle}
-          />
-          <select value={store} onChange={(e) => setStore(e.target.value)} className={selectClass} style={selectStyle}>
-            <option value="">店舗(すべて)</option>
-            {storeNames.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={user}
-            onChange={(e) => setUser(e.target.value)}
-            placeholder="顧客名で検索"
-            className={selectClass}
-            style={selectStyle}
-          />
-          {hasFilters && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="text-sm px-3 py-2 border"
-              style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
-            >
-              クリア
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="date"
+              value={start}
+              onChange={(e) => setStart(e.target.value)}
+              className={selectClass}
+              style={selectStyle}
+            />
+            <span style={{ color: "#8F7D6E" }}>〜</span>
+            <input
+              type="date"
+              value={end}
+              onChange={(e) => setEnd(e.target.value)}
+              className={selectClass}
+              style={selectStyle}
+            />
+            <select value={store} onChange={(e) => setStore(e.target.value)} className={selectClass} style={selectStyle}>
+              <option value="">店舗(すべて)</option>
+              {storeNames.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="text"
+              value={user}
+              onChange={(e) => setUser(e.target.value)}
+              placeholder="顧客名で検索"
+              className={selectClass}
+              style={selectStyle}
+            />
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="text-sm px-3 py-2 border"
+                style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
+              >
+                クリア
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
