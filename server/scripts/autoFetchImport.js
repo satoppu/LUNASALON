@@ -154,7 +154,12 @@ async function downloadZip(page) {
 }
 
 async function main() {
-  const browser = await chromium.launch({ headless: true, slowMo: DEBUG ? 200 : 0 });
+  // Uses the machine's own installed Google Chrome ("channel: chrome")
+  // rather than Playwright's bundled Chromium: the VPS runs Ubuntu 20.04
+  // (past its official support window), which Playwright's own browser
+  // installer now refuses to target at all — even without --with-deps.
+  // A real Chrome .deb install sidesteps that check entirely.
+  const browser = await chromium.launch({ channel: "chrome", headless: true, slowMo: DEBUG ? 200 : 0 });
   const page = await browser.newPage({ acceptDownloads: true });
   try {
     await login(page);

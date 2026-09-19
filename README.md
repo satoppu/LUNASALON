@@ -111,7 +111,18 @@ node src/importRawSubscriptions.js /path/to/coupon-export.csv   # 予約デー�
 ```bash
 cd /opt/lunasalon/server
 npm install
-npx playwright install --with-deps chromium
+```
+
+VPSのOS(Ubuntu 20.04)はサポート期限切れのため、Playwright同梱のChromiumはインストールできません。代わりにGoogle Chrome本体を直接インストールします(初回のみ)。
+
+```bash
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor | tee /usr/share/keyrings/google-chrome.gpg >/dev/null
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list
+apt-get update
+apt-get install -y google-chrome-stable
+```
+
+```bash
 cp .env.example .env
 ```
 
