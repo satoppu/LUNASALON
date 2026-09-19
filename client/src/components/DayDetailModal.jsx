@@ -15,7 +15,9 @@ export default function DayDetailModal({ date, storeMeta, onClose }) {
     setError(null);
     api
       .searchTransactions({ start: date, end: date, sort: "asc" })
-      .then((res) => setRows(res.rows))
+      // The API's own sort is by date (all rows here share one, so it's a
+      // no-op) then id — reorder by start_hour so the day reads chronologically.
+      .then((res) => setRows([...res.rows].sort((a, b) => (a.start_hour ?? Infinity) - (b.start_hour ?? Infinity))))
       .catch((err) => setError(err.message));
   }, [date]);
 
