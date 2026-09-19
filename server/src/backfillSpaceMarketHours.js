@@ -1,12 +1,18 @@
-// CLI: one-time backfill of hours_used onto the historical スペースマーケット
-// rows imported from LUNA_売上明細_2023-10_2026-09.xlsx. That export has no
-// duration column, so every row was imported with hours_used=0; this fills
-// in the real duration for rows matched against the user's separately
-// supplied inbox PDF (date + guest name + listed HH:MM〜HH:MM time range).
-// Matched by 予約ID (external_id) — see conversation history for how this
-// mapping was derived. This is a one-off correction, not meant to be re-run
-// for future imports (which won't have this problem once a duration column
-// is available in the monthly CSV format).
+// CLI: one-time backfill of hours_used (and 2 status corrections) onto the
+// historical スペースマーケット rows imported from
+// LUNA_売上明細_2023-10_2026-09.xlsx. That export has no duration column, so
+// every row was imported with hours_used=0; this fills in the real duration
+// for rows matched against the user's separately supplied inbox PDF/
+// dashboard screenshots (date + guest name + listed HH:MM〜HH:MM time
+// range). Matched by 予約ID (external_id) — see conversation history for how
+// this mapping was derived. This is a one-off correction, not meant to be
+// re-run for future imports (which won't have this problem once a duration
+// column is available in the monthly CSV format).
+//
+// Two of the matched bookings turned out to be marked "払い戻し" (refunded)
+// on the live SpaceMarket dashboard, despite the xlsx export listing them as
+// ordinary completed deals — CANCELLED_EXTERNAL_IDS reclassifies those as
+// キャンセル(顧客) with revenue/hours zeroed out, per the user's decision.
 //
 // Usage: node src/backfillSpaceMarketHours.js [--dry-run]
 import db from "./db.js";
@@ -23,12 +29,21 @@ const HOURS_BY_EXTERNAL_ID = {
   3892990: 2, 4099147: 5, 4361539: 3, 4366394: 1, 4475104: 1, 4494690: 2.5, 4558011: 1.5,
   4694508: 1, 4738478: 1.5, 4804434: 1.5, 4689370: 1.5, 5072557: 2, 5385698: 2.5, 5495225: 1.25,
   5563971: 8.5, 5495557: 1, 5522716: 2, 5789924: 3.5, 5740311: 4.25, 5842527: 2, 5880928: 2.25,
+  // Found via live-dashboard screenshots (not in the PDF):
+  4882016: 1, 4388964: 1, 4147700: 1, 3657011: 3, 3234907: 2.5,
 };
+
+// 中村竜海 2025/8/26 (¥2,213) and 上原実咲 2025/7/5 (¥6,655) — both listed
+// "払い戻し" on the live dashboard despite importing as 利用済み.
+const CANCELLED_EXTERNAL_IDS = [4378517, 4099147];
 
 function main() {
   const dryRun = process.argv.includes("--dry-run");
-  const updateStmt = db.prepare(
+  const updateHoursStmt = db.prepare(
     `UPDATE transactions SET hours_used = ? WHERE channel = 'スペースマーケット' AND external_id = ? AND hours_used = 0`
+  );
+  const cancelStmt = db.prepare(
+    `UPDATE transactions SET status = 'キャンセル(顧客)', revenue = 0, hours_used = 0 WHERE channel = 'スペースマーケット' AND external_id = ?`
   );
 
   let updated = 0;
@@ -42,11 +57,26 @@ function main() {
       console.log(`not found: external_id=${externalId}`);
       continue;
     }
-    if (!dryRun) updateStmt.run(hours, externalId);
+    if (!dryRun) updateHoursStmt.run(hours, externalId);
     updated++;
   }
+  console.log(dryRun ? "[dry run] hours would update:" : "hours updated:", updated, "/ not found:", notFound);
 
-  console.log(dryRun ? "[dry run] would update:" : "updated:", updated, "/ not found:", notFound);
+  let cancelled = 0;
+  let cancelNotFound = 0;
+  for (const externalId of CANCELLED_EXTERNAL_IDS.map(String)) {
+    const existing = db
+      .prepare(`SELECT id FROM transactions WHERE channel = 'スペースマーケット' AND external_id = ?`)
+      .get(externalId);
+    if (!existing) {
+      cancelNotFound++;
+      console.log(`not found (cancel): external_id=${externalId}`);
+      continue;
+    }
+    if (!dryRun) cancelStmt.run(externalId);
+    cancelled++;
+  }
+  console.log(dryRun ? "[dry run] would cancel:" : "cancelled:", cancelled, "/ not found:", cancelNotFound);
 }
 
 main();
