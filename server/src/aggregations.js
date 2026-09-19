@@ -430,9 +430,17 @@ function shiftYearMonth(ym, delta) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// Hard ceiling (100 years) on how many months any single trend can span.
+// Every caller derives its actual start/end from real business dates, so
+// this should never bind in practice — it exists purely so that one
+// malformed `date`/`booking_date` value (empty string, wrong format, a
+// stray year) can never turn a month-range computation into a
+// near-infinite loop that runs the server out of memory.
+const MAX_ENUMERATED_MONTHS = 1200;
+
 function enumerateYearMonths(startYM, endYM) {
   const months = [];
-  for (let ym = startYM; ym <= endYM; ym = shiftYearMonth(ym, 1)) months.push(ym);
+  for (let ym = startYM; ym <= endYM && months.length < MAX_ENUMERATED_MONTHS; ym = shiftYearMonth(ym, 1)) months.push(ym);
   return months;
 }
 
@@ -520,10 +528,18 @@ export function buildNewCustomersByMonth(customerProfiles) {
  * if their lifetime visit count through M is >= 5 AND they have at least one
  * visit in the trailing 3-month window ending at M (M-2..M inclusive).
  */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 export function buildActiveCustomersByMonth(allRows) {
   const visitYearMonthsByUser = new Map();
   allRows.forEach((r) => {
     if (effectiveHours(r) <= 0) return;
+    // Unlike the other month-trend builders, minYM/maxYM below come from
+    // the data itself rather than a fixed recent window, so one malformed
+    // `date` (not a plain YYYY-MM-DD string) could otherwise blow that
+    // range out to something enormous — skip it rather than let a single
+    // bad row poison the whole chart.
+    if (!ISO_DATE_RE.test(r.date)) return;
     if (!visitYearMonthsByUser.has(r.user_name)) visitYearMonthsByUser.set(r.user_name, []);
     visitYearMonthsByUser.get(r.user_name).push(r.date.slice(0, 7));
   });
