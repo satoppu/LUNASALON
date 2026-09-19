@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Upload, Download, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle } from "lucide-react";
 import { api } from "./api.js";
 import { FONT_BODY, FONT_HEAD } from "./constants.js";
 import Sidebar, { NAV_ITEMS } from "./components/Sidebar.jsx";
-import PageNotes from "./components/PageNotes.jsx";
 import SummaryPage from "./components/pages/SummaryPage.jsx";
 import RevenuePage from "./components/pages/RevenuePage.jsx";
 import OccupancyPage from "./components/pages/OccupancyPage.jsx";
@@ -12,7 +11,7 @@ import RankingPage from "./components/pages/RankingPage.jsx";
 import CustomerPage from "./components/pages/CustomerPage.jsx";
 import CustomerListPage from "./components/pages/CustomerListPage.jsx";
 import RecentPage from "./components/pages/RecentPage.jsx";
-import StoreSettings from "./components/StoreSettings.jsx";
+import SettingsPage from "./components/pages/SettingsPage.jsx";
 
 const PAGES = {
   summary: SummaryPage,
@@ -31,8 +30,6 @@ export default function App() {
   const [selectedYear, setSelectedYear] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [importMessage, setImportMessage] = useState(null);
-  const fileInput = useRef(null);
 
   async function loadDashboard(year) {
     setLoading(true);
@@ -55,33 +52,6 @@ export default function App() {
   async function handleYearChange(y) {
     setSelectedYear(y);
     await loadDashboard(y);
-  }
-
-  function describeImportResult(result) {
-    const parts = [`${result.inserted}件のデータを取り込みました。`];
-    if (result.updated) parts.push(`${result.updated}件は状況が更新されました(例: 利用前→利用済み)。`);
-    if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みのためスキップしました。`);
-    if (result.skippedUnparseable) parts.push(`${result.skippedUnparseable}件は読み取れませんでした。`);
-    if (result.unresolvedOrBad) parts.push(`${result.unresolvedOrBad}件は利用実績がなく店舗を特定できないため保留しました。`);
-    if (result.skipped) parts.push(`${result.skipped}件は列が読み取れずスキップしました。`);
-    if (result.duplicates) parts.push(`(うち${result.duplicates}件は取り込み済みでした)`);
-    return parts.join(" ");
-  }
-
-  async function handleFile(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImportMessage(null);
-    setError(null);
-    try {
-      const result = await api.importCsv(file);
-      setImportMessage(describeImportResult(result));
-      await loadDashboard(selectedYear);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      e.target.value = "";
-    }
   }
 
   const PageComponent = PAGES[view];
@@ -116,31 +86,9 @@ export default function App() {
                 ))}
               </select>
             )}
-            <a
-              href={api.templateUrl}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 border"
-              style={{ borderColor: "#EDE3D5", color: "#7A6A5C", background: "#FFFFFF" }}
-            >
-              <Download size={15} />
-              テンプレートDL
-            </a>
-            <button
-              onClick={() => fileInput.current?.click()}
-              className="flex items-center gap-1.5 text-sm px-3 py-2"
-              style={{ background: "#D4A644", color: "#262421" }}
-            >
-              <Upload size={15} />
-              インポート
-            </button>
-            <input ref={fileInput} type="file" accept=".csv,.zip,.xlsx,.xls" onChange={handleFile} className="hidden" />
           </div>
         </div>
 
-        {importMessage && (
-          <p className="text-sm mb-4" style={{ color: "#7A6A5C" }}>
-            {importMessage}
-          </p>
-        )}
         {error && (
           <div className="flex items-start gap-2 text-sm mb-6 px-4 py-3" style={{ background: "#FCEEE7", color: "#A84434" }}>
             <AlertCircle size={16} className="mt-0.5 shrink-0" />
@@ -148,11 +96,9 @@ export default function App() {
           </div>
         )}
 
-        <PageNotes pageKey={view} />
-
         {loading && <p style={{ color: "#8F7D6E" }}>読み込み中…</p>}
 
-        {!loading && view === "settings" && <StoreSettings onChanged={() => loadDashboard(selectedYear)} />}
+        {!loading && view === "settings" && <SettingsPage onDataChanged={() => loadDashboard(selectedYear)} />}
 
         {!loading && view !== "settings" && dashboard && dashboard.year && <PageComponent data={dashboard} />}
 

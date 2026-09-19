@@ -58,12 +58,20 @@ export function formatDateShort(dateStr) {
   return dateStr.slice(2).replace(/-/g, ".");
 }
 
-// start_hour/start_minute -> "9時5分". start_minute is a later addition
+// start_hour/start_minute -> "9時05分". start_minute is a later addition
 // (server/src/db.js migration) — a row imported before it existed has hour
-// only, so minute falls back to "0" rather than showing nothing.
+// only, so minute falls back to "00" rather than showing nothing.
 export function formatStartTime(hour, minute) {
   if (hour == null) return "—";
-  return `${hour}時${minute ?? 0}分`;
+  return `${hour}時${String(minute ?? 0).padStart(2, "0")}分`;
+}
+
+// hours_used (a float, e.g. 2.5) -> "2時間30分".
+export function formatDuration(hours) {
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${h}時間${String(m).padStart(2, "0")}分`;
 }
 
 // Full-width characters (kanji/kana) count as 2, half-width (ASCII romaji)

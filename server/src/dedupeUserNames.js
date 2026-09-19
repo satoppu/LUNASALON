@@ -1,23 +1,17 @@
-// One-time (but safely re-runnable) cleanup for the historical bundled CSV
-// (server/data/luna_usage_2023-2026.csv), which mixes 自社サイト and
-// Instabase exports recording the same person's "顧客名"/"予約者名" two
-// different ways — either just spaced differently (e.g. "高山薫" vs
-// "高山 薫") or, for a few customers confirmed by the business, genuinely
-// different spellings (userNameAliases.js: an abbreviated name, or a
-// romanized name vs its kanji). That predates canonicalizeUserName
-// (importHelpers.js), which only dedupes at raw-import time going forward —
-// it can't retroactively fix rows already sitting in the table under two
-// spellings. This runs two merge passes: first the explicit
-// USER_NAME_ALIASES pairings, then house policy for everything else — no
-// whitespace between surname and given name — renaming every remaining name
-// to its whitespace-stripped form (which merges it with any other spelling
-// that strips to the same string).
+// One-time (but safely re-runnable) cleanup for rows already sitting in the
+// table under an inconsistent spelling of the same real person's name —
+// either just spaced differently (e.g. "高山薫" vs "高山 薫") or, for a few
+// customers confirmed by the business, a genuinely different spelling
+// (userNameAliases.js: an abbreviated name, or a romanized name vs its
+// kanji). canonicalizeUserName (importHelpers.js) applies this same
+// normalization at raw-import time going forward, but can't retroactively
+// fix rows imported before it existed, or before a given alias was added to
+// userNameAliases.js — this re-derives every existing row's canonical name
+// with the current rules and merges any group that collapses onto one.
 //
 // Usage: node src/dedupeUserNames.js [--dry-run]
 import db from "./db.js";
-import { USER_NAME_ALIASES } from "./userNameAliases.js";
-
-const WHITESPACE = /[\s　]/g;
+import { canonicalizeUserName } from "./importHelpers.js";
 
 function mergeGroup(updateStmt, canonical, others, dryRun) {
   if (others.length === 0) return 0;
@@ -31,31 +25,20 @@ function mergeGroup(updateStmt, canonical, others, dryRun) {
 function main() {
   const dryRun = process.argv.includes("--dry-run");
   const updateStmt = db.prepare(`UPDATE transactions SET user_name = ? WHERE user_name = ?`);
-  const countFor = (name) =>
-    db.prepare(`SELECT COUNT(*) AS n FROM transactions WHERE user_name = ?`).get(name).n;
+
+  const names = db.prepare(`SELECT user_name, COUNT(*) AS n FROM transactions GROUP BY user_name`).all();
+  const groups = new Map();
+  for (const { user_name, n } of names) {
+    const canonical = canonicalizeUserName(user_name);
+    if (!groups.has(canonical)) groups.set(canonical, []);
+    groups.get(canonical).push({ user_name, n });
+  }
 
   let groupsMerged = 0;
   let rowsUpdated = 0;
 
   db.exec("BEGIN");
   try {
-    // Pass 1: explicit business-confirmed aliases (userNameAliases.js).
-    for (const { canonical, aliases } of USER_NAME_ALIASES) {
-      const others = aliases.map((user_name) => ({ user_name, n: countFor(user_name) })).filter((o) => o.n > 0);
-      if (others.length === 0) continue;
-      groupsMerged++;
-      rowsUpdated += mergeGroup(updateStmt, canonical, others, dryRun);
-    }
-
-    // Pass 2: house policy — strip whitespace from every remaining name,
-    // merging any spellings that collapse onto the same stripped string.
-    const names = db.prepare(`SELECT user_name, COUNT(*) AS n FROM transactions GROUP BY user_name`).all();
-    const groups = new Map();
-    for (const { user_name, n } of names) {
-      const stripped = user_name.replace(WHITESPACE, "");
-      if (!groups.has(stripped)) groups.set(stripped, []);
-      groups.get(stripped).push({ user_name, n });
-    }
     for (const [canonical, variants] of groups) {
       const others = variants.filter((v) => v.user_name !== canonical);
       if (others.length === 0) continue;

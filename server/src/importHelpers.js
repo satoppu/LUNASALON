@@ -17,11 +17,16 @@ const WHITESPACE = /[\s　]/g;
  */
 export function canonicalizeUserName(rawName) {
   const cleaned = String(rawName).replace(/[(（].*$/, "").trim();
+  const stripped = cleaned.replace(WHITESPACE, "");
 
-  const aliased = resolveAliasedName(cleaned);
-  if (aliased) return aliased;
-
-  return cleaned.replace(WHITESPACE, "");
+  // Checked against both the as-is and whitespace-stripped forms: an alias
+  // entry might itself carry internal spacing (matches the first check), or
+  // the raw name might just be a differently-spaced rendering of one (e.g.
+  // "HARUNA TAKAGI" only matches the "HARUNATAKAGI" alias once stripped) —
+  // relying on only one of the two silently let spacing variants of an
+  // aliased spelling fall through to the plain strip below instead of
+  // resolving to the real canonical name.
+  return resolveAliasedName(cleaned) || resolveAliasedName(stripped) || stripped;
 }
 
 /** The store a user has the most (non-subscription) transactions at, or null if they have none yet. */

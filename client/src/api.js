@@ -53,7 +53,6 @@ export const api = {
     if (!res.ok) throw new Error(body.error || "インポートに失敗しました。");
     return body;
   },
-  templateUrl: `${BASE}/template`,
   getPageNote: (pageKey) => request(`/page-notes/${encodeURIComponent(pageKey)}`),
   savePageNote: (pageKey, payload) =>
     request(`/page-notes/${encodeURIComponent(pageKey)}`, {

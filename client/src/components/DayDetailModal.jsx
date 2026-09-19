@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { api } from "../api.js";
-import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatStartTime } from "../constants.js";
+import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatStartTime, formatDuration } from "../constants.js";
 import StoreBadge from "./StoreBadge.jsx";
 
 export default function DayDetailModal({ date, storeMeta, onClose }) {
@@ -92,7 +92,7 @@ export default function DayDetailModal({ date, storeMeta, onClose }) {
                     <td className="px-6 py-3 text-left">{r.user_name}</td>
                     <td className="px-6 py-3 text-right font-medium">{yen(r.revenue)}</td>
                     <td className="px-6 py-3 text-center">{formatStartTime(r.start_hour, r.start_minute)}</td>
-                    <td className="px-6 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
+                    <td className="px-6 py-3 text-right">{formatDuration(r.hours_used)}</td>
                     <td className="px-6 py-3 text-center">
                       <StoreBadge store={r.store} storeColor={storeColor} />
                     </td>

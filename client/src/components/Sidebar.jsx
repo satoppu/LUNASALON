@@ -9,7 +9,7 @@ export const NAV_ITEMS = [
   { key: "customers", label: "顧客分析", icon: Users },
   { key: "customerList", label: "顧客一覧", icon: Contact },
   { key: "recent", label: "利用履歴", icon: History },
-  { key: "settings", label: "店舗設定", icon: Settings },
+  { key: "settings", label: "設定", icon: Settings },
 ];
 
 export default function Sidebar({ view, onChange }) {
