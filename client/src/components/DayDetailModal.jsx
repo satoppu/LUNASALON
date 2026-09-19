@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { api } from "../api.js";
-import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor } from "../constants.js";
+import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatStartTime } from "../constants.js";
 import StoreBadge from "./StoreBadge.jsx";
 
 export default function DayDetailModal({ date, storeMeta, onClose }) {
@@ -16,8 +16,16 @@ export default function DayDetailModal({ date, storeMeta, onClose }) {
     api
       .searchTransactions({ start: date, end: date, sort: "asc" })
       // The API's own sort is by date (all rows here share one, so it's a
-      // no-op) then id — reorder by start_hour so the day reads chronologically.
-      .then((res) => setRows([...res.rows].sort((a, b) => (a.start_hour ?? Infinity) - (b.start_hour ?? Infinity))))
+      // no-op) then id — reorder by start time so the day reads chronologically.
+      .then((res) =>
+        setRows(
+          [...res.rows].sort((a, b) => {
+            const aMin = a.start_hour != null ? a.start_hour * 60 + (a.start_minute ?? 0) : Infinity;
+            const bMin = b.start_hour != null ? b.start_hour * 60 + (b.start_minute ?? 0) : Infinity;
+            return aMin - bMin;
+          })
+        )
+      )
       .catch((err) => setError(err.message));
   }, [date]);
 
@@ -83,7 +91,7 @@ export default function DayDetailModal({ date, storeMeta, onClose }) {
                   <tr key={r.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
                     <td className="px-6 py-3 text-left">{r.user_name}</td>
                     <td className="px-6 py-3 text-right font-medium">{yen(r.revenue)}</td>
-                    <td className="px-6 py-3 text-center">{r.start_hour != null ? `${r.start_hour}時` : "—"}</td>
+                    <td className="px-6 py-3 text-center">{formatStartTime(r.start_hour, r.start_minute)}</td>
                     <td className="px-6 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
                     <td className="px-6 py-3 text-center">
                       <StoreBadge store={r.store} storeColor={storeColor} />

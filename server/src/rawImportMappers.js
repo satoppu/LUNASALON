@@ -146,6 +146,7 @@ export function mapRawBookingRow(raw) {
     revenue,
     hours_used: hoursUsed,
     start_hour: usage.startHour,
+    start_minute: usage.startMin,
     weekday,
     channel: BOOKING_CHANNEL,
     status,
@@ -236,6 +237,7 @@ export function mapRawInstabaseRow(raw) {
   if (!status) return null;
 
   const startHour = Number(String(raw["利用開始日時"]).slice(11, 13));
+  const startMinute = Number(String(raw["利用開始日時"]).slice(14, 16));
   const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];
   const hoursUsed = status === "利用済み" || status === PENDING_STATUS ? Number(raw["利用時間 (時間)"]) || 0 : 0;
 
@@ -246,6 +248,7 @@ export function mapRawInstabaseRow(raw) {
     revenue,
     hours_used: hoursUsed,
     start_hour: Number.isNaN(startHour) ? null : startHour,
+    start_minute: Number.isNaN(startMinute) ? null : startMinute,
     weekday,
     channel: INSTABASE_CHANNEL,
     status,
@@ -315,6 +318,7 @@ export function mapRawSpaceMarketRow(raw) {
   const startMin = parseHourMinute(raw["開始時間"]);
   const endMin = parseHourMinute(raw["終了時間"]);
   const startHour = startMin != null ? Math.floor(startMin / 60) : null;
+  const startMinute = startMin != null ? startMin % 60 : null;
   let hoursUsed = 0;
   if ((status === "利用済み" || status === PENDING_STATUS) && startMin != null && endMin != null) {
     let diffMin = endMin - startMin;
@@ -329,6 +333,7 @@ export function mapRawSpaceMarketRow(raw) {
     revenue: parseYen(raw["成約金額"]),
     hours_used: hoursUsed,
     start_hour: startHour,
+    start_minute: startMinute,
     weekday,
     channel: SPACEMARKET_CHANNEL,
     status,

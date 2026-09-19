@@ -61,6 +61,15 @@ const hasBookingAmount = db
 if (!hasBookingAmount) {
   db.exec(`ALTER TABLE transactions ADD COLUMN booking_amount INTEGER;`);
 }
+// start_minute — the minute component of a booking's start time (start_hour
+// only ever held the hour). Added as a migration since existing rows predate
+// it; they just keep it NULL and display as hour-only.
+const hasStartMinute = db
+  .prepare(`SELECT 1 FROM pragma_table_info('transactions') WHERE name = 'start_minute'`)
+  .get();
+if (!hasStartMinute) {
+  db.exec(`ALTER TABLE transactions ADD COLUMN start_minute INTEGER;`);
+}
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);

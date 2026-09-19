@@ -58,6 +58,14 @@ export function formatDateShort(dateStr) {
   return dateStr.slice(2).replace(/-/g, ".");
 }
 
+// start_hour/start_minute -> "9時5分". start_minute is a later addition
+// (server/src/db.js migration) — a row imported before it existed has hour
+// only, so minute falls back to "0" rather than showing nothing.
+export function formatStartTime(hour, minute) {
+  if (hour == null) return "—";
+  return `${hour}時${minute ?? 0}分`;
+}
+
 // Full-width characters (kanji/kana) count as 2, half-width (ASCII romaji)
 // as 1 — so this caps a name at "6 full-width chars or 12 half-width
 // chars", whichever the name is made of, to keep the 利用者 column from
