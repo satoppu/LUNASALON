@@ -42,23 +42,23 @@ export default function SummaryPage({ data }) {
         </div>
 
         <div style={{ background: "#FFFFFF" }} className="overflow-x-auto mt-4">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm whitespace-nowrap">
             <thead>
               <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   年度
                 </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  合計
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  前年比
+                </th>
                 {storeNames.map((name) => (
-                  <th key={name} className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <th key={name} className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     {name}
                   </th>
                 ))}
-                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  合計
-                </th>
-                <th className="text-right px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  前年比
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -68,16 +68,16 @@ export default function SummaryPage({ data }) {
                 const pct = prevTotal != null && prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : null;
                 return (
                   <tr key={y.year} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                    <td className="px-4 py-3">{shortYear(y.year)}年</td>
+                    <td className="px-4 py-3 text-center">{shortYear(y.year)}年</td>
+                    <td className="px-4 py-3 text-right font-medium">{yen(total)}</td>
+                    <td className="px-4 py-3 text-center" style={{ color: pct == null ? "#8F7D6E" : pct >= 0 ? "#D4A644" : "#D66B5C" }}>
+                      {pct == null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`}
+                    </td>
                     {storeNames.map((name) => (
                       <td key={name} className="px-4 py-3 text-right">
                         {yen(y[name] || 0)}
                       </td>
                     ))}
-                    <td className="px-4 py-3 text-right font-medium">{yen(total)}</td>
-                    <td className="px-4 py-3 text-right" style={{ color: pct == null ? "#8F7D6E" : pct >= 0 ? "#D4A644" : "#D66B5C" }}>
-                      {pct == null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`}
-                    </td>
                   </tr>
                 );
               })}
