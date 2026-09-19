@@ -8,6 +8,7 @@ import RevenuePage from "./components/pages/RevenuePage.jsx";
 import OccupancyPage from "./components/pages/OccupancyPage.jsx";
 import ChannelPage from "./components/pages/ChannelPage.jsx";
 import RankingPage from "./components/pages/RankingPage.jsx";
+import DailyTrendsPage from "./components/pages/DailyTrendsPage.jsx";
 import CustomerPage from "./components/pages/CustomerPage.jsx";
 import CustomerListPage from "./components/pages/CustomerListPage.jsx";
 import RecentPage from "./components/pages/RecentPage.jsx";
@@ -18,10 +19,11 @@ import LoginPage from "./components/LoginPage.jsx";
 // 持つページで、年度による絞り込みを行わない(dashboardのyearを使わず、
 // api.getCustomers()/api.searchTransactions()で直接取得する)ため、
 // 年度セレクタを表示しない。
-const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customerList", "recent"]);
+const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customerList", "recent", "daily"]);
 
 const PAGES = {
   summary: SummaryPage,
+  daily: DailyTrendsPage,
   revenue: RevenuePage,
   occupancy: OccupancyPage,
   channel: ChannelPage,

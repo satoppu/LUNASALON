@@ -673,3 +673,53 @@ export function buildHoursMonthlyTrend(allRows) {
     hours: Math.round((byYM.get(ym) || 0) * 10) / 10,
   }));
 }
+
+// ---- Daily trend (last N days ending today, independent of selected year) ----
+
+function shiftISODate(iso, delta) {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+function enumerateDays(startISO, endISO) {
+  const days = [];
+  for (let d = startISO; d <= endISO; d = shiftISODate(d, 1)) days.push(d);
+  return days;
+}
+
+/**
+ * Last `windowDays` days (ending today) of three daily operational figures:
+ * new bookings (by booking_date — when the reservation was made, regardless
+ * of its later status), cancellations (by cancelled_date — only populated
+ * going forward by the daily 自動取り込み once a row's status switches to a
+ * cancellation, see importService.js, so days before that starts read as
+ * zero rather than "no cancellations happened"), and revenue (by usage
+ * date, same effectiveRevenue rule as every other revenue figure).
+ */
+export function buildDailyTrends(allRows, todayISO, windowDays = 10) {
+  const startISO = shiftISODate(todayISO, -(windowDays - 1));
+
+  const newBookingsByDay = new Map();
+  const cancellationsByDay = new Map();
+  const revenueByDay = new Map();
+
+  allRows.forEach((r) => {
+    if (r.booking_date && r.booking_date >= startISO && r.booking_date <= todayISO) {
+      newBookingsByDay.set(r.booking_date, (newBookingsByDay.get(r.booking_date) || 0) + 1);
+    }
+    if (r.cancelled_date && r.cancelled_date >= startISO && r.cancelled_date <= todayISO) {
+      cancellationsByDay.set(r.cancelled_date, (cancellationsByDay.get(r.cancelled_date) || 0) + 1);
+    }
+    if (r.date >= startISO && r.date <= todayISO) {
+      revenueByDay.set(r.date, (revenueByDay.get(r.date) || 0) + effectiveRevenue(r));
+    }
+  });
+
+  return enumerateDays(startISO, todayISO).map((date) => ({
+    date,
+    newBookings: newBookingsByDay.get(date) || 0,
+    cancellations: cancellationsByDay.get(date) || 0,
+    revenue: revenueByDay.get(date) || 0,
+  }));
+}
