@@ -4,18 +4,18 @@
 // before that tracking existed). Both the later xlsx historical bulk-load
 // and the recurring monthly CSV cover an overlapping date range, so those
 // same real-world bookings got inserted a second time as new rows (this
-// time correctly carrying external_id/予約ID). The two versions can also
-// disagree on which store a booking belongs to — the legacy rows were
-// mapped from 施設名 (facility), which is ambiguous when one facility hosts
-// multiple stores' rooms, while the new rows use the more specific スペース名
-// (room) mapping, so the new row's store is the trustworthy one.
+// time correctly carrying external_id/予約ID) — double-counting their
+// revenue/hours.
 //
-// This finds each legacy (external_id IS NULL) row that matches a newly
-// imported row on date + user_name (disambiguating by revenue when a date+
-// name pair has more than one legacy row, e.g. the same guest booking twice
-// in a day) and deletes the legacy duplicate, keeping the new row — which
-// also carries the correct store and any hours/cancellation corrections
-// already applied via backfillSpaceMarketHours.js.
+// The legacy (external_id IS NULL) rows turned out to be the more reliable
+// side: they already carry real hours_used/start_hour, and distinguish
+// キャンセル(返金あり) (partial refund, fee retained) from キャンセル(顧客)
+// (full refund) — detail the newer imports can't reconstruct from the raw
+// exports. So this keeps the legacy row and deletes the newer duplicate,
+// matched on date + user_name (disambiguated by revenue when a date+name
+// pair has more than one legacy row, e.g. the same guest booking twice in
+// a day). New rows with no legacy match are left alone — they're genuinely
+// new bookings, not duplicates.
 //
 // Usage: node src/dedupeSpaceMarketLegacyRows.js [--dry-run]
 import db from "./db.js";
@@ -37,18 +37,18 @@ function main() {
     legacyByDateName.get(key).push(row);
   }
 
-  const toDelete = new Map(); // id -> row, dedup across multiple new-row matches
+  const toDelete = new Map(); // id -> row (the NEW row to remove)
   const ambiguous = [];
   for (const n of newRows) {
     const candidates = legacyByDateName.get(`${n.date}|${n.user_name}`) || [];
     if (candidates.length === 0) continue;
     if (candidates.length === 1) {
-      toDelete.set(candidates[0].id, candidates[0]);
+      toDelete.set(n.id, n);
       continue;
     }
     const exact = candidates.find((c) => c.revenue === n.revenue);
     if (exact) {
-      toDelete.set(exact.id, exact);
+      toDelete.set(n.id, n);
     } else {
       ambiguous.push({ newRow: n, candidates });
     }
@@ -56,7 +56,7 @@ function main() {
 
   console.log(`legacy (external_id IS NULL) スペースマーケット rows: ${legacyRows.length}`);
   console.log(`newly imported rows: ${newRows.length}`);
-  console.log(`legacy duplicates identified: ${toDelete.size}`);
+  console.log(`new-row duplicates identified: ${toDelete.size}`);
   if (ambiguous.length > 0) {
     console.log(`ambiguous — left untouched, review manually: ${ambiguous.length}`);
     console.log(JSON.stringify(ambiguous, null, 1));
