@@ -31,11 +31,16 @@ const HOURS_BY_EXTERNAL_ID = {
   5563971: 8.5, 5495557: 1, 5522716: 2, 5789924: 3.5, 5740311: 4.25, 5842527: 2, 5880928: 2.25,
   // Found via live-dashboard screenshots (not in the PDF):
   4882016: 1, 4388964: 1, 4147700: 1, 3657011: 3, 3234907: 2.5,
+  // Round 3, also from live-dashboard screenshots:
+  2472423: 1, 5809508: 1,
 };
 
-// 中村竜海 2025/8/26 (¥2,213) and 上原実咲 2025/7/5 (¥6,655) — both listed
-// "払い戻し" on the live dashboard despite importing as 利用済み.
-const CANCELLED_EXTERNAL_IDS = [4378517, 4099147];
+// All confirmed "払い戻し" (refunded) on the live dashboard despite
+// importing as 利用済み: 中村竜海 2025/8/26 (¥2,213), 上原実咲 2025/7/5
+// (¥6,655), 後藤佐和子 2023/12/11 (¥3,395), Chiba Yukie 2023/9/23 (¥2,475),
+// 小野浩美 2023/10/18 (¥1,485), 久保恵子 2023/12/16 (¥10,815, her other
+// booking on 2023/11/18 was a normal 利用完了 and is unaffected).
+const CANCELLED_EXTERNAL_IDS = [4378517, 4099147, 2598856, 2424355, 2462426, 2480103];
 
 function main() {
   const dryRun = process.argv.includes("--dry-run");
