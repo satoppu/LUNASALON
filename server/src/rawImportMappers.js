@@ -9,6 +9,7 @@ const WEEKDAY_FROM_JS_DOW = ["日", "月", "火", "水", "木", "金", "土"];
 const STORE_PREFIX = "レンタルサロン ";
 const BOOKING_CHANNEL = "自社サイト"; // this export shape is 自社サイト-only bookings.
 const INSTABASE_CHANNEL = "Instabase";
+const SPACEMARKET_CHANNEL = "スペースマーケット";
 
 // スペース名 (listing/space name) substrings -> store. One 施設名 (facility/
 // building) can host multiple スペース (rooms) that map to different stores —
@@ -20,6 +21,16 @@ const INSTABASE_SPACE_STORE = [
   { match: "はじめての一歩を応援する完全個室レンタルサロンAsteria", store: "Asteria" },
 ];
 
+// Same idea for スペースマーケット, which uses its own listing titles for the
+// same physical rooms — different wording from Instabase's, so it needs its
+// own table rather than reusing INSTABASE_SPACE_STORE.
+const SPACEMARKET_SPACE_STORE = [
+  { match: "綺麗なサロンと評判の大人のレンタルサロン", store: "Bellezza" },
+  { match: "Bellezza2号店", store: "Forest" },
+  { match: "はじめての一歩を応援する完全個室レンタルサロンAsteria", store: "Asteria" },
+  { match: "高級感ある完全個室サロン", store: "Asteria" },
+];
+
 /**
  * Detects which raw export shape a parsed CSV's header row matches, or null
  * if it looks like the dashboard's own simple CSV template instead.
@@ -29,6 +40,7 @@ export function detectRawFormat(fields) {
   if (set.has("スペース名") && set.has("状態") && set.has("利用日時")) return "rawBooking";
   if (set.has("クーポン名") && set.has("購入日時")) return "rawSubscription";
   if (set.has("予約ID") && set.has("施設名") && set.has("利用開始日時")) return "rawInstabase";
+  if (set.has("予約リクエスト日") && set.has("成約金額") && set.has("ゲスト名")) return "rawSpaceMarket";
   return null;
 }
 
@@ -235,5 +247,61 @@ export function mapRawInstabaseRow(raw) {
     status,
     external_id: raw["予約ID"] || null,
     booking_date: String(raw["申込日時"] || "").slice(0, 10) || null,
+  };
+}
+
+function mapSpaceMarketStore(spaceName) {
+  const hit = SPACEMARKET_SPACE_STORE.find((f) => String(spaceName).includes(f.match));
+  return hit ? hit.store : "Forest";
+}
+
+// "9/20/23" (M/D/YY) -> "2023-09-20".
+function parseSpaceMarketDate(raw) {
+  const m = String(raw).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if (!m) return null;
+  const month = m[1].padStart(2, "0");
+  const day = m[2].padStart(2, "0");
+  const year = 2000 + Number(m[3]);
+  return `${year}-${month}-${day}`;
+}
+
+// "¥2,475" -> 2475.
+function parseYen(raw) {
+  const n = Number(String(raw).replace(/[¥,]/g, ""));
+  return Number.isNaN(n) ? 0 : n;
+}
+
+/**
+ * Maps one row of a raw スペースマーケット sales-detail export (columns:
+ * 対象月,元ファイル名,予約ID,予約リクエスト日,成約日,実施日,振込予定日,成約金額,
+ * 振込予定金額,シェア設定,お支払い方法,施設名,スペース名,プラン名,ゲスト名,
+ * 利用目的) to a transactions row, or null if the row is unrecognized/
+ * unparseable. This export only lists closed deals (成約) — a cancelled
+ * request never appears in it — so every row maps to 利用済み, unless 実施日
+ * (usage date) is still ahead of today, in which case it's PENDING_STATUS
+ * (same treatment as 自社サイト's 未確定 and Instabase's future-dated 予約確定
+ * rows). There's no duration column in this export, so hours_used is always
+ * 0 for this channel.
+ */
+export function mapRawSpaceMarketRow(raw) {
+  const date = parseSpaceMarketDate(raw["実施日"]);
+  if (!date) return null;
+
+  const isFuture = date > getTodayISO();
+  const status = isFuture ? PENDING_STATUS : "利用済み";
+  const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];
+
+  return {
+    date,
+    store: mapSpaceMarketStore(raw["スペース名"]),
+    user_name: canonicalizeUserName(raw["ゲスト名"]),
+    revenue: parseYen(raw["成約金額"]),
+    hours_used: 0,
+    start_hour: null,
+    weekday,
+    channel: SPACEMARKET_CHANNEL,
+    status,
+    external_id: raw["予約ID"] || null,
+    booking_date: parseSpaceMarketDate(raw["予約リクエスト日"]),
   };
 }

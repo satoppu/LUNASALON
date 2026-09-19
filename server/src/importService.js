@@ -2,7 +2,7 @@ import Papa from "papaparse";
 import db from "./db.js";
 import { normalizeImportRow } from "./importRows.js";
 import { SUBSCRIPTION_STATUS, PENDING_STATUS } from "./config.js";
-import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow } from "./rawImportMappers.js";
+import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow, mapRawSpaceMarketRow } from "./rawImportMappers.js";
 import { ensureStoreRegistered } from "./storeSettingsService.js";
 
 // A plain INSERT (external_id NULL, from the simple template) never
@@ -185,6 +185,34 @@ function importRawInstabaseCsv(parsed) {
   };
 }
 
+// スペースマーケット has no pre-existing historical data in this table (it's
+// a brand-new channel here), so a plain external_id-based upsert is enough —
+// no "since" cutoff or content-based dedup needed the way 自社サイト/
+// Instabase require to avoid double-counting against bundled historical CSVs.
+function importRawSpaceMarketCsv(parsed) {
+  let skippedUnparseable = 0;
+  const rows = [];
+
+  for (const raw of parsed.data) {
+    const row = mapRawSpaceMarketRow(raw);
+    if (!row) {
+      skippedUnparseable++;
+      continue;
+    }
+    rows.push(row);
+  }
+
+  const { inserted, updated } = rows.length > 0 ? insertRows(rows) : { inserted: 0, updated: 0 };
+  return {
+    format: "rawSpaceMarket",
+    inserted,
+    updated,
+    duplicates: rows.length - inserted - updated,
+    skippedUnparseable,
+    error: null,
+  };
+}
+
 // Groups rows sharing the same content-derived key from date/store/user_name/
 // revenue/status/hours_used. Used to line up a raw export's rows against
 // already-imported transactions that have no external_id to match on
@@ -273,19 +301,28 @@ export function backfillBookingDate(csvText) {
 }
 
 /**
- * Parses an uploaded CSV and appends valid rows to the transactions table.
- * Auto-detects four shapes: the dashboard's own simple template, a raw
- * 自社サイト booking export, a raw 定期クーポン purchase export, or a raw
- * Instabase booking export (see rawImportMappers.js). Unknown stores are
- * auto-registered in store_settings (spec 7.1).
+ * Appends valid rows (already parsed into an array of {column: value}
+ * objects — from either Papa.parse or an xlsx sheet, both produce the same
+ * shape) to the transactions table. Auto-detects five shapes: the
+ * dashboard's own simple template, a raw 自社サイト booking export, a raw
+ * 定期クーポン purchase export, a raw Instabase booking export, or a raw
+ * スペースマーケット sales-detail export (see rawImportMappers.js). Unknown
+ * stores are auto-registered in store_settings (spec 7.1).
  */
-export function importCsv(csvText) {
-  const cleaned = csvText.replace(/^﻿/, "");
-  const parsed = Papa.parse(cleaned, { header: true, skipEmptyLines: true });
-  const format = detectRawFormat(parsed.meta.fields);
+export function importParsedRows(rows) {
+  const format = detectRawFormat(rows.length > 0 ? Object.keys(rows[0]) : []);
+  const parsed = { data: rows };
 
   if (format === "rawBooking") return importRawBookingCsv(parsed);
   if (format === "rawSubscription") return importRawSubscriptionCsv(parsed);
   if (format === "rawInstabase") return importRawInstabaseCsv(parsed);
+  if (format === "rawSpaceMarket") return importRawSpaceMarketCsv(parsed);
   return importSimpleCsv(parsed);
+}
+
+/** Same as importParsedRows, but parses the rows from raw CSV text first. */
+export function importCsv(csvText) {
+  const cleaned = csvText.replace(/^﻿/, "");
+  const parsed = Papa.parse(cleaned, { header: true, skipEmptyLines: true });
+  return importParsedRows(parsed.data);
 }
