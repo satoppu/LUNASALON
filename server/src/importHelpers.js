@@ -11,12 +11,17 @@ const WHITESPACE = /[\s　]/g;
  * platform's exports are inconsistently spaced — e.g. "HARUNA TAKAGI" vs
  * "HARUNATAKAGI" — for the same real person), so every name is stripped of
  * internal whitespace unconditionally rather than matched against whichever
- * spelling happened to exist first. Checks userNameAliases.js first for
- * pairings spacing alone can't catch (an abbreviated name, or a romanized
- * name vs its kanji spelling).
+ * spelling happened to exist first. NFKC-normalized first — some raw exports
+ * render Latin letters full-width ("ＨＡＲＵＮＡ") or katakana half-width
+ * ("ｵｸﾞｼ"), which look identical to the standard form once rendered but are
+ * different Unicode codepoints, so an exact-string alias match silently
+ * fails without this (same class of bug as the PDF-name matching earlier in
+ * this project). Checks userNameAliases.js first for pairings spacing alone
+ * can't catch (an abbreviated name, or a romanized name vs its kanji
+ * spelling).
  */
 export function canonicalizeUserName(rawName) {
-  const cleaned = String(rawName).replace(/[(（].*$/, "").trim();
+  const cleaned = String(rawName).normalize("NFKC").replace(/[(（].*$/, "").trim();
   const stripped = cleaned.replace(WHITESPACE, "");
 
   // Checked against both the as-is and whitespace-stripped forms: an alias

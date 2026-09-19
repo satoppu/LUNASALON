@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, Download } from "lucide-react";
 import { api } from "../../api.js";
-import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatDateShort, formatStartTime } from "../../constants.js";
+import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatDateShort, formatStartTime, formatDuration } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import DayDetailModal from "../DayDetailModal.jsx";
 import ClickableUserName from "../ClickableUserName.jsx";
@@ -241,7 +241,7 @@ export default function RecentPage({ data }) {
                     </td>
                     <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
                     <td className="px-4 py-3 text-center">{formatStartTime(r.start_hour, r.start_minute)}</td>
-                    <td className="px-4 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
+                    <td className="px-4 py-3 text-right">{formatDuration(r.hours_used)}</td>
                     <td className="px-4 py-3 text-center">
                       <StoreBadge store={r.store} storeColor={storeColor} />
                     </td>
