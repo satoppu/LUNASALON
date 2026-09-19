@@ -35,7 +35,9 @@ export function getYoyByStore(year, month) {
 
 function getAllRows() {
   return db
-    .prepare(`SELECT date, store, revenue, hours_used, status, channel, booking_date, revenue_confirmed_date, booking_amount FROM transactions`)
+    .prepare(
+      `SELECT date, store, revenue, hours_used, status, channel, booking_date, revenue_confirmed_date, booking_amount FROM transactions`
+    )
     .all();
 }
 
@@ -70,6 +72,7 @@ export function getDashboard(requestedYear) {
   const yearRows = getRowsForYear(year);
   const priorYearRows = hasPriorYear ? getRowsForYear(priorYear) : [];
   const priorYear2Rows = hasPriorYear2 ? getRowsForYear(priorYear2) : [];
+  const allRows = getAllRows();
 
   const dashboard = buildDashboard({
     year,
@@ -82,10 +85,10 @@ export function getDashboard(requestedYear) {
     yearRows,
     priorYearRows,
     priorYear2Rows,
+    allRows,
     todayISO: getTodayISO(),
   });
 
-  const allRows = getAllRows();
   const annualTrend = buildAnnualTrend(allRows, storeNames);
   const bookingDateMonthlyTrend = buildBookingDateMonthlyTrend(allRows);
   const hoursMonthlyTrend = buildHoursMonthlyTrend(allRows);

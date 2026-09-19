@@ -147,6 +147,7 @@ export function buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorY
  * @param {object[]} params.yearRows
  * @param {object[]} params.priorYearRows
  * @param {object[]} params.priorYear2Rows
+ * @param {object[]} params.allRows
  * @param {string} params.todayISO
  */
 export function buildDashboard({
@@ -160,6 +161,7 @@ export function buildDashboard({
   yearRows,
   priorYearRows,
   priorYear2Rows,
+  allRows,
   todayISO,
 }) {
   const yearStartISO = `${year}-01-01`;
@@ -178,14 +180,18 @@ export function buildDashboard({
   });
 
   // ---- Monthly revenue trend (通常予約 vs 定期クーポン, all stores combined) ----
-  // 決済日ベース is the same rows' revenue grouped by when payment actually
-  // happened (booking_date — 自社サイト's 決済日時(データ入力用), Instabase's
-  // 申込日時, or the row's own date for 定期クーポン / anything not yet
-  // backfilled) rather than by usage date, so the two bases can be compared
-  // on one chart. A booking paid in one year for usage early the next still
-  // lands in this year-scoped array under its payment month (spec: this is a
-  // same-page visual comparison, not a strict per-year accounting split). For
-  // 自社サイト rows, this is now the double-entry split from
+  // The bars (通常予約/定期クーポン) are usage-date based, from yearRows. The
+  // 決済日ベース line is the same kind of revenue but grouped by when payment
+  // actually happened (booking_date — 自社サイト's 決済日時(データ入力用),
+  // Instabase's 申込日時, or the row's own date for 定期クーポン / anything
+  // not yet backfilled) instead — computed from allRows (not yearRows) and
+  // then filtered to contributions whose payment YEAR matches the displayed
+  // year, so a booking paid in a different year (e.g. paid 2025-11 for a
+  // 2026-01 visit) doesn't get miscounted into this year's same-numbered
+  // month just because the month number matches (it belongs to 2025's
+  // November instead, when that year is viewed — yearRows alone can't
+  // surface it there since it's scoped by usage date, not payment date). For
+  // 自社サイト rows, this is the double-entry split from
   // bookingRevenueContributions: the full amount stays in the booking month
   // even after a later cancellation, and the cancellation itself shows up as
   // a separate negative dip in whatever month it was actually processed.
@@ -194,7 +200,10 @@ export function buildDashboard({
     const m = Number(r.date.slice(5, 7)) - 1;
     const key = r.status === SUBSCRIPTION_STATUS ? "定期クーポン" : "通常予約";
     monthlyTrend[m][key] += effectiveRevenue(r);
+  });
+  allRows.forEach((r) => {
     bookingRevenueContributions(r).forEach(({ month, amount }) => {
+      if (Number(month.slice(0, 4)) !== year) return;
       const bm = Number(month.slice(5, 7)) - 1;
       monthlyTrend[bm].決済日ベース += amount;
     });
