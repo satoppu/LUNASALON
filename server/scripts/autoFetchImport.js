@@ -1,29 +1,31 @@
 // Nightly automation: logs into the よやクルPro reservation platform
-// (v3.yoyakul.com), downloads the same 売り上げ情報 CSV export a person would
-// download by hand, and feeds it straight into the existing importCsv()
-// pipeline (server/src/importService.js) — same auto-format-detection,
-// business rules, and upsert/dedup behavior as a manual "CSVインポート"
-// upload, just unattended.
+// (v3.yoyakul.com) — the actual booking system behind 自社サイト — downloads
+// the same 売り上げ情報 zip export a person would download by hand, and
+// feeds it straight into the existing importFileBuffer() pipeline (same
+// zip/xlsx/csv detection, business rules, and upsert/dedup behavior as a
+// manual "インポート" upload from the dashboard header, just unattended).
 //
-// This must run on the same machine as the dashboard server (it writes
-// directly to server/luna.db via importCsv, no HTTP call to the running
-// server needed), scheduled nightly via Windows Task Scheduler — see
-// README.md "自動取り込み" for setup.
+// Runs on the VPS itself (same machine as the dashboard server, since it
+// writes directly to server/luna.db) via a daily cron job — see README.md
+// "自動取り込み" for setup. The VPS is headless, so this always launches
+// Chromium headless; --debug only adds a screenshot after every step
+// (server/scripts/debug-shots/) and slows each action down, for diagnosing
+// a selector that no longer matches the real site.
 //
-// Credentials come from server/.env (YOYAKUL_ID / YOYAKUL_PASSWORD), which is
-// git-ignored — never commit real credentials. Copy server/.env.example to
-// server/.env and fill in the real values there.
+// Credentials come from server/.env (YOYAKUL_ID / YOYAKUL_PASSWORD), which
+// is git-ignored — never commit real credentials. Copy server/.env.example
+// to server/.env and fill in the real values there.
 //
 // Usage:
 //   node scripts/autoFetchImport.js            # normal, unattended run
-//   node scripts/autoFetchImport.js --debug    # visible browser + screenshots
-//                                               # after each step, for tuning
-//                                               # selectors against the real site
+//   node scripts/autoFetchImport.js --debug    # extra screenshots + slowMo,
+//                                               # for tuning selectors
+//                                               # against the real site
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { importCsv } from "../src/importService.js";
+import { importFileBuffer } from "../src/importFileBuffer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, "..", ".env");
@@ -41,18 +43,27 @@ if (!YOYAKUL_ID || !YOYAKUL_PASSWORD) {
 }
 
 async function shot(page, label) {
-  if (!DEBUG) return;
   fs.mkdirSync(DEBUG_DIR, { recursive: true });
-  await page.screenshot({ path: path.join(DEBUG_DIR, `${label}.png`), fullPage: true });
+  await page.screenshot({ path: path.join(DEBUG_DIR, `${label}.png`), fullPage: true }).catch(() => {});
 }
 
+// "前日" 〜 "3ヶ月後の月末" — e.g. run on 2026-09-19 covers 2026-09-18 through
+// 2026-12-31. new Date(y, m, 0) is the last day of month m-1 in local time,
+// so passing (targetMonthIndex + 1) as the month lands on the last day of
+// the target month.
 function formatDate(d) {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+}
+function dateRange() {
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const endOfMonth3Ahead = new Date(today.getFullYear(), today.getMonth() + 4, 0);
+  return { from: yesterday, to: endOfMonth3Ahead };
 }
 
 async function login(page) {
   await page.goto(LOGIN_URL, { waitUntil: "networkidle" });
-  await shot(page, "01-login-page");
+  if (DEBUG) await shot(page, "01-login-page");
 
   const passwordInput = page.locator('input[type="password"]').first();
   const form = passwordInput.locator("xpath=ancestor::form[1]");
@@ -61,72 +72,67 @@ async function login(page) {
   await passwordInput.fill(YOYAKUL_PASSWORD);
   await page.getByRole("button", { name: "ログイン" }).click();
   await page.waitForLoadState("networkidle");
-  await shot(page, "02-after-login");
+  if (DEBUG) await shot(page, "02-after-login");
+
+  if (page.url().includes("/login")) {
+    throw new Error("ログインに失敗しました(ログイン画面のまま)。IDまたはPASSWORDを確認してください。");
+  }
 }
 
 async function openSalesTab(page) {
   await page.getByText("売り上げ情報").click();
   await page.waitForLoadState("networkidle");
-  await shot(page, "03-sales-tab");
+  if (DEBUG) await shot(page, "03-sales-tab");
 }
 
-// TODO: the date-range picker's actual markup isn't known yet (this
-// environment can't reach v3.yoyakul.com to inspect it — see conversation).
-// Currently assumes clicking the "YYYY/MM/DD - YYYY/MM/DD" field opens a
-// calendar with two date <input>s that accept typed dates directly. Run with
-// --debug, check server/scripts/debug-shots/04-date-range-opened.png against
-// what actually appears, and adjust this function to match.
+// TODO: the date-range picker's actual markup wasn't directly inspectable
+// while writing this (see conversation) — this assumes clicking the
+// "YYYY/MM/DD - YYYY/MM/DD" field opens two date inputs that accept typed
+// dates. Run with --debug and check server/scripts/debug-shots/04〜06 against
+// what actually appears; adjust this function if the real widget differs.
 async function selectDateRange(page) {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const threeMonthsAhead = new Date(today);
-  threeMonthsAhead.setMonth(threeMonthsAhead.getMonth() + 3);
+  const { from, to } = dateRange();
 
   const dateRangeField = page.getByText(/^\d{4}\/\d{2}\/\d{2}\s*-\s*\d{4}\/\d{2}\/\d{2}$/).first();
   await dateRangeField.click();
-  await shot(page, "04-date-range-opened");
+  if (DEBUG) await shot(page, "04-date-range-opened");
 
   const dateInputs = page.locator('input[type="date"], input[placeholder*="/"]');
   if ((await dateInputs.count()) >= 2) {
-    await dateInputs.nth(0).fill(formatDate(yesterday));
-    await dateInputs.nth(1).fill(formatDate(threeMonthsAhead));
+    await dateInputs.nth(0).fill(formatDate(from));
+    await dateInputs.nth(1).fill(formatDate(to));
   } else {
     throw new Error(
       "日付範囲の入力欄が見つかりませんでした。server/scripts/debug-shots/04-date-range-opened.png を確認し、" +
         "selectDateRange() を実際のUIに合わせて修正してください。"
     );
   }
-  await shot(page, "05-date-range-filled");
+  if (DEBUG) await shot(page, "05-date-range-filled");
 
   await page.getByRole("button", { name: "切り替え" }).click();
   await page.waitForLoadState("networkidle");
-  await shot(page, "06-after-switch");
+  if (DEBUG) await shot(page, "06-after-switch");
 }
 
-async function downloadCsv(page) {
+async function downloadZip(page) {
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.getByText("下記表をcsv形式でダウンロード").click(),
   ]);
-  const csvPath = await download.path();
-  return fs.readFileSync(csvPath, "utf-8");
+  const filePath = await download.path();
+  return { buffer: fs.readFileSync(filePath), filename: download.suggestedFilename() };
 }
 
 async function main() {
-  // Uses the machine's own installed Chrome (channel: "chrome") rather than
-  // Playwright's bundled Chromium — on a company-managed PC, security
-  // software is more likely to trust the IT-provisioned, digitally signed
-  // Chrome install than a freshly downloaded binary under AppData.
-  const browser = await chromium.launch({ channel: "chrome", headless: !DEBUG, slowMo: DEBUG ? 200 : 0 });
+  const browser = await chromium.launch({ headless: true, slowMo: DEBUG ? 200 : 0 });
   const page = await browser.newPage({ acceptDownloads: true });
   try {
     await login(page);
     await openSalesTab(page);
     await selectDateRange(page);
-    const csvText = await downloadCsv(page);
+    const { buffer, filename } = await downloadZip(page);
 
-    const result = importCsv(csvText);
+    const result = importFileBuffer(buffer, filename);
     console.log(new Date().toISOString(), JSON.stringify(result));
     if (result.error) process.exitCode = 1;
   } catch (err) {
