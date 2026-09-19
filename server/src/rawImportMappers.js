@@ -98,7 +98,8 @@ function parseDiscountedAmount(raw) {
  * row, or null if the row is unrecognized/unparseable. See spec 4.2-4.4 for
  * the status/revenue business rules; a 状態="未確定" row (PENDING_STATUS,
  * "利用前") counts toward revenue via 決済元金+割引金額 (利益 is still blank
- * for these) but not toward hours_used, since the visit hasn't happened yet.
+ * for these) and toward hours_used too, since 利用日時 already carries its
+ * scheduled start/end time even though the usage date hasn't happened yet.
  */
 export function mapRawBookingRow(raw) {
   const isPending = raw["状態"] === "未確定";
@@ -112,7 +113,9 @@ export function mapRawBookingRow(raw) {
   const date = `${year}-${String(usage.month).padStart(2, "0")}-${String(usage.day).padStart(2, "0")}`;
   const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];
   const hoursUsed =
-    status === "利用済み" ? (usage.endHour * 60 + usage.endMin - (usage.startHour * 60 + usage.startMin)) / 60 : 0;
+    status === "利用済み" || status === PENDING_STATUS
+      ? (usage.endHour * 60 + usage.endMin - (usage.startHour * 60 + usage.startMin)) / 60
+      : 0;
 
   // 売り上げ確定日時: for a completed/pending booking this tracks close behind
   // 決済日時, but for a cancellation it's when the cancellation was actually
@@ -211,8 +214,9 @@ function mapInstabaseStatus(rawStatus, isFuture) {
  * 予約金額 (税込),支払金額 (税込)) to a transactions row, or null if the row
  * is unrecognized/unparseable. A "予約確定" row whose 利用開始日時 is still
  * ahead of today maps to PENDING_STATUS ("利用前", same treatment as
- * 自社サイト's 未確定 rows): counted in revenue, not in hours_used, and
- * updated in place (via external_id) once a later export reports it "利用済み".
+ * 自社サイト's 未確定 rows): counted in both revenue and hours_used (利用時間
+ * (時間) is already known at booking time), and updated in place (via
+ * external_id) once a later export reports it "利用済み".
  *
  * Revenue uses 予約金額 (税込) — the full listed booking price, which already
  * reflects any cancellation-fee tier — not 支払金額 (税込), which is net of
@@ -233,7 +237,7 @@ export function mapRawInstabaseRow(raw) {
 
   const startHour = Number(String(raw["利用開始日時"]).slice(11, 13));
   const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];
-  const hoursUsed = status === "利用済み" ? Number(raw["利用時間 (時間)"]) || 0 : 0;
+  const hoursUsed = status === "利用済み" || status === PENDING_STATUS ? Number(raw["利用時間 (時間)"]) || 0 : 0;
 
   return {
     date,
@@ -296,9 +300,9 @@ function parseHourMinute(raw) {
  * (成約) — a cancelled request never appears in it — so every row maps to
  * 利用済み, unless 実施日 (usage date) is still ahead of today, in which case
  * it's PENDING_STATUS (same treatment as 自社サイト's 未確定 and Instabase's
- * future-dated 予約確定 rows). 開始時間/終了時間 are optional: when present,
- * hours_used is the actual booked duration; when absent (the historical
- * xlsx), hours_used stays 0, same as before.
+ * future-dated 予約確定 rows) — hours_used counts for both. 開始時間/終了時間
+ * are optional: when present, hours_used is the actual booked duration;
+ * when absent (the historical xlsx), hours_used stays 0, same as before.
  */
 export function mapRawSpaceMarketRow(raw) {
   const date = parseSpaceMarketDate(raw["実施日"]);
@@ -312,7 +316,7 @@ export function mapRawSpaceMarketRow(raw) {
   const endMin = parseHourMinute(raw["終了時間"]);
   const startHour = startMin != null ? Math.floor(startMin / 60) : null;
   let hoursUsed = 0;
-  if (status === "利用済み" && startMin != null && endMin != null) {
+  if ((status === "利用済み" || status === PENDING_STATUS) && startMin != null && endMin != null) {
     let diffMin = endMin - startMin;
     if (diffMin <= 0) diffMin += 24 * 60;
     hoursUsed = diffMin / 60;

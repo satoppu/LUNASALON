@@ -57,8 +57,12 @@ export const MONTH_LABELS = [
 // server/src/importSubscriptions.js) rather than excluded outright.
 export const REVENUE_STATUSES = new Set(["利用済み", "キャンセル(返金あり)", SUBSCRIPTION_STATUS, PENDING_STATUS]);
 
-// Rows counted as actual room usage per spec 4.3 — cancellations never occupy the room.
-export const HOURS_USED_STATUSES = new Set(["利用済み"]);
+// Rows counted as actual room usage per spec 4.3 — cancellations never occupy
+// the room. PENDING_STATUS ("利用前") is included too: it's a confirmed, paid
+// reservation with a known start time and duration, just like a completed
+// one — only its usage date hasn't arrived yet — so its hours are real,
+// scheduled room-time, same treatment as revenue already gets for it.
+export const HOURS_USED_STATUSES = new Set(["利用済み", PENDING_STATUS]);
 
 /** Today's date in JST as YYYY-MM-DD, computed dynamically per spec 4.4/7.3 (never hardcoded). */
 export function getTodayISO() {

@@ -3,6 +3,7 @@ import { ArrowUp, ArrowDown, Download } from "lucide-react";
 import { api } from "../../api.js";
 import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatDateShort } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
+import DayDetailModal from "../DayDetailModal.jsx";
 import ClickableUserName from "../ClickableUserName.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
@@ -23,6 +24,7 @@ export default function RecentPage({ data }) {
   const [filters, setFilters] = useState({ stores: [], statuses: [] });
   const customerByName = useCustomerLookup();
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
     api.getTransactionFilters().then(setFilters).catch(() => {});
@@ -205,6 +207,9 @@ export default function RecentPage({ data }) {
                     売上
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    開始時間
+                  </th>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     利用時間
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -221,11 +226,21 @@ export default function RecentPage({ data }) {
               <tbody>
                 {result.rows.map((r) => (
                   <tr key={r.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                    <td className="px-4 py-3 text-center">{formatDateShort(r.date)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDate(r.date)}
+                        className="underline decoration-dotted"
+                        style={{ color: "#262421" }}
+                      >
+                        {formatDateShort(r.date)}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-left">
                       <ClickableUserName name={r.user_name} customerByName={customerByName} onSelect={setSelectedCustomer} />
                     </td>
                     <td className="px-4 py-3 text-right">{yen(r.revenue)}</td>
+                    <td className="px-4 py-3 text-center">{r.start_hour != null ? `${r.start_hour}時` : "—"}</td>
                     <td className="px-4 py-3 text-right">{r.hours_used.toFixed(1)}h</td>
                     <td className="px-4 py-3 text-center">
                       <StoreBadge store={r.store} storeColor={storeColor} />
@@ -264,7 +279,7 @@ export default function RecentPage({ data }) {
                 ))}
                 {result.rows.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                    <td colSpan={8} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                       該当する実績が見つかりません。
                     </td>
                   </tr>
@@ -275,6 +290,7 @@ export default function RecentPage({ data }) {
         </>
       )}
       <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
+      <DayDetailModal date={selectedDate} storeMeta={data?.storeMeta} onClose={() => setSelectedDate(null)} />
     </div>
   );
 }
