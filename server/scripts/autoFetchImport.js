@@ -47,6 +47,29 @@ async function shot(page, label) {
   await page.screenshot({ path: path.join(DEBUG_DIR, `${label}.png`), fullPage: true }).catch(() => {});
 }
 
+// Dumps every <input>'s live properties (not just its initial HTML
+// attributes, which a JS-driven widget may never touch) so a selector that
+// stops matching can be diagnosed from this file alone, without another
+// round of screenshots.
+async function dumpInputs(page, label) {
+  const inputs = await page.$$eval("input", (els) =>
+    els.map((e) => ({ type: e.type, id: e.id, name: e.name, className: e.className, value: e.value, placeholder: e.placeholder }))
+  );
+  fs.mkdirSync(DEBUG_DIR, { recursive: true });
+  fs.writeFileSync(path.join(DEBUG_DIR, `${label}-inputs.json`), JSON.stringify(inputs, null, 1));
+}
+
+// Finds the <input> whose current value (live DOM property, not the
+// original HTML attribute — a JS widget updates the former without
+// necessarily touching the latter) matches the given pattern.
+async function findInputByLiveValue(page, pattern) {
+  const idx = await page.evaluate((src) => {
+    const re = new RegExp(src);
+    return Array.from(document.querySelectorAll("input")).findIndex((el) => re.test(el.value || ""));
+  }, pattern.source);
+  return idx === -1 ? null : page.locator("input").nth(idx);
+}
+
 // "前日" 〜 "3ヶ月後の月末" — e.g. run on 2026-09-19 covers 2026-09-18 through
 // 2026-12-31. new Date(y, m, 0) is the last day of month m-1 in local time,
 // so passing (targetMonthIndex + 1) as the month lands on the last day of
@@ -70,7 +93,7 @@ async function login(page) {
   const idInput = form.locator('input:not([type="password"]):not([type="hidden"]):not([type="submit"])').first();
   await idInput.fill(YOYAKUL_ID);
   await passwordInput.fill(YOYAKUL_PASSWORD);
-  await page.getByRole("button", { name: "ログイン" }).click();
+  await page.getByText("ログイン", { exact: true }).click();
   await page.waitForLoadState("networkidle");
   if (DEBUG) await shot(page, "02-after-login");
 
@@ -82,34 +105,41 @@ async function login(page) {
 async function openSalesTab(page) {
   await page.getByText("売り上げ情報").click();
   await page.waitForLoadState("networkidle");
-  if (DEBUG) await shot(page, "03-sales-tab");
+  if (DEBUG) {
+    await shot(page, "03-sales-tab");
+    await dumpInputs(page, "03-sales-tab");
+  }
 }
 
-// TODO: the date-range picker's actual markup wasn't directly inspectable
-// while writing this (see conversation) — this assumes clicking the
-// "YYYY/MM/DD - YYYY/MM/DD" field opens two date inputs that accept typed
-// dates. Run with --debug and check server/scripts/debug-shots/04〜06 against
-// what actually appears; adjust this function if the real widget differs.
+// The date-range field is a plain text <input> whose value is a single
+// "YYYY/MM/DD - YYYY/MM/DD" string — clicking it opens a two-month calendar
+// below (purely a visual aid; it stays in sync with whatever you type), and
+// typing over the text directly re-sets the range. No separate "決定" click
+// is needed: clicking 切り替え afterward both closes the picker and reloads
+// the table for the typed range.
 async function selectDateRange(page) {
   const { from, to } = dateRange();
+  const desired = `${formatDate(from)} - ${formatDate(to)}`;
+  const DATE_RANGE_VALUE_RE = /^\d{4}\/\d{2}\/\d{2}\s*-\s*\d{4}\/\d{2}\/\d{2}$/;
 
-  const dateRangeField = page.getByText(/^\d{4}\/\d{2}\/\d{2}\s*-\s*\d{4}\/\d{2}\/\d{2}$/).first();
-  await dateRangeField.click();
-  if (DEBUG) await shot(page, "04-date-range-opened");
-
-  const dateInputs = page.locator('input[type="date"], input[placeholder*="/"]');
-  if ((await dateInputs.count()) >= 2) {
-    await dateInputs.nth(0).fill(formatDate(from));
-    await dateInputs.nth(1).fill(formatDate(to));
-  } else {
+  const dateRangeInput = await findInputByLiveValue(page, DATE_RANGE_VALUE_RE);
+  if (!dateRangeInput) {
     throw new Error(
-      "日付範囲の入力欄が見つかりませんでした。server/scripts/debug-shots/04-date-range-opened.png を確認し、" +
+      "日付範囲の入力欄が見つかりませんでした。server/scripts/debug-shots/03-sales-tab-inputs.json を確認し、" +
         "selectDateRange() を実際のUIに合わせて修正してください。"
     );
   }
+  await dateRangeInput.click();
+  if (DEBUG) {
+    await shot(page, "04-date-range-opened");
+    await dumpInputs(page, "04");
+  }
+
+  await dateRangeInput.press("Control+a");
+  await page.keyboard.type(desired, { delay: 20 });
   if (DEBUG) await shot(page, "05-date-range-filled");
 
-  await page.getByRole("button", { name: "切り替え" }).click();
+  await page.getByText("切り替え", { exact: true }).click();
   await page.waitForLoadState("networkidle");
   if (DEBUG) await shot(page, "06-after-switch");
 }
