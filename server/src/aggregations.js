@@ -58,7 +58,7 @@ function bookingBucketMonth(row) {
 // completed booking booking_amount equals revenue, so this is a no-op there;
 // rows without booking_amount (other channels, not-yet-backfilled data) fall
 // back to the single-contribution booking_date/date behavior unchanged.
-function bookingRevenueContributions(row) {
+export function bookingRevenueContributions(row) {
   if (row.channel === OWN_SITE_CHANNEL && row.booking_amount != null) {
     const bookingMonth = (row.booking_date || row.date).slice(0, 7);
     let bookingMonthAmount = row.booking_amount;
