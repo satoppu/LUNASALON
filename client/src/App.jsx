@@ -13,6 +13,11 @@ import CustomerListPage from "./components/pages/CustomerListPage.jsx";
 import RecentPage from "./components/pages/RecentPage.jsx";
 import SettingsPage from "./components/pages/SettingsPage.jsx";
 
+// 顧客分析/顧客一覧は全期間の累計データを見るページで、年度による絞り込みを
+// 行わない(CustomerPage/CustomerListPageはdashboardのyearを使わず、
+// api.getCustomers()で全期間を取得する)ため、年度セレクタを表示しない。
+const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customers", "customerList"]);
+
 const PAGES = {
   summary: SummaryPage,
   revenue: RevenuePage,
@@ -72,7 +77,7 @@ export default function App() {
             </h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            {dashboard?.years?.length > 0 && (
+            {dashboard?.years?.length > 0 && !YEAR_SELECTOR_HIDDEN_VIEWS.has(view) && (
               <select
                 value={selectedYear ?? ""}
                 onChange={(e) => handleYearChange(Number(e.target.value))}
