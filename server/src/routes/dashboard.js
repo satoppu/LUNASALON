@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getDashboard, getAvailableYears, getYoyByStore, getDailyTrends } from "../dashboardService.js";
+import { getDashboard, getAvailableYears, getYoyByStore } from "../dashboardService.js";
 
 const router = Router();
 
@@ -20,10 +20,6 @@ router.get("/revenue/yoy-by-store", (req, res) => {
     }
   }
   res.json({ yoyByStore: getYoyByStore(year, month) });
-});
-
-router.get("/dashboard/daily", (req, res) => {
-  res.json({ days: getDailyTrends() });
 });
 
 router.get("/dashboard", (req, res) => {
