@@ -14,10 +14,17 @@ const WINDOW_DAYS = 10;
 // 無いため、キャンセル代(失った売上)は自社サイト分のみ算出する。
 const OWN_SITE_CHANNEL = "自社サイト";
 
+// UTC基準で組み立て・計算するため、プロセスのタイムゾーン設定に一切
+// 依存しない。`new Date(iso + "T00:00:00")` はゾーン指定が無いためローカル
+// 時刻として解釈される — サーバーのタイムゾーンがJST(UTC+9)だと、ローカル
+// 深夜0時は内部的にUTCでは前日15時になり、そこから`toISOString()`で
+// UTCの日付を取り出すと1日ずれる(この関数は呼び出しがネストするたびに
+// ズレが積み重なる)。UTCのgetter/setterだけで完結させることでこれを防ぐ。
 function shiftISODate(iso, delta) {
-  const d = new Date(`${iso}T00:00:00`);
-  d.setDate(d.getDate() + delta);
-  return d.toISOString().slice(0, 10);
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + delta);
+  return dt.toISOString().slice(0, 10);
 }
 
 /**
