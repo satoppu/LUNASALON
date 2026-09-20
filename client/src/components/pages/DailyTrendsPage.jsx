@@ -4,6 +4,26 @@ import { api } from "../../api.js";
 import { FONT_HEAD, CHANNEL_COLOR, yen, formatDateShort } from "../../constants.js";
 import BookingDateDetailModal from "../BookingDateDetailModal.jsx";
 
+// Recharts' default Tooltip lists series in whatever internal order it
+// registers Bar/Line items, not JSX order — a custom content renderer is
+// the only way to guarantee 予約→定期クーポン→売上 every time.
+const TOOLTIP_ROW_ORDER = ["予約", "定期クーポン", "売上"];
+
+function DailyTrendsTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) return null;
+  const byName = Object.fromEntries(payload.map((p) => [p.name, p.value]));
+  return (
+    <div style={{ background: "#FFFFFF", border: "1px solid #EDE3D5", padding: "8px 12px", fontSize: 12 }}>
+      <p style={{ color: "#262421", fontWeight: 600, margin: "0 0 4px" }}>{label}</p>
+      {TOOLTIP_ROW_ORDER.filter((name) => byName[name] !== undefined).map((name) => (
+        <p key={name} style={{ color: "#8F7D6E", margin: 0 }}>
+          {name}:{name === "売上" ? yen(byName[name]) : `${byName[name]}件`}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export default function DailyTrendsPage({ data }) {
   const [days, setDays] = useState(null);
   const [error, setError] = useState(null);
@@ -60,7 +80,7 @@ export default function DailyTrendsPage({ data }) {
               tickLine={false}
               tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
             />
-            <Tooltip formatter={(v, name) => (name === "売上" ? yen(v) : `${v}件`)} />
+            <Tooltip content={<DailyTrendsTooltip />} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Bar
               yAxisId="count"
