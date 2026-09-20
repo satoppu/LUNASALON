@@ -82,4 +82,10 @@ export const api = {
   updateCoupon: (id, payload) =>
     request(`/coupons/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
   deleteCoupon: (id) => request(`/coupons/${id}`, { method: "DELETE" }),
+  getBusinessEvents: () => request("/business-events"),
+  createBusinessEvent: (payload) =>
+    request("/business-events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  updateBusinessEvent: (id, payload) =>
+    request(`/business-events/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  deleteBusinessEvent: (id) => request(`/business-events/${id}`, { method: "DELETE" }),
 };

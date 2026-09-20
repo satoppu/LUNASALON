@@ -1,6 +1,7 @@
 import db from "./db.js";
 import { getTodayISO } from "./config.js";
 import { buildDashboard, buildAnnualTrend, buildBookingDateMonthlyTrend, buildHoursMonthlyTrend, buildYoyByStore } from "./aggregations.js";
+import { listBusinessEventsInRange } from "./businessEventsService.js";
 
 export function getAvailableYears() {
   const rows = db.prepare(`SELECT DISTINCT substr(date, 1, 4) AS y FROM transactions ORDER BY y DESC`).all();
@@ -73,6 +74,7 @@ export function getDashboard(requestedYear) {
   const priorYearRows = hasPriorYear ? getRowsForYear(priorYear) : [];
   const priorYear2Rows = hasPriorYear2 ? getRowsForYear(priorYear2) : [];
   const allRows = getAllRows();
+  const events = listBusinessEventsInRange(`${year}-01-01`, `${year}-12-31`);
 
   const dashboard = buildDashboard({
     year,
@@ -87,6 +89,7 @@ export function getDashboard(requestedYear) {
     priorYear2Rows,
     allRows,
     todayISO: getTodayISO(),
+    events,
   });
 
   const annualTrend = buildAnnualTrend(allRows, storeNames);

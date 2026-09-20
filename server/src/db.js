@@ -4,6 +4,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { DEFAULT_STORES, DEFAULT_OPERATING_HOURS_PER_DAY } from "./config.js";
 import { INITIAL_CABINETS, INITIAL_COUPONS } from "./initialCabinetsAndCoupons.js";
+import { INITIAL_BUSINESS_EVENTS } from "./initialBusinessEvents.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.LUNA_DB_PATH || path.join(__dirname, "..", "luna.db");
@@ -171,6 +172,29 @@ const seedCouponStmt = db.prepare(`
 `);
 for (const c of INITIAL_COUPONS) {
   seedCouponStmt.run(c.id, c.sortOrder, c.user);
+}
+
+// 出来事メモ(工事休業・新店オープンなど、集計だけでは分からない背景情報)。
+// storesはカンマ区切りの店舗名、NULL/空は全店舗対象。自然な一意キーが無い
+// ため、cabinet_assignments/coupon_idsと違いON CONFLICTでは防げない —
+// テーブルが空のときだけ初回シードする(以後はDBが正)。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS business_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    stores TEXT,
+    note TEXT NOT NULL
+  );
+`);
+const businessEventsCount = db.prepare(`SELECT COUNT(*) AS c FROM business_events`).get().c;
+if (businessEventsCount === 0) {
+  const seedEventStmt = db.prepare(
+    `INSERT INTO business_events (start_date, end_date, stores, note) VALUES (?, ?, ?, ?)`
+  );
+  for (const e of INITIAL_BUSINESS_EVENTS) {
+    seedEventStmt.run(e.startDate, e.endDate, e.stores, e.note);
+  }
 }
 
 export default db;

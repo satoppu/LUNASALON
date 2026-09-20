@@ -8,6 +8,7 @@ import storeSettingsRoutes from "./routes/storeSettings.js";
 import importRoutes from "./routes/importRoute.js";
 import customerRoutes from "./routes/customers.js";
 import cabinetsRoutes from "./routes/cabinets.js";
+import businessEventsRoutes from "./routes/businessEvents.js";
 import transactionRoutes from "./routes/transactions.js";
 import pageNotesRoutes from "./routes/pageNotes.js";
 import { login, requireAuth } from "./auth.js";
@@ -32,6 +33,7 @@ app.use("/api", storeSettingsRoutes);
 app.use("/api", importRoutes);
 app.use("/api", customerRoutes);
 app.use("/api", cabinetsRoutes);
+app.use("/api", businessEventsRoutes);
 app.use("/api", transactionRoutes);
 app.use("/api", pageNotesRoutes);
 

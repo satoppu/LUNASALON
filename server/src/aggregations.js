@@ -170,6 +170,7 @@ export function buildDashboard({
   priorYear2Rows,
   allRows,
   todayISO,
+  events,
 }) {
   const yearStartISO = `${year}-01-01`;
   const yearEndISO = `${year}-12-31`;
@@ -353,7 +354,7 @@ export function buildDashboard({
 
   const yoyByStore = buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorYear, month: currentMonthTarget });
 
-  const yearNarrative = buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear, todayISO });
+  const yearNarrative = buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear, todayISO, events: events || [] });
 
   return {
     year,
@@ -386,7 +387,7 @@ export function buildDashboard({
  * 見通し・対策をそれぞれ1行まとめる。閾値による単純な判定であり、実際の
  * 経営判断を代替するものではない。
  */
-export function buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear, todayISO }) {
+export function buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear, todayISO, events = [] }) {
   const todayYear = Number(todayISO.slice(0, 4));
   const todayMonth = Number(todayISO.slice(5, 7));
   const lastCompletedMonth = year < todayYear ? 12 : year === todayYear ? todayMonth - 1 : 0;
@@ -402,6 +403,15 @@ export function buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear
     const monthRows = rows.filter((r) => Number(r.date.slice(5, 7)) === month && r.status !== SUBSCRIPTION_STATUS);
     if (monthRows.length === 0) return null;
     return monthRows.filter((r) => isCancellationStatus(r.status)).length / monthRows.length;
+  };
+
+  // その月に重なる登録済みの出来事(工事休業・新店オープンなど)。売上の
+  // 増減が一時的な事情によるものと分かっている場合、機械的な「好調/要注意」
+  // 判定より、その事情をそのまま文中に出す方が実情に合う。
+  const eventsForMonth = (month) => {
+    const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
+    const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
+    return events.filter((e) => e.start_date <= monthEnd && e.end_date >= monthStart);
   };
 
   const WINDOW = 6;
@@ -420,10 +430,16 @@ export function buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear
     if (yoyPct != null) parts.push(`前年同月比${yoyPct >= 0 ? "+" : ""}${yoyPct.toFixed(0)}%`);
     const detail = parts.length > 0 ? `(${parts.join("・")})` : "";
 
-    let tag = "";
-    if (momPct != null) {
-      if (momPct >= 15) tag = " 好調";
-      else if (momPct <= -15) tag = " 要注意";
+    const monthEvents = eventsForMonth(m);
+    let tag;
+    if (monthEvents.length > 0) {
+      tag = ` ※${monthEvents.map((e) => e.note).join("、")}`;
+    } else {
+      tag = "";
+      if (momPct != null) {
+        if (momPct >= 15) tag = " 好調";
+        else if (momPct <= -15) tag = " 要注意";
+      }
     }
 
     monthLines.push(`${m}月: ¥${Math.round(revenue).toLocaleString("ja-JP")}${detail}${tag}`);
