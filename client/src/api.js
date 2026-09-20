@@ -20,6 +20,7 @@ export const api = {
     }),
   getDashboard: (year) => request(`/dashboard${year ? `?year=${year}` : ""}`),
   getNewBookingsDaily: () => request("/dashboard/new-bookings-daily"),
+  getBookingsForDate: (date) => request(`/dashboard/new-bookings-daily/detail?date=${date}`),
   getYears: () => request("/years"),
   getYoyByStore: (year, month) => request(`/revenue/yoy-by-store?year=${year}${month ? `&month=${month}` : ""}`),
   getCustomers: () => request("/customers"),

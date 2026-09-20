@@ -1,11 +1,19 @@
 import { Router } from "express";
 import { getDashboard, getAvailableYears, getYoyByStore } from "../dashboardService.js";
-import { getNewBookingsDaily } from "../newBookingsDaily.js";
+import { getNewBookingsDaily, getBookingsForDate } from "../newBookingsDaily.js";
 
 const router = Router();
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 router.get("/dashboard/new-bookings-daily", (req, res) => {
   res.json({ days: getNewBookingsDaily() });
+});
+
+router.get("/dashboard/new-bookings-daily/detail", (req, res) => {
+  const { date } = req.query;
+  if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+  res.json({ rows: getBookingsForDate(date) });
 });
 
 router.get("/years", (req, res) => {

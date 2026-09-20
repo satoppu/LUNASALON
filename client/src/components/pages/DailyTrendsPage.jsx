@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
 import { FONT_HEAD, yen, formatDateShort } from "../../constants.js";
+import BookingDateDetailModal from "../BookingDateDetailModal.jsx";
 
-export default function DailyTrendsPage() {
+export default function DailyTrendsPage({ data }) {
   const [days, setDays] = useState(null);
   const [error, setError] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
     api
@@ -60,14 +62,23 @@ export default function DailyTrendsPage() {
             />
             <Tooltip formatter={(v, name) => (name === "売上" ? yen(v) : `${v}件`)} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar yAxisId="count" dataKey="count" name="予約受付件数" fill="#D4A644" />
+            <Bar
+              yAxisId="count"
+              dataKey="count"
+              name="予約受付件数"
+              fill="#D4A644"
+              cursor="pointer"
+              onClick={(entry) => setSelectedDate(entry.date)}
+            />
             <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="売上" stroke="#D66B5C" strokeWidth={2.5} dot={{ r: 3 }} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
       <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-        予約(または定期クーポン購入)が行われた日ベースです(利用日ではありません)。売上は他の集計と同じ実効売上ルールに基づきます。
+        予約(または定期クーポン購入)が行われた日ベースです(利用日ではありません)。売上は他の集計と同じ実効売上ルールに基づきます。棒をクリックすると、その日の明細を表示します。
       </p>
+
+      <BookingDateDetailModal date={selectedDate} storeMeta={data?.storeMeta} onClose={() => setSelectedDate(null)} />
     </div>
   );
 }

@@ -43,3 +43,12 @@ export function getNewBookingsDaily() {
   }
   return days;
 }
+
+/** Rows whose booking_date is the given day — the detail behind one bar of getNewBookingsDaily(). */
+export function getBookingsForDate(bookingDate) {
+  return db
+    .prepare(
+      `SELECT date, store, user_name, revenue, status, channel FROM transactions WHERE booking_date = ? ORDER BY user_name`
+    )
+    .all(bookingDate);
+}
