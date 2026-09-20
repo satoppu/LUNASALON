@@ -20,6 +20,33 @@ const COLOR = {
 // (payload[0].payload) rather than the chart's own series list — that also
 // sidesteps recharts' Tooltip listing series in registration order rather
 // than JSX order, and lets 取消 appear twice (件数・金額) unambiguously.
+// Passing an explicit `payload` prop to recharts' <Legend> did not reliably
+// keep this order either — same registration-order quirk as Tooltip — so
+// this renders the legend entirely by hand instead.
+const LEGEND_ITEMS = [
+  { label: "予約", color: COLOR.予約, shape: "square" },
+  { label: "取消", color: COLOR.取消, shape: "square" },
+  { label: "定額", color: COLOR.定額, shape: "square" },
+  { label: "合計", color: COLOR.合計, shape: "line" },
+];
+
+function DailyTrendsLegend() {
+  return (
+    <ul className="flex flex-wrap justify-center gap-4 mt-2" style={{ fontSize: 12, color: "#262421" }}>
+      {LEGEND_ITEMS.map((item) => (
+        <li key={item.label} className="flex items-center gap-1.5">
+          {item.shape === "line" ? (
+            <span style={{ display: "inline-block", width: 14, height: 2, background: item.color }} />
+          ) : (
+            <span style={{ display: "inline-block", width: 10, height: 10, background: item.color }} />
+          )}
+          {item.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function DailyTrendsTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null;
   const d = payload[0].payload;
@@ -125,15 +152,7 @@ export default function DailyTrendsPage({ data }) {
                   tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip content={<DailyTrendsTooltip />} />
-                <Legend
-                  wrapperStyle={{ fontSize: 12 }}
-                  payload={[
-                    { value: "予約", type: "square", color: COLOR.予約 },
-                    { value: "取消", type: "square", color: COLOR.取消 },
-                    { value: "定額", type: "square", color: COLOR.定額 },
-                    { value: "合計", type: "line", color: COLOR.合計 },
-                  ]}
-                />
+                <Legend content={<DailyTrendsLegend />} />
                 <Bar
                   yAxisId="count"
                   dataKey="count"
