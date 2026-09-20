@@ -125,7 +125,15 @@ export default function DailyTrendsPage({ data }) {
                   tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip content={<DailyTrendsTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend
+                  wrapperStyle={{ fontSize: 12 }}
+                  payload={[
+                    { value: "予約", type: "square", color: COLOR.予約 },
+                    { value: "取消", type: "square", color: COLOR.取消 },
+                    { value: "定額", type: "square", color: COLOR.定額 },
+                    { value: "合計", type: "line", color: COLOR.合計 },
+                  ]}
+                />
                 <Bar
                   yAxisId="count"
                   dataKey="count"

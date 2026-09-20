@@ -22,11 +22,12 @@ function shiftISODate(iso, delta) {
 
 /**
  * 予約(または定期クーポン購入)が行われた日(booking_date基準、利用日では
- * ない)ごとの件数と売上を、直近10日間分。offsetWindowsを1増やすごとに、
- * その10日ブロックをまるごと1つ過去にずらす(例: offsetWindows=1は
- * 「今日から数えて11〜20日前」)。どちらもbooking_dateの範囲を絞った
- * SELECTのみなので、offsetWindowsの大小やテーブル全体のサイズに関係なく
- * 一定のコストに収まる。
+ * ない)ごとの件数と売上を、直近10日間分。「今日」はまだ終わっておらず
+ * 件数・売上が必ず不完全な値になるため、一番新しい日は今日ではなく前日
+ * (JST基準)にしている。offsetWindowsを1増やすごとに、その10日ブロックを
+ * まるごと1つ過去にずらす(例: offsetWindows=1は「前日から数えて11〜20日
+ * 前」)。どちらもbooking_dateの範囲を絞ったSELECTのみなので、
+ * offsetWindowsの大小やテーブル全体のサイズに関係なく一定のコストに収まる。
  *
  * 件数は通常予約・キャンセル・定期クーポンの3つに分けて集計する(積み上げ
  * 棒グラフ用)。売上は「予約(利用済み/利用前)+定期クーポン」の粗売上
@@ -36,8 +37,8 @@ function shiftISODate(iso, delta) {
  * (revenue = grossRevenue - cancelRevenue)。
  */
 export function getNewBookingsDaily(offsetWindows = 0) {
-  const today = getTodayISO();
-  const end = shiftISODate(today, -WINDOW_DAYS * offsetWindows);
+  const yesterday = shiftISODate(getTodayISO(), -1);
+  const end = shiftISODate(yesterday, -WINDOW_DAYS * offsetWindows);
   const start = shiftISODate(end, -(WINDOW_DAYS - 1));
 
   const rows = db
