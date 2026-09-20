@@ -31,31 +31,7 @@ const upsertStmt = db.prepare(`
     booking_amount = excluded.booking_amount
   WHERE external_id IS NOT NULL
 `);
-const selectExistingStmt = db.prepare(`
-  SELECT date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, booking_date, revenue_confirmed_date, booking_amount
-  FROM transactions WHERE external_id = ?
-`);
-
-// Only these columns are actually written by upsertStmt's ON CONFLICT
-// clause, so they're the only ones relevant to "did this row change".
-const COMPARE_FIELDS = [
-  "date",
-  "store",
-  "user_name",
-  "revenue",
-  "hours_used",
-  "start_hour",
-  "start_minute",
-  "weekday",
-  "channel",
-  "status",
-  "booking_date",
-  "revenue_confirmed_date",
-  "booking_amount",
-];
-function rowChanged(existing, incoming) {
-  return COMPARE_FIELDS.some((f) => (existing[f] ?? null) !== (incoming[f] ?? null));
-}
+const existsStmt = db.prepare(`SELECT 1 FROM transactions WHERE external_id = ?`);
 
 function insertRows(rows) {
   const seenStores = new Set(rows.map((r) => r.store));
@@ -65,16 +41,10 @@ function insertRows(rows) {
   try {
     for (const store of seenStores) ensureStoreRegistered(store);
     for (const r of rows) {
-      const existing = r.external_id ? selectExistingStmt.get(r.external_id) : undefined;
-      if (!existing) {
-        upsertStmt.run(r);
-        inserted++;
-      } else if (rowChanged(existing, r)) {
-        upsertStmt.run(r);
-        updated++;
-      }
-      // else: already present with identical values — counted as a
-      // duplicate by callers (rows.length - inserted - updated), not written.
+      const alreadyExists = r.external_id ? !!existsStmt.get(r.external_id) : false;
+      upsertStmt.run(r);
+      if (alreadyExists) updated++;
+      else inserted++;
     }
     db.exec("COMMIT");
   } catch (err) {
