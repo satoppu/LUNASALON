@@ -12,7 +12,7 @@ const NOTE_PAGES = NAV_ITEMS.filter((n) => n.key !== "settings");
 
 const TABS = [
   { key: "settings", label: "設定" },
-  { key: "registry", label: "登録情報" },
+  { key: "registry", label: "一覧" },
 ];
 
 function describeImportResult(result) {
