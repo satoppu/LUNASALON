@@ -5,6 +5,7 @@
 // 画面から直接ユーザー名を編集して修正する想定。
 import db from "./db.js";
 import { canonicalizeUserName } from "./importHelpers.js";
+import { SUBSCRIPTION_STATUS } from "./config.js";
 
 function normalizeUserNameInput(userName) {
   const trimmed = typeof userName === "string" ? userName.trim() : "";
@@ -101,4 +102,32 @@ export function attachAssignments(customerProfiles) {
       couponIds: couponsByUser.get(key) || [],
     };
   });
+}
+
+/**
+ * 定額クーポンを一度でも購入した利用者ごとに、初回購入日・購入回数を
+ * transactionsから集計し、coupon_idsに登録されているIDをcanonicalize
+ * UserNameでの一致で付け足す(未登録ならnull)。表示名はtransactions側の
+ * 表記(canonicalizeUserNameで名寄せ済み)を使う。
+ */
+export function buildCouponPurchaseList(allRows) {
+  const byUser = new Map();
+  for (const r of allRows) {
+    if (r.status !== SUBSCRIPTION_STATUS) continue;
+    const key = canonicalizeUserName(r.user_name);
+    if (!byUser.has(key)) byUser.set(key, { user: r.user_name, firstPurchaseDate: r.date, purchaseCount: 0 });
+    const entry = byUser.get(key);
+    entry.purchaseCount += 1;
+    if (r.date < entry.firstPurchaseDate) entry.firstPurchaseDate = r.date;
+  }
+
+  const couponIdByUser = new Map();
+  for (const c of listCoupons()) {
+    if (!c.user_name) continue;
+    couponIdByUser.set(canonicalizeUserName(c.user_name), c.coupon_id);
+  }
+
+  return [...byUser.entries()]
+    .map(([key, entry]) => ({ ...entry, couponId: couponIdByUser.get(key) || null }))
+    .sort((a, b) => (a.firstPurchaseDate < b.firstPurchaseDate ? -1 : a.firstPurchaseDate > b.firstPurchaseDate ? 1 : 0));
 }

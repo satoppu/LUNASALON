@@ -7,6 +7,7 @@ import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 
 const SORTABLE_COLUMNS = [
+  { key: "user", label: "利用者" },
   { key: "totalRevenue", label: "売上" },
   { key: "totalCount", label: "回数" },
   { key: "totalSubscriptionCount", label: "クーポン" },
@@ -174,9 +175,6 @@ export default function CustomerListPage({ data }) {
         <table className="w-full text-sm whitespace-nowrap">
           <thead>
             <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                利用者
-              </th>
               {SORTABLE_COLUMNS.map((col) => (
                 <th key={col.key} className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   <button

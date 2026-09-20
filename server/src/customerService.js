@@ -7,7 +7,7 @@ import {
   buildBookingToUsageMonthly,
   buildBookingToUsageMonthlyHours,
 } from "./aggregations.js";
-import { attachAssignments } from "./cabinetsService.js";
+import { attachAssignments, listCabinets, buildCouponPurchaseList } from "./cabinetsService.js";
 
 function getAllRows() {
   return db.prepare(`SELECT date, store, user_name, revenue, hours_used, status, channel, booking_date FROM transactions`).all();
@@ -23,5 +23,7 @@ export function getCustomerAnalysis() {
     bookingLeadTime: buildBookingLeadTime(allRows),
     bookingToUsageMonthly: buildBookingToUsageMonthly(allRows),
     bookingToUsageMonthlyHours: buildBookingToUsageMonthlyHours(allRows),
+    cabinetList: listCabinets(),
+    couponPurchaseList: buildCouponPurchaseList(allRows),
   };
 }

@@ -7,7 +7,6 @@ import SummaryPage from "./components/pages/SummaryPage.jsx";
 import RevenuePage from "./components/pages/RevenuePage.jsx";
 import OccupancyPage from "./components/pages/OccupancyPage.jsx";
 import ChannelPage from "./components/pages/ChannelPage.jsx";
-import RankingPage from "./components/pages/RankingPage.jsx";
 import DailyTrendsPage from "./components/pages/DailyTrendsPage.jsx";
 import CustomerPage from "./components/pages/CustomerPage.jsx";
 import CustomerListPage from "./components/pages/CustomerListPage.jsx";
@@ -27,7 +26,6 @@ const PAGES = {
   revenue: RevenuePage,
   occupancy: OccupancyPage,
   channel: ChannelPage,
-  ranking: RankingPage,
   customers: CustomerPage,
   customerList: CustomerListPage,
   recent: RecentPage,
