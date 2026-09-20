@@ -105,29 +105,45 @@ export function attachAssignments(customerProfiles) {
 }
 
 /**
- * 定額クーポンを一度でも購入した利用者ごとに、初回購入日・購入回数を
- * transactionsから集計し、coupon_idsに登録されているIDをcanonicalize
- * UserNameでの一致で付け足す(未登録ならnull)。表示名はtransactions側の
- * 表記(canonicalizeUserNameで名寄せ済み)を使う。
+ * 定額クーポンID一覧(利用者・初回購入日・購入回数・ID)。IDを軸にする —
+ * coupon_idsに利用者が割り当てられている行はすべて含み(transactionsに
+ * 購入実績が無ければ初回購入日null・購入回数0のまま)、ID順に並べる。
+ * IDが割り当てられていないが購入実績はある利用者も、その後ろに続けて
+ * 表示する(表記ゆれで一致しない場合はこちら側に出るので、キャビネット・
+ * クーポン画面で名前を合わせれば上のID一覧側に移る)。coupon_idsの
+ * user_nameが空(未割当ID)の行はここには出さない。
  */
 export function buildCouponPurchaseList(allRows) {
-  const byUser = new Map();
+  const purchasesByUser = new Map();
   for (const r of allRows) {
     if (r.status !== SUBSCRIPTION_STATUS) continue;
     const key = canonicalizeUserName(r.user_name);
-    if (!byUser.has(key)) byUser.set(key, { user: r.user_name, firstPurchaseDate: r.date, purchaseCount: 0 });
-    const entry = byUser.get(key);
+    if (!purchasesByUser.has(key)) purchasesByUser.set(key, { user: r.user_name, firstPurchaseDate: null, purchaseCount: 0 });
+    const entry = purchasesByUser.get(key);
     entry.purchaseCount += 1;
-    if (r.date < entry.firstPurchaseDate) entry.firstPurchaseDate = r.date;
+    if (entry.firstPurchaseDate === null || r.date < entry.firstPurchaseDate) entry.firstPurchaseDate = r.date;
   }
 
-  const couponIdByUser = new Map();
+  const matchedKeys = new Set();
+  const withId = [];
   for (const c of listCoupons()) {
     if (!c.user_name) continue;
-    couponIdByUser.set(canonicalizeUserName(c.user_name), c.coupon_id);
+    const key = canonicalizeUserName(c.user_name);
+    matchedKeys.add(key);
+    const purchase = purchasesByUser.get(key);
+    withId.push({
+      user: c.user_name,
+      firstPurchaseDate: purchase ? purchase.firstPurchaseDate : null,
+      purchaseCount: purchase ? purchase.purchaseCount : 0,
+      couponId: c.coupon_id,
+    });
   }
+  withId.sort((a, b) => (a.couponId < b.couponId ? -1 : a.couponId > b.couponId ? 1 : 0));
 
-  return [...byUser.entries()]
-    .map(([key, entry]) => ({ ...entry, couponId: couponIdByUser.get(key) || null }))
+  const withoutId = [...purchasesByUser.entries()]
+    .filter(([key]) => !matchedKeys.has(key))
+    .map(([, entry]) => ({ ...entry, couponId: null }))
     .sort((a, b) => (a.firstPurchaseDate < b.firstPurchaseDate ? -1 : a.firstPurchaseDate > b.firstPurchaseDate ? 1 : 0));
+
+  return [...withId, ...withoutId];
 }

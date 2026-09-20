@@ -446,7 +446,7 @@ export default function CustomerPage({ data }) {
               {state.couponPurchaseList.map((c) => (
                 <tr key={c.user} style={{ borderBottom: "1px solid #F3EBDF" }}>
                   <td className="px-4 py-3 text-left">{c.user}</td>
-                  <td className="px-4 py-3 text-center">{formatDateShort(c.firstPurchaseDate)}</td>
+                  <td className="px-4 py-3 text-center">{c.firstPurchaseDate ? formatDateShort(c.firstPurchaseDate) : "—"}</td>
                   <td className="px-4 py-3 text-center">{c.purchaseCount}</td>
                   <td className="px-4 py-3 text-center" style={!c.couponId ? { color: "#8F7D6E" } : undefined}>
                     {c.couponId || "—"}

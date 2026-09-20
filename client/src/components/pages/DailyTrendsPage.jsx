@@ -47,7 +47,7 @@ function DailyTrendsLegend() {
   );
 }
 
-function DailyTrendsTooltip({ active, payload, label }) {
+function DailyTrendsTooltip({ active, payload }) {
   if (!active || !payload || payload.length === 0) return null;
   const d = payload[0].payload;
   const rows = [
@@ -60,7 +60,7 @@ function DailyTrendsTooltip({ active, payload, label }) {
   ];
   return (
     <div style={{ background: "#FFFFFF", border: "1px solid #EDE3D5", padding: "8px 12px", fontSize: 12 }}>
-      <p style={{ color: "#262421", fontWeight: 600, margin: "0 0 4px" }}>{label}</p>
+      <p style={{ color: "#262421", fontWeight: 600, margin: "0 0 4px" }}>{formatDateShort(d.date)}</p>
       {rows.map((row) => (
         <p key={row.key} style={{ color: row.color, margin: 0 }}>
           {row.labelText}:{row.text}
@@ -132,9 +132,9 @@ export default function DailyTrendsPage({ data }) {
         <>
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={320}>
-              <ComposedChart data={days.map((d) => ({ ...d, label: formatDateShort(d.date) }))}>
+              <ComposedChart data={days.map((d) => ({ ...d, dayLabel: d.date.slice(-2) }))}>
                 <CartesianGrid stroke="#F0E6D8" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
+                <XAxis dataKey="dayLabel" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
                 <YAxis
                   yAxisId="count"
                   tick={{ fill: "#8F7D6E", fontSize: 12 }}
