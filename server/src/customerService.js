@@ -7,6 +7,7 @@ import {
   buildBookingToUsageMonthly,
   buildBookingToUsageMonthlyHours,
 } from "./aggregations.js";
+import { attachAssignments } from "./cabinetsService.js";
 
 function getAllRows() {
   return db.prepare(`SELECT date, store, user_name, revenue, hours_used, status, channel, booking_date FROM transactions`).all();
@@ -14,7 +15,7 @@ function getAllRows() {
 
 export function getCustomerAnalysis() {
   const allRows = getAllRows();
-  const customers = buildCustomerProfiles(allRows);
+  const customers = attachAssignments(buildCustomerProfiles(allRows));
   return {
     customers,
     newCustomersByMonth: buildNewCustomersByMonth(customers),

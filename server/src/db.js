@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
 import { DEFAULT_STORES, DEFAULT_OPERATING_HOURS_PER_DAY } from "./config.js";
+import { INITIAL_CABINETS, INITIAL_COUPONS } from "./initialCabinetsAndCoupons.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.LUNA_DB_PATH || path.join(__dirname, "..", "luna.db");
@@ -129,5 +130,47 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+// キャビネット利用(店舗ごとの物理キャビネット番号/位置と、現在の利用者)。
+// user_nameはNULL可(「空き」)。同じ店舗内でslot_labelは重複しない。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cabinet_assignments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store TEXT NOT NULL,
+    slot_label TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    user_name TEXT
+  );
+`);
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_cabinet_assignments_store_slot ON cabinet_assignments(store, slot_label);`);
+
+const seedCabinetStmt = db.prepare(`
+  INSERT INTO cabinet_assignments (store, slot_label, sort_order, user_name)
+  VALUES (?, ?, ?, ?)
+  ON CONFLICT(store, slot_label) DO NOTHING;
+`);
+for (const c of INITIAL_CABINETS) {
+  seedCabinetStmt.run(c.store, c.slot, c.sortOrder, c.user);
+}
+
+// 定額クーポンのID(顧客ごとに割り当てるID)。user_nameはNULL可(未割当)。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS coupon_ids (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    coupon_id TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    user_name TEXT
+  );
+`);
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_coupon_ids_coupon_id ON coupon_ids(coupon_id);`);
+
+const seedCouponStmt = db.prepare(`
+  INSERT INTO coupon_ids (coupon_id, sort_order, user_name)
+  VALUES (?, ?, ?)
+  ON CONFLICT(coupon_id) DO NOTHING;
+`);
+for (const c of INITIAL_COUPONS) {
+  seedCouponStmt.run(c.id, c.sortOrder, c.user);
+}
 
 export default db;

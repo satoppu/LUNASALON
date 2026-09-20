@@ -43,6 +43,12 @@ transactions(
 store_settings(
   store, area, color, open_date, operating_hours_per_day, sort_order
 )
+cabinet_assignments(
+  id, store, slot_label, sort_order, user_name
+)
+coupon_ids(
+  id, coupon_id, sort_order, user_name
+)
 ```
 
 `store_settings` に開業日(`open_date`)・1日あたり稼働可能時間(`operating_hours_per_day`)を保存しており、画面右上の「店舗設定」から編集できます(仕様書 7.3 の「基準日・店舗開業日をハードコードしない」要件に対応)。`open_date` を空欄にすると、実績データ上のその店舗の初回利用日から自動推定されます。
@@ -50,6 +56,8 @@ store_settings(
 `booking_date`(予約が実際に行われた日。`date` は利用日)は自社サイト・Instabaseの生データ取り込み(決済日時/申込日時から取得)でのみ埋まり、履歴CSVやシンプルテンプレートのインポートでは常にNULLです。「顧客分析」ページの「予約は何日前にされているか」グラフはこの値が入っている行のみを対象にしているため、取り込み時期より前のデータは反映されません。
 
 基準日(本日)は仕様書 4.4 のとおりサーバーの現在日時(JST)から動的に算出しており、設定値としては保持していません。
+
+`cabinet_assignments`(店舗ごとの物理キャビネット番号と利用者)・`coupon_ids`(定額クーポンIDと利用者)は、サイドバー「キャビネット・クーポン」から一覧・追加・編集・削除できます。初回起動時に管理用スプレッドシートの内容を `server/src/initialCabinetsAndCoupons.js` から自動投入しますが(以後はDBが正)、店舗設定と同じく再投入はされません。「顧客一覧」の詳細では、その顧客の`user_name`と`canonicalizeUserName`(空白・全角半角・登録済みエイリアスの差異を吸収)で一致した行だけを表示します — 表記ゆれ(同姓同名の漢字違いなど)で一致しない場合は「キャビネット・クーポン」画面側の利用者名を実績データの表記に合わせて直接編集してください。
 
 ## 集計ロジック(仕様書 4章のビジネスルール)
 

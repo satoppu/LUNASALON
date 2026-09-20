@@ -70,4 +70,16 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
+  getCabinets: () => request("/cabinets"),
+  createCabinet: (payload) =>
+    request("/cabinets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  updateCabinet: (id, payload) =>
+    request(`/cabinets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  deleteCabinet: (id) => request(`/cabinets/${id}`, { method: "DELETE" }),
+  getCoupons: () => request("/coupons"),
+  createCoupon: (payload) =>
+    request("/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  updateCoupon: (id, payload) =>
+    request(`/coupons/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  deleteCoupon: (id) => request(`/coupons/${id}`, { method: "DELETE" }),
 };

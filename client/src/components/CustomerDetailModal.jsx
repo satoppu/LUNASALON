@@ -23,6 +23,15 @@ export default function CustomerDetailModal({ customer, onClose }) {
             <p style={{ color: "#8F7D6E" }} className="text-sm">
               主な店舗: {customer.primaryStore} ／ 初回利用日: {customer.firstUseDate} ／ 最終利用日: {customer.lastUseDate}
             </p>
+            {(customer.cabinets?.length > 0 || customer.couponIds?.length > 0) && (
+              <p style={{ color: "#8F7D6E" }} className="text-sm mt-1">
+                {customer.cabinets?.length > 0 && (
+                  <>キャビネット: {customer.cabinets.map((c) => `${c.store} ${c.slotLabel}番`).join("、")}</>
+                )}
+                {customer.cabinets?.length > 0 && customer.couponIds?.length > 0 && " ／ "}
+                {customer.couponIds?.length > 0 && <>クーポンID: {customer.couponIds.join("、")}</>}
+              </p>
+            )}
           </div>
           <button onClick={onClose} style={{ color: "#8F7D6E" }} aria-label="閉じる">
             <X size={20} />
