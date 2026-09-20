@@ -5,10 +5,10 @@ export const NAV_ITEMS = [
   { key: "daily", label: "日次動向", icon: CalendarDays },
   { key: "revenue", label: "売上分析", icon: TrendingUp },
   { key: "occupancy", label: "稼働率", icon: Activity },
-  { key: "channel", label: "導線分析", icon: Share2 },
   { key: "customers", label: "顧客分析", icon: Users },
   { key: "customerList", label: "顧客一覧", icon: Contact },
   { key: "recent", label: "利用履歴", icon: History },
+  { key: "channel", label: "導線分析", icon: Share2 },
   { key: "settings", label: "設定", icon: Settings },
 ];
 
