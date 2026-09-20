@@ -61,6 +61,16 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
       .sort((a, b) => b.monthsSinceLastUse - a.monthsSinceLastUse);
   }, [state]);
 
+  // キャンセル率 = 取消件数 ÷ (利用回数+取消件数)。取消が1件もない人は対象外。
+  const cancelRateRanking = useMemo(() => {
+    if (!state) return [];
+    return state.customers
+      .filter((c) => c.totalCancelCount > 0)
+      .map((c) => ({ ...c, cancelRate: c.totalCancelCount / (c.totalCount + c.totalCancelCount) }))
+      .sort((a, b) => b.cancelRate - a.cancelRate || b.totalCancelCount - a.totalCancelCount)
+      .slice(0, 20);
+  }, [state]);
+
   if (error) {
     return (
       <p className="text-sm" style={{ color: "#A84434" }}>
@@ -260,6 +270,68 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                     該当する顧客が見つかりません。
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          キャンセル率TOP20(全期間・クリックで詳細)
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead>
+              <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  順位
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  利用者
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  キャンセル率
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  取消
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  利用回数
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  店舗
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {cancelRateRanking.map((c, i) => (
+                <tr
+                  key={c.user}
+                  onClick={() => setSelected(c)}
+                  className="cursor-pointer"
+                  style={{ borderBottom: "1px solid #F3EBDF" }}
+                >
+                  <td className="px-4 py-3 text-center" style={{ fontFamily: FONT_HEAD, color: "#A84434" }}>
+                    {i + 1}
+                  </td>
+                  <td className="px-4 py-3 text-left">{c.user}</td>
+                  <td className="px-4 py-3 text-right font-medium" style={{ color: "#A84434" }}>
+                    {(c.cancelRate * 100).toFixed(0)}%
+                  </td>
+                  <td className="px-4 py-3 text-center">{c.totalCancelCount}</td>
+                  <td className="px-4 py-3 text-center">{c.totalCount}</td>
+                  <td className="px-4 py-3 text-center">
+                    <StoreBadge store={c.primaryStore} storeColor={storeColor} />
+                  </td>
+                </tr>
+              ))}
+              {cancelRateRanking.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                    取消履歴のある顧客がいません。
                   </td>
                 </tr>
               )}
