@@ -8,6 +8,12 @@ import { getTodayISO, REVENUE_STATUSES, SUBSCRIPTION_STATUS, isCancellationStatu
 
 const WINDOW_DAYS = 10;
 
+// 決済元金(booking_amount)はキャンセル時にも「本来の予約金額」として自社
+// サイトの行にだけ保存される(rawImportMappers.js mapRawBookingRow)。他の
+// チャネル(Instabase/スペースマーケットなど)のキャンセルにはこの元金が
+// 無いため、キャンセル代(失った売上)は自社サイト分のみ算出する。
+const OWN_SITE_CHANNEL = "自社サイト";
+
 function shiftISODate(iso, delta) {
   const d = new Date(`${iso}T00:00:00`);
   d.setDate(d.getDate() + delta);
@@ -23,8 +29,11 @@ function shiftISODate(iso, delta) {
  * 一定のコストに収まる。
  *
  * 件数は通常予約・キャンセル・定期クーポンの3つに分けて集計する(積み上げ
- * 棒グラフ用)。売上は他の売上集計と同じeffectiveRevenueのルール
- * (REVENUE_STATUSES、定期クーポン込み)に従う。
+ * 棒グラフ用)。売上は「予約(利用済み/利用前)+定期クーポン」の粗売上
+ * (grossRevenue)から、キャンセル代(cancelRevenue — 自社サイトの本来の
+ * 予約金額とキャンセル後に実際に残った売上の差額。他チャネルのキャンセル
+ * は本来の予約金額を保持していないため0として扱う)を差し引いた金額
+ * (revenue = grossRevenue - cancelRevenue)。
  */
 export function getNewBookingsDaily(offsetWindows = 0) {
   const today = getTodayISO();
@@ -32,34 +41,48 @@ export function getNewBookingsDaily(offsetWindows = 0) {
   const start = shiftISODate(end, -(WINDOW_DAYS - 1));
 
   const rows = db
-    .prepare(`SELECT booking_date AS date, status, revenue FROM transactions WHERE booking_date >= ? AND booking_date <= ?`)
+    .prepare(
+      `SELECT booking_date AS date, status, channel, revenue, booking_amount FROM transactions WHERE booking_date >= ? AND booking_date <= ?`
+    )
     .all(start, end);
 
   const countByDate = new Map();
   const cancelCountByDate = new Map();
   const subscriptionCountByDate = new Map();
-  const revenueByDate = new Map();
+  const grossRevenueByDate = new Map();
+  const cancelRevenueByDate = new Map();
+  const add = (map, date, amount) => map.set(date, (map.get(date) || 0) + amount);
+
   for (const r of rows) {
-    const counts = r.status === SUBSCRIPTION_STATUS
-      ? subscriptionCountByDate
-      : isCancellationStatus(r.status)
-        ? cancelCountByDate
-        : countByDate;
-    counts.set(r.date, (counts.get(r.date) || 0) + 1);
-    if (REVENUE_STATUSES.has(r.status)) {
-      revenueByDate.set(r.date, (revenueByDate.get(r.date) || 0) + r.revenue);
+    if (r.status === SUBSCRIPTION_STATUS) {
+      add(subscriptionCountByDate, r.date, 1);
+      add(grossRevenueByDate, r.date, r.revenue);
+    } else if (isCancellationStatus(r.status)) {
+      add(cancelCountByDate, r.date, 1);
+      if (r.channel === OWN_SITE_CHANNEL && r.booking_amount != null) {
+        add(cancelRevenueByDate, r.date, r.booking_amount - r.revenue);
+      }
+    } else {
+      add(countByDate, r.date, 1);
+      if (REVENUE_STATUSES.has(r.status)) {
+        add(grossRevenueByDate, r.date, r.revenue);
+      }
     }
   }
 
   const days = [];
   for (let i = 0; i < WINDOW_DAYS; i++) {
     const date = shiftISODate(start, i);
+    const grossRevenue = grossRevenueByDate.get(date) || 0;
+    const cancelRevenue = cancelRevenueByDate.get(date) || 0;
     days.push({
       date,
       count: countByDate.get(date) || 0,
       cancelCount: cancelCountByDate.get(date) || 0,
       subscriptionCount: subscriptionCountByDate.get(date) || 0,
-      revenue: revenueByDate.get(date) || 0,
+      grossRevenue,
+      cancelRevenue,
+      revenue: grossRevenue - cancelRevenue,
     });
   }
   return days;

@@ -9,23 +9,34 @@ const COLOR = {
   予約: "#D4A644",
   取消: "#A84434",
   定額: CHANNEL_COLOR.定期クーポン,
-  売上: "#D66B5C",
+  売上: "#8F7D6E", // grossRevenue subtotal — informational only, not its own bar/line.
+  合計: "#D66B5C", // matches the plotted Line's stroke.
 };
 
-// Recharts' default Tooltip lists series in whatever internal order it
-// registers Bar/Line items, not JSX order — a custom content renderer is
-// the only way to guarantee this exact order every time.
-const TOOLTIP_ROW_ORDER = ["予約", "取消", "定額", "売上"];
-
+// The visible chart only plots count/cancelCount/subscriptionCount (stacked
+// bars) and revenue=grossRevenue-cancelRevenue (the line, "合計"). The
+// tooltip additionally breaks the money out into 売上(粗)→取消(差引)→合計
+// for transparency, so it reads straight off the day's raw datum
+// (payload[0].payload) rather than the chart's own series list — that also
+// sidesteps recharts' Tooltip listing series in registration order rather
+// than JSX order, and lets 取消 appear twice (件数・金額) unambiguously.
 function DailyTrendsTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null;
-  const byName = Object.fromEntries(payload.map((p) => [p.name, p.value]));
+  const d = payload[0].payload;
+  const rows = [
+    { key: "count", labelText: "予約", text: `${d.count}件`, color: COLOR.予約 },
+    { key: "cancelCount", labelText: "取消", text: `${d.cancelCount}件`, color: COLOR.取消 },
+    { key: "subscriptionCount", labelText: "定額", text: `${d.subscriptionCount}件`, color: COLOR.定額 },
+    { key: "grossRevenue", labelText: "売上", text: yen(d.grossRevenue), color: COLOR.売上 },
+    { key: "cancelRevenue", labelText: "取消", text: d.cancelRevenue > 0 ? `-${yen(d.cancelRevenue)}` : yen(0), color: COLOR.取消 },
+    { key: "revenue", labelText: "合計", text: yen(d.revenue), color: COLOR.合計 },
+  ];
   return (
     <div style={{ background: "#FFFFFF", border: "1px solid #EDE3D5", padding: "8px 12px", fontSize: 12 }}>
       <p style={{ color: "#262421", fontWeight: 600, margin: "0 0 4px" }}>{label}</p>
-      {TOOLTIP_ROW_ORDER.filter((name) => byName[name] !== undefined).map((name) => (
-        <p key={name} style={{ color: COLOR[name], margin: 0 }}>
-          {name}:{name === "売上" ? yen(byName[name]) : `${byName[name]}件`}
+      {rows.map((row) => (
+        <p key={row.key} style={{ color: row.color, margin: 0 }}>
+          {row.labelText}:{row.text}
         </p>
       ))}
     </div>
@@ -142,12 +153,12 @@ export default function DailyTrendsPage({ data }) {
                   cursor="pointer"
                   onClick={(entry) => setSelectedDate(entry.date)}
                 />
-                <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="売上" stroke={COLOR.売上} strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="合計" stroke={COLOR.合計} strokeWidth={2.5} dot={{ r: 3 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
           <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-            予約(または定期クーポン購入)が行われた日ベースです(利用日ではありません)。売上は他の集計と同じ実効売上ルールに基づきます。棒をクリックすると、その日の明細を表示します。
+            予約(または定期クーポン購入)が行われた日ベースです(利用日ではありません)。合計は「予約+定額クーポンの売上」からキャンセル代(自社サイトの本来の予約金額とキャンセル後に実際に残った売上の差額)を差し引いた金額です。棒をクリックすると、その日の明細を表示します。
           </p>
         </>
       )}
