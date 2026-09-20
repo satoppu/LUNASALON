@@ -186,6 +186,10 @@ export function mapRawSubscriptionRow(raw) {
     channel: SUBSCRIPTION_STATUS,
     status: SUBSCRIPTION_STATUS,
     external_id: raw["支払いID"] || null,
+    // No separate "申込/決済日" column on this export — the purchase date
+    // (date, from 購入日時) is itself the booking-equivalent date for a
+    // subscription row, so it doubles as booking_date too.
+    booking_date: date,
   };
 }
 

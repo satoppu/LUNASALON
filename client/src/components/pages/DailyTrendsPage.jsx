@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
-import { FONT_HEAD, yen, formatDateShort } from "../../constants.js";
+import { FONT_HEAD, CHANNEL_COLOR, yen, formatDateShort } from "../../constants.js";
 import BookingDateDetailModal from "../BookingDateDetailModal.jsx";
 
 export default function DailyTrendsPage({ data }) {
@@ -65,8 +65,18 @@ export default function DailyTrendsPage({ data }) {
             <Bar
               yAxisId="count"
               dataKey="count"
-              name="予約受付件数"
+              name="予約"
+              stackId="count"
               fill="#D4A644"
+              cursor="pointer"
+              onClick={(entry) => setSelectedDate(entry.date)}
+            />
+            <Bar
+              yAxisId="count"
+              dataKey="subscriptionCount"
+              name="定期クーポン"
+              stackId="count"
+              fill={CHANNEL_COLOR.定期クーポン}
               cursor="pointer"
               onClick={(entry) => setSelectedDate(entry.date)}
             />
