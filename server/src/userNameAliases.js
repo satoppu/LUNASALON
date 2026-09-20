@@ -14,6 +14,7 @@ export const USER_NAME_ALIASES = [
   { canonical: "藤田聡之", aliases: ["藤田聡之(藤田聡之（さとっぷ）)"] },
   { canonical: "川北紫明", aliases: ["川北紫朗"] },
   { canonical: "中川舞", aliases: ["MAINAKAGAWA"] },
+  { canonical: "斉藤麻希", aliases: ["齋藤麻希", "斎藤麻希"] },
 ];
 
 /** Exact-match (post-trim) lookup: alias spelling -> its canonical name, or null. */
