@@ -70,16 +70,6 @@ const hasStartMinute = db
 if (!hasStartMinute) {
   db.exec(`ALTER TABLE transactions ADD COLUMN start_minute INTEGER;`);
 }
-// cancelled_date — the date the daily自動取り込み first observed this row's
-// status switch to a cancellation status. The source export has no such
-// field, so this is filled in at import time (see importService.js) rather
-// than read from the file; existing rows predate it and start out NULL.
-const hasCancelledDate = db
-  .prepare(`SELECT 1 FROM pragma_table_info('transactions') WHERE name = 'cancelled_date'`)
-  .get();
-if (!hasCancelledDate) {
-  db.exec(`ALTER TABLE transactions ADD COLUMN cancelled_date TEXT;`);
-}
 
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);

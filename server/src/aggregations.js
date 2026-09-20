@@ -4,16 +4,7 @@
 // pre-baked revenue/hours figures — so a future CSV that includes raw
 // statuses (e.g. straight from the reservation system) aggregates correctly
 // without any UI changes.
-import {
-  REVENUE_STATUSES,
-  HOURS_USED_STATUSES,
-  CHANNELS,
-  WEEKDAYS,
-  MONTH_LABELS,
-  SUBSCRIPTION_STATUS,
-  PENDING_STATUS,
-  isCancellationStatus,
-} from "./config.js";
+import { REVENUE_STATUSES, HOURS_USED_STATUSES, CHANNELS, WEEKDAYS, MONTH_LABELS, SUBSCRIPTION_STATUS, PENDING_STATUS } from "./config.js";
 
 export function daysBetweenInclusive(startISO, endISO) {
   const start = new Date(startISO);
@@ -39,6 +30,8 @@ export function countWeekdayOccurrences(weekdayIndex, startISO, endISO) {
 
 export const effectiveRevenue = (row) => (REVENUE_STATUSES.has(row.status) ? row.revenue : 0);
 export const effectiveHours = (row) => (HOURS_USED_STATUSES.has(row.status) ? row.hours_used : 0);
+
+const isCancellationStatus = (status) => typeof status === "string" && status.startsWith("キャンセル");
 
 // Which month a row's revenue counts against on a 決済日ベース (booking-date)
 // chart. Normally that's booking_date (when the money changed hands). For a
