@@ -1,7 +1,7 @@
 import Papa from "papaparse";
 import db from "./db.js";
 import { normalizeImportRow } from "./importRows.js";
-import { SUBSCRIPTION_STATUS, PENDING_STATUS } from "./config.js";
+import { SUBSCRIPTION_STATUS, PENDING_STATUS, isCancellationStatus, getTodayISO } from "./config.js";
 import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow, mapRawSpaceMarketRow } from "./rawImportMappers.js";
 import { ensureStoreRegistered } from "./storeSettingsService.js";
 
@@ -13,8 +13,8 @@ import { ensureStoreRegistered } from "./storeSettingsService.js";
 // cancellation) on a later export of the same 決済ID, without creating a
 // duplicate row.
 const upsertStmt = db.prepare(`
-  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, external_id, booking_date, revenue_confirmed_date, booking_amount)
-  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @start_minute, @weekday, @channel, @status, @external_id, @booking_date, @revenue_confirmed_date, @booking_amount)
+  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, external_id, booking_date, revenue_confirmed_date, booking_amount, cancelled_date)
+  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @start_minute, @weekday, @channel, @status, @external_id, @booking_date, @revenue_confirmed_date, @booking_amount, @cancelled_date)
   ON CONFLICT(external_id) DO UPDATE SET
     date = excluded.date,
     store = excluded.store,
@@ -28,13 +28,26 @@ const upsertStmt = db.prepare(`
     status = excluded.status,
     booking_date = excluded.booking_date,
     revenue_confirmed_date = excluded.revenue_confirmed_date,
-    booking_amount = excluded.booking_amount
+    booking_amount = excluded.booking_amount,
+    cancelled_date = excluded.cancelled_date
   WHERE external_id IS NOT NULL
 `);
 const selectExistingStmt = db.prepare(`
-  SELECT date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, booking_date, revenue_confirmed_date, booking_amount
+  SELECT date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, booking_date, revenue_confirmed_date, booking_amount, cancelled_date
   FROM transactions WHERE external_id = ?
 `);
+
+// The source export carries no cancellation-date field, so it's derived at
+// import time instead: the first daily run that sees a row's status switch
+// to a cancellation status stamps today (JST) as cancelled_date, and later
+// runs — cancelled or not — leave an already-stamped date alone rather than
+// re-deriving it, since "today" would just be whenever that later run
+// happened to execute, not the real cancellation date.
+function computeCancelledDate(existing, incoming) {
+  if (!isCancellationStatus(incoming.status)) return null;
+  if (existing && isCancellationStatus(existing.status)) return existing.cancelled_date ?? null;
+  return getTodayISO();
+}
 
 // Only these columns are actually written by upsertStmt's ON CONFLICT
 // clause, so they're the only ones relevant to "did this row change".
@@ -67,10 +80,10 @@ function insertRows(rows) {
     for (const r of rows) {
       const existing = r.external_id ? selectExistingStmt.get(r.external_id) : undefined;
       if (!existing) {
-        upsertStmt.run(r);
+        upsertStmt.run({ ...r, cancelled_date: computeCancelledDate(existing, r) });
         inserted++;
       } else if (rowChanged(existing, r)) {
-        upsertStmt.run(r);
+        upsertStmt.run({ ...r, cancelled_date: computeCancelledDate(existing, r) });
         updated++;
       }
       // else: already present with identical values — counted as a
