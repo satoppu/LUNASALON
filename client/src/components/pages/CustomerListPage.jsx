@@ -15,7 +15,7 @@ const SORTABLE_COLUMNS = [
   { key: "firstUseDate", label: "初回" },
 ];
 
-export default function CustomerListPage({ data }) {
+export default function CustomerListPage({ data, onNavigateToHistory }) {
   const storeColor = makeStoreColor(data?.storeMeta);
   const storeNames = data?.storeNames || [];
   const [customers, setCustomers] = useState(null);
@@ -233,7 +233,7 @@ export default function CustomerListPage({ data }) {
         </table>
       </div>
 
-      <CustomerDetailModal customer={selected} onClose={() => setSelected(null)} />
+      <CustomerDetailModal customer={selected} onClose={() => setSelected(null)} onNavigateToHistory={onNavigateToHistory} />
     </>
   );
 }

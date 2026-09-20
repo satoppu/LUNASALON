@@ -38,6 +38,17 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [authenticated, setAuthenticated] = useState(null);
+  const [recentFilter, setRecentFilter] = useState(null);
+
+  function handleViewChange(v) {
+    setRecentFilter(null);
+    setView(v);
+  }
+
+  function navigateToRecent(userName, statusGroup) {
+    setRecentFilter({ user: userName, statusGroup });
+    setView("recent");
+  }
 
   async function loadDashboard(year) {
     setLoading(true);
@@ -76,7 +87,7 @@ export default function App() {
 
   return (
     <div style={{ background: "#FCF8F0", color: "#262421", fontFamily: FONT_BODY, minHeight: "100vh" }} className="flex flex-col md:flex-row">
-      <Sidebar view={view} onChange={setView} />
+      <Sidebar view={view} onChange={handleViewChange} />
 
       <div className="flex-1 min-w-0 px-6 py-8 md:px-10 md:py-10">
         <div className="flex flex-row items-center justify-between gap-3 mb-6">
@@ -117,7 +128,13 @@ export default function App() {
 
         {!loading && view === "settings" && <SettingsPage onDataChanged={() => loadDashboard(selectedYear)} />}
 
-        {!loading && view !== "settings" && dashboard && dashboard.year && <PageComponent data={dashboard} />}
+        {!loading && view !== "settings" && dashboard && dashboard.year && (
+          <PageComponent
+            data={dashboard}
+            onNavigateToHistory={navigateToRecent}
+            recentFilter={view === "recent" ? recentFilter : null}
+          />
+        )}
 
         {!loading && view !== "settings" && dashboard && !dashboard.year && (
           <p style={{ color: "#8F7D6E" }} className="text-sm py-12 text-center">

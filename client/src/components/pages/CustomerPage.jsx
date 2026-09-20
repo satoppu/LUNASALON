@@ -20,7 +20,7 @@ const LEAD_MONTH_COLORS = {
   "3ヶ月以上前予約": "#8F4A28",
 };
 
-export default function CustomerPage({ data }) {
+export default function CustomerPage({ data, onNavigateToHistory }) {
   const storeColor = makeStoreColor(data?.storeMeta);
   const [state, setState] = useState(null);
   const [error, setError] = useState(null);
@@ -75,7 +75,7 @@ export default function CustomerPage({ data }) {
   return (
     <>
       <div className="mb-12">
-        <RankingPage data={data} />
+        <RankingPage data={data} onNavigateToHistory={onNavigateToHistory} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
@@ -465,7 +465,7 @@ export default function CustomerPage({ data }) {
         </div>
       </div>
 
-      <CustomerDetailModal customer={selected} onClose={() => setSelected(null)} />
+      <CustomerDetailModal customer={selected} onClose={() => setSelected(null)} onNavigateToHistory={onNavigateToHistory} />
     </>
   );
 }

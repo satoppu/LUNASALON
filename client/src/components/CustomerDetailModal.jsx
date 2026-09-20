@@ -1,8 +1,13 @@
 import { X } from "lucide-react";
 import { FONT_HEAD, yen } from "../constants.js";
 
-export default function CustomerDetailModal({ customer, onClose }) {
+export default function CustomerDetailModal({ customer, onClose, onNavigateToHistory }) {
   if (!customer) return null;
+
+  function goToHistory(statusGroup) {
+    onNavigateToHistory?.(customer.user, statusGroup);
+    onClose();
+  }
 
   return (
     <div
@@ -40,17 +45,39 @@ export default function CustomerDetailModal({ customer, onClose }) {
 
         <div className="flex gap-8 px-6 py-4 flex-wrap" style={{ borderBottom: "1px solid #EDE3D5" }}>
           <div>
-            <p style={{ fontFamily: FONT_HEAD, color: "#D4A644" }} className="text-xl font-bold">
-              {customer.totalCount}
-            </p>
+            {onNavigateToHistory ? (
+              <button
+                type="button"
+                onClick={() => goToHistory("usage")}
+                style={{ fontFamily: FONT_HEAD, color: "#D4A644" }}
+                className="text-xl font-bold underline decoration-dotted"
+              >
+                {customer.totalCount}
+              </button>
+            ) : (
+              <p style={{ fontFamily: FONT_HEAD, color: "#D4A644" }} className="text-xl font-bold">
+                {customer.totalCount}
+              </p>
+            )}
             <p style={{ color: "#8F7D6E" }} className="text-xs">
               累計利用回数
             </p>
           </div>
           <div>
-            <p style={{ fontFamily: FONT_HEAD, color: "#A84434" }} className="text-xl font-bold">
-              {customer.totalCancelCount}
-            </p>
+            {onNavigateToHistory ? (
+              <button
+                type="button"
+                onClick={() => goToHistory("cancel")}
+                style={{ fontFamily: FONT_HEAD, color: "#A84434" }}
+                className="text-xl font-bold underline decoration-dotted"
+              >
+                {customer.totalCancelCount}
+              </button>
+            ) : (
+              <p style={{ fontFamily: FONT_HEAD, color: "#A84434" }} className="text-xl font-bold">
+                {customer.totalCancelCount}
+              </p>
+            )}
             <p style={{ color: "#8F7D6E" }} className="text-xs">
               累計キャンセル数
             </p>
@@ -64,9 +91,20 @@ export default function CustomerDetailModal({ customer, onClose }) {
             </p>
           </div>
           <div>
-            <p style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-xl font-bold">
-              {customer.totalSubscriptionCount}
-            </p>
+            {onNavigateToHistory ? (
+              <button
+                type="button"
+                onClick={() => goToHistory("coupon")}
+                style={{ fontFamily: FONT_HEAD, color: "#262421" }}
+                className="text-xl font-bold underline decoration-dotted"
+              >
+                {customer.totalSubscriptionCount}
+              </button>
+            ) : (
+              <p style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-xl font-bold">
+                {customer.totalSubscriptionCount}
+              </p>
+            )}
             <p style={{ color: "#8F7D6E" }} className="text-xs">
               うちクーポン購入回数
             </p>

@@ -10,13 +10,26 @@ import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
 
 const PAGE_SIZE = 100;
 
-export default function RecentPage({ data }) {
+// 累計利用回数/累計キャンセル数/うちクーポン購入回数のクリック元(customer detail
+// モーダル)から渡される statusGroup を、実際のstatus値(カンマ区切り可)に変換する。
+// キャンセルは「キャンセル」で始まる全バリエーションを対象にするため、
+// filters.statuses から動的に組み立てる(状態一覧が増えても追従できるように)。
+function statusValueForGroup(statusGroup, statuses) {
+  if (statusGroup === "usage") return "利用済み,利用前";
+  if (statusGroup === "coupon") return "定期クーポン";
+  if (statusGroup === "cancel") {
+    return statuses.filter((s) => s.startsWith("キャンセル")).join(",");
+  }
+  return "";
+}
+
+export default function RecentPage({ data, recentFilter, onNavigateToHistory }) {
   const storeColor = makeStoreColor(data?.storeMeta);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [store, setStore] = useState("");
   const [status, setStatus] = useState("");
-  const [user, setUser] = useState("");
+  const [user, setUser] = useState(recentFilter?.user || "");
   const [sort, setSort] = useState("desc");
   const [offset, setOffset] = useState(0);
   const [result, setResult] = useState(null);
@@ -25,10 +38,42 @@ export default function RecentPage({ data }) {
   const customerByName = useCustomerLookup();
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [pendingStatusGroup, setPendingStatusGroup] = useState(recentFilter?.statusGroup || null);
 
   useEffect(() => {
     api.getTransactionFilters().then(setFilters).catch(() => {});
   }, []);
+
+  // recentFilter がクリックのたびに新規オブジェクトで渡されるため、statusGroup を
+  // 解決できるstatuses一覧が揃うまで pendingStatusGroup に保留し、揃い次第
+  // 実際のstatus文字列へ変換して検索する。
+  useEffect(() => {
+    if (!recentFilter) return;
+    setUser(recentFilter.user || "");
+    setPendingStatusGroup(recentFilter.statusGroup || null);
+    setOffset(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recentFilter]);
+
+  useEffect(() => {
+    if (!pendingStatusGroup || filters.statuses.length === 0) return;
+    const resolved = statusValueForGroup(pendingStatusGroup, filters.statuses);
+    setStatus(resolved);
+    setPendingStatusGroup(null);
+    setOffset(0);
+    load(
+      {
+        start: start || undefined,
+        end: end || undefined,
+        store: store || undefined,
+        status: resolved || undefined,
+        user: user || undefined,
+        sort,
+      },
+      0
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingStatusGroup, filters.statuses]);
 
   async function load(params, offsetArg) {
     try {
@@ -289,7 +334,11 @@ export default function RecentPage({ data }) {
           </div>
         </>
       )}
-      <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
+      <CustomerDetailModal
+        customer={selectedCustomer}
+        onClose={() => setSelectedCustomer(null)}
+        onNavigateToHistory={onNavigateToHistory}
+      />
       <DayDetailModal date={selectedDate} storeMeta={data?.storeMeta} onClose={() => setSelectedDate(null)} />
     </div>
   );

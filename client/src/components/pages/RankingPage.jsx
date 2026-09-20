@@ -5,7 +5,7 @@ import ClickableUserName from "../ClickableUserName.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
 
-export default function RankingPage({ data }) {
+export default function RankingPage({ data, onNavigateToHistory }) {
   const { year, storeMeta, userSummary } = data;
   const storeColor = makeStoreColor(storeMeta);
   const customerByName = useCustomerLookup();
@@ -64,7 +64,7 @@ export default function RankingPage({ data }) {
           </tbody>
         </table>
       </div>
-      <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} />
+      <CustomerDetailModal customer={selectedCustomer} onClose={() => setSelectedCustomer(null)} onNavigateToHistory={onNavigateToHistory} />
     </div>
   );
 }
