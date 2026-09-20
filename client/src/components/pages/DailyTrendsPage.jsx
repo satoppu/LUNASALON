@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
 import { FONT_HEAD, CHANNEL_COLOR, yen, formatDateShort } from "../../constants.js";
 import BookingDateDetailModal from "../BookingDateDetailModal.jsx";
 
+const COLOR = {
+  予約: "#D4A644",
+  取消: "#A84434",
+  定額: CHANNEL_COLOR.定期クーポン,
+  売上: "#D66B5C",
+};
+
 // Recharts' default Tooltip lists series in whatever internal order it
 // registers Bar/Line items, not JSX order — a custom content renderer is
-// the only way to guarantee 予約→定期クーポン→売上 every time.
-const TOOLTIP_ROW_ORDER = ["予約", "定期クーポン", "売上"];
+// the only way to guarantee this exact order every time.
+const TOOLTIP_ROW_ORDER = ["予約", "取消", "定額", "売上"];
 
 function DailyTrendsTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) return null;
@@ -16,7 +24,7 @@ function DailyTrendsTooltip({ active, payload, label }) {
     <div style={{ background: "#FFFFFF", border: "1px solid #EDE3D5", padding: "8px 12px", fontSize: 12 }}>
       <p style={{ color: "#262421", fontWeight: 600, margin: "0 0 4px" }}>{label}</p>
       {TOOLTIP_ROW_ORDER.filter((name) => byName[name] !== undefined).map((name) => (
-        <p key={name} style={{ color: "#8F7D6E", margin: 0 }}>
+        <p key={name} style={{ color: COLOR[name], margin: 0 }}>
           {name}:{name === "売上" ? yen(byName[name]) : `${byName[name]}件`}
         </p>
       ))}
@@ -25,88 +33,124 @@ function DailyTrendsTooltip({ active, payload, label }) {
 }
 
 export default function DailyTrendsPage({ data }) {
+  const [offset, setOffset] = useState(0);
   const [days, setDays] = useState(null);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
+    setDays(null);
+    setError(null);
     api
-      .getNewBookingsDaily()
+      .getNewBookingsDaily(offset)
       .then((res) => setDays(res.days))
       .catch((err) => setError(err.message));
-  }, []);
+  }, [offset]);
 
-  if (error) {
-    return (
-      <p className="text-sm py-12 text-center" style={{ color: "#A84434" }}>
-        {error}
-      </p>
-    );
-  }
-
-  if (!days) {
-    return (
-      <p className="text-sm py-12 text-center" style={{ color: "#8F7D6E" }}>
-        読み込み中…
-      </p>
-    );
-  }
-
-  const chartData = days.map((d) => ({ ...d, label: formatDateShort(d.date) }));
+  const rangeLabel = days ? `${formatDateShort(days[0].date)}〜${formatDateShort(days[days.length - 1].date)}` : "";
 
   return (
     <div>
-      <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-        予約受付件数・売上(予約日ベース・直近10日間)
-      </h3>
-      <div style={{ background: "#FFFFFF" }} className="p-4">
-        <ResponsiveContainer width="100%" height={320}>
-          <ComposedChart data={chartData}>
-            <CartesianGrid stroke="#F0E6D8" vertical={false} />
-            <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
-            <YAxis
-              yAxisId="count"
-              tick={{ fill: "#8F7D6E", fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-              tickFormatter={(v) => `${v}件`}
-            />
-            <YAxis
-              yAxisId="revenue"
-              orientation="right"
-              tick={{ fill: "#8F7D6E", fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
-            />
-            <Tooltip content={<DailyTrendsTooltip />} />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar
-              yAxisId="count"
-              dataKey="count"
-              name="予約"
-              stackId="count"
-              fill="#D4A644"
-              cursor="pointer"
-              onClick={(entry) => setSelectedDate(entry.date)}
-            />
-            <Bar
-              yAxisId="count"
-              dataKey="subscriptionCount"
-              name="定期クーポン"
-              stackId="count"
-              fill={CHANNEL_COLOR.定期クーポン}
-              cursor="pointer"
-              onClick={(entry) => setSelectedDate(entry.date)}
-            />
-            <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="売上" stroke="#D66B5C" strokeWidth={2.5} dot={{ r: 3 }} />
-          </ComposedChart>
-        </ResponsiveContainer>
+      <div className="flex items-center justify-between mb-4">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">
+          予約受付件数・売上(予約日ベース{rangeLabel ? `・${rangeLabel}` : ""})
+        </h3>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setOffset((o) => o + 1)}
+            className="p-1.5"
+            style={{ color: "#8F7D6E", border: "1px solid #EDE3D5" }}
+            aria-label="10日前へ"
+            title="10日前へ"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button
+            onClick={() => setOffset((o) => Math.max(0, o - 1))}
+            disabled={offset === 0}
+            className="p-1.5"
+            style={{ color: offset === 0 ? "#D8CDBE" : "#8F7D6E", border: "1px solid #EDE3D5", cursor: offset === 0 ? "default" : "pointer" }}
+            aria-label="10日後へ"
+            title="10日後へ"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
-      <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-        予約(または定期クーポン購入)が行われた日ベースです(利用日ではありません)。売上は他の集計と同じ実効売上ルールに基づきます。棒をクリックすると、その日の明細を表示します。
-      </p>
+
+      {error && (
+        <p className="text-sm py-12 text-center" style={{ color: "#A84434" }}>
+          {error}
+        </p>
+      )}
+
+      {!error && !days && (
+        <p className="text-sm py-12 text-center" style={{ color: "#8F7D6E" }}>
+          読み込み中…
+        </p>
+      )}
+
+      {!error && days && (
+        <>
+          <div style={{ background: "#FFFFFF" }} className="p-4">
+            <ResponsiveContainer width="100%" height={320}>
+              <ComposedChart data={days.map((d) => ({ ...d, label: formatDateShort(d.date) }))}>
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
+                <YAxis
+                  yAxisId="count"
+                  tick={{ fill: "#8F7D6E", fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                  tickFormatter={(v) => `${v}件`}
+                />
+                <YAxis
+                  yAxisId="revenue"
+                  orientation="right"
+                  tick={{ fill: "#8F7D6E", fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip content={<DailyTrendsTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar
+                  yAxisId="count"
+                  dataKey="count"
+                  name="予約"
+                  stackId="count"
+                  fill={COLOR.予約}
+                  cursor="pointer"
+                  onClick={(entry) => setSelectedDate(entry.date)}
+                />
+                <Bar
+                  yAxisId="count"
+                  dataKey="cancelCount"
+                  name="取消"
+                  stackId="count"
+                  fill={COLOR.取消}
+                  cursor="pointer"
+                  onClick={(entry) => setSelectedDate(entry.date)}
+                />
+                <Bar
+                  yAxisId="count"
+                  dataKey="subscriptionCount"
+                  name="定額"
+                  stackId="count"
+                  fill={COLOR.定額}
+                  cursor="pointer"
+                  onClick={(entry) => setSelectedDate(entry.date)}
+                />
+                <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="売上" stroke={COLOR.売上} strokeWidth={2.5} dot={{ r: 3 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
+            予約(または定期クーポン購入)が行われた日ベースです(利用日ではありません)。売上は他の集計と同じ実効売上ルールに基づきます。棒をクリックすると、その日の明細を表示します。
+          </p>
+        </>
+      )}
 
       <BookingDateDetailModal date={selectedDate} storeMeta={data?.storeMeta} onClose={() => setSelectedDate(null)} />
     </div>

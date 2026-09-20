@@ -7,7 +7,14 @@ const router = Router();
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 router.get("/dashboard/new-bookings-daily", (req, res) => {
-  res.json({ days: getNewBookingsDaily() });
+  let offset = 0;
+  if (req.query.offset !== undefined) {
+    offset = Number(req.query.offset);
+    if (!Number.isInteger(offset) || offset < 0) {
+      return res.status(400).json({ error: "offset must be a non-negative integer" });
+    }
+  }
+  res.json({ days: getNewBookingsDaily(offset) });
 });
 
 router.get("/dashboard/new-bookings-daily/detail", (req, res) => {

@@ -19,7 +19,7 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
   getDashboard: (year) => request(`/dashboard${year ? `?year=${year}` : ""}`),
-  getNewBookingsDaily: () => request("/dashboard/new-bookings-daily"),
+  getNewBookingsDaily: (offset) => request(`/dashboard/new-bookings-daily${offset ? `?offset=${offset}` : ""}`),
   getBookingsForDate: (date) => request(`/dashboard/new-bookings-daily/detail?date=${date}`),
   getYears: () => request("/years"),
   getYoyByStore: (year, month) => request(`/revenue/yoy-by-store?year=${year}${month ? `&month=${month}` : ""}`),
