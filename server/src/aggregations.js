@@ -353,6 +353,8 @@ export function buildDashboard({
 
   const yoyByStore = buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorYear, month: currentMonthTarget });
 
+  const yearNarrative = buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear, todayISO });
+
   return {
     year,
     priorYear,
@@ -373,6 +375,114 @@ export function buildDashboard({
     yoyMonthly,
     yoyMonthlyCount,
     yoyByStore,
+    yearNarrative,
+  };
+}
+
+/**
+ * 「サマリー」ページ下部に表示する、選択中年度の月次総括・見通し・対策を
+ * 数値から機械的に自動生成する(5〜10行程度)。当月はまだ終わっていないため
+ * 対象外にし、直近6か月分(それより短ければあるだけ)を1行ずつ、続けて
+ * 見通し・対策をそれぞれ1行まとめる。閾値による単純な判定であり、実際の
+ * 経営判断を代替するものではない。
+ */
+export function buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear, todayISO }) {
+  const todayYear = Number(todayISO.slice(0, 4));
+  const todayMonth = Number(todayISO.slice(5, 7));
+  const lastCompletedMonth = year < todayYear ? 12 : year === todayYear ? todayMonth - 1 : 0;
+
+  if (lastCompletedMonth <= 0) {
+    return { lines: [], hasData: false };
+  }
+
+  const monthRevenue = (rows, month) =>
+    rows.filter((r) => Number(r.date.slice(5, 7)) === month).reduce((sum, r) => sum + effectiveRevenue(r), 0);
+
+  const monthCancelRate = (rows, month) => {
+    const monthRows = rows.filter((r) => Number(r.date.slice(5, 7)) === month && r.status !== SUBSCRIPTION_STATUS);
+    if (monthRows.length === 0) return null;
+    return monthRows.filter((r) => isCancellationStatus(r.status)).length / monthRows.length;
+  };
+
+  const WINDOW = 6;
+  const startMonth = Math.max(1, lastCompletedMonth - WINDOW + 1);
+
+  const monthLines = [];
+  for (let m = startMonth; m <= lastCompletedMonth; m++) {
+    const revenue = monthRevenue(yearRows, m);
+    const prevRevenue = m > 1 ? monthRevenue(yearRows, m - 1) : null;
+    const momPct = prevRevenue != null && prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : null;
+    const priorYearRevenue = hasPriorYear ? monthRevenue(priorYearRows, m) : null;
+    const yoyPct = priorYearRevenue != null && priorYearRevenue > 0 ? ((revenue - priorYearRevenue) / priorYearRevenue) * 100 : null;
+
+    const parts = [];
+    if (momPct != null) parts.push(`前月比${momPct >= 0 ? "+" : ""}${momPct.toFixed(0)}%`);
+    if (yoyPct != null) parts.push(`前年同月比${yoyPct >= 0 ? "+" : ""}${yoyPct.toFixed(0)}%`);
+    const detail = parts.length > 0 ? `(${parts.join("・")})` : "";
+
+    let tag = "";
+    if (momPct != null) {
+      if (momPct >= 15) tag = " 好調";
+      else if (momPct <= -15) tag = " 要注意";
+    }
+
+    monthLines.push(`${m}月: ¥${Math.round(revenue).toLocaleString("ja-JP")}${detail}${tag}`);
+  }
+
+  // ---- 年初来の累計と直近の傾向 ----
+  const ytdTotal = Array.from({ length: lastCompletedMonth }, (_, i) => monthRevenue(yearRows, i + 1)).reduce((s, v) => s + v, 0);
+  const priorYtdTotal = hasPriorYear
+    ? Array.from({ length: lastCompletedMonth }, (_, i) => monthRevenue(priorYearRows, i + 1)).reduce((s, v) => s + v, 0)
+    : null;
+  const ytdPct = priorYtdTotal != null && priorYtdTotal > 0 ? ((ytdTotal - priorYtdTotal) / priorYtdTotal) * 100 : null;
+
+  const recentCount = Math.min(3, lastCompletedMonth);
+  const recentRevenues = Array.from({ length: recentCount }, (_, i) => monthRevenue(yearRows, lastCompletedMonth - recentCount + 1 + i));
+  const latest = recentRevenues[recentRevenues.length - 1];
+  const earlierAvg =
+    recentRevenues.length > 1
+      ? recentRevenues.slice(0, -1).reduce((s, v) => s + v, 0) / (recentRevenues.length - 1)
+      : null;
+  const trendPct = earlierAvg != null && earlierAvg > 0 ? ((latest - earlierAvg) / earlierAvg) * 100 : null;
+
+  let outlook;
+  if (trendPct == null) {
+    outlook = "見通し: データが少なく傾向はまだ判断できません。";
+  } else if (trendPct >= 10) {
+    outlook = `見通し: 直近${recentCount}か月は上昇傾向です。このペースが続けば堅調な着地が見込めます。`;
+  } else if (trendPct <= -10) {
+    outlook = `見通し: 直近${recentCount}か月は下降傾向です。早めの対策が必要な状況です。`;
+  } else {
+    outlook = `見通し: 直近${recentCount}か月は横ばいで推移しています。`;
+  }
+  if (ytdPct != null) {
+    outlook += ` 年初来累計は前年同期比${ytdPct >= 0 ? "+" : ""}${ytdPct.toFixed(0)}%です。`;
+  }
+
+  // ---- 対策(単純な閾値判定によるヒント) ----
+  const cancelRates = [];
+  for (let m = Math.max(1, lastCompletedMonth - 2); m <= lastCompletedMonth; m++) {
+    const rate = monthCancelRate(yearRows, m);
+    if (rate != null) cancelRates.push(rate);
+  }
+  const avgCancelRate = cancelRates.length > 0 ? cancelRates.reduce((s, v) => s + v, 0) / cancelRates.length : null;
+
+  let countermeasure;
+  if (avgCancelRate != null && avgCancelRate >= 0.3) {
+    countermeasure = `対策: 直近のキャンセル率が${(avgCancelRate * 100).toFixed(0)}%と高めです。キャンセル理由の傾向を確認し、予約時の案内や事前確認の見直しを検討してください。`;
+  } else if (trendPct != null && trendPct <= -10) {
+    countermeasure = "対策: 売上が下降傾向のため、導線分析で反応が弱いチャネルを確認し、テコ入れを検討してください。";
+  } else if (trendPct != null && trendPct >= 10) {
+    countermeasure = "対策: 好調な傾向を維持しつつ、稼働率の低い曜日・時間帯への送客(クーポン等)を検討すると更なる伸びが期待できます。";
+  } else {
+    countermeasure = "対策: 大きな変動はありませんが、稼働率の低い曜日・時間帯や定期クーポンの活用余地を定期的に見直すことを推奨します。";
+  }
+
+  return {
+    lines: [...monthLines, outlook, countermeasure],
+    windowStartMonth: startMonth,
+    lastCompletedMonth,
+    hasData: true,
   };
 }
 

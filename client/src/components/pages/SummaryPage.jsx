@@ -6,7 +6,7 @@ function shortYear(y) {
 }
 
 export default function SummaryPage({ data }) {
-  const { year, storeNames, storeMeta, summary, occupancyData, overallStats, annualTrend } = data;
+  const { year, storeNames, storeMeta, summary, occupancyData, overallStats, annualTrend, yearNarrative } = data;
   const storeColor = makeStoreColor(storeMeta);
   const yearTotals = annualTrend.map((y) => ({
     year: y.year,
@@ -183,6 +183,28 @@ export default function SummaryPage({ data }) {
           );
         })}
       </div>
+
+      {yearNarrative?.hasData && (
+        <div className="mt-12 px-6 py-5" style={{ background: "#FFFFFF" }}>
+          <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+            {shortYear(year)}年 総括と見通し・対策
+          </h3>
+          <div className="space-y-1.5">
+            {yearNarrative.lines.map((line, i) => {
+              const isSynthesis = line.startsWith("見通し:") || line.startsWith("対策:");
+              const color = line.includes("好調") ? "#D4A644" : line.includes("要注意") ? "#A84434" : "#262421";
+              return (
+                <p key={i} className="text-sm" style={{ color: isSynthesis ? "#262421" : color, fontWeight: isSynthesis ? 500 : 400 }}>
+                  {line}
+                </p>
+              );
+            })}
+          </div>
+          <p className="text-xs mt-4" style={{ color: "#8F7D6E" }}>
+            売上の増減率などの数値から自動生成しています(閾値による簡易判定のため、経営判断の参考情報としてご利用ください)。
+          </p>
+        </div>
+      )}
     </>
   );
 }
