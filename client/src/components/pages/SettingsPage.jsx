@@ -10,6 +10,11 @@ import BusinessEventsSection from "../BusinessEventsSection.jsx";
 
 const NOTE_PAGES = NAV_ITEMS.filter((n) => n.key !== "settings");
 
+const TABS = [
+  { key: "settings", label: "設定" },
+  { key: "registry", label: "登録情報" },
+];
+
 function describeImportResult(result) {
   const parts = [`${result.inserted}件のデータを取り込みました。`];
   if (result.updated) parts.push(`${result.updated}件は状況が更新されました(例: 利用前→利用済み)。`);
@@ -22,6 +27,7 @@ function describeImportResult(result) {
 }
 
 export default function SettingsPage({ onDataChanged }) {
+  const [tab, setTab] = useState("settings");
   const [importMessage, setImportMessage] = useState(null);
   const [error, setError] = useState(null);
   const [notePageKey, setNotePageKey] = useState(NOTE_PAGES[0].key);
@@ -45,73 +51,99 @@ export default function SettingsPage({ onDataChanged }) {
 
   return (
     <div>
-      <section className="mb-12">
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          データ取り込み
-        </h3>
-        <button
-          type="button"
-          onClick={() => fileInput.current?.click()}
-          className="flex items-center gap-1.5 text-sm px-3 py-2"
-          style={{ background: "#D4A644", color: "#262421" }}
-        >
-          <Upload size={15} />
-          インポート
-        </button>
-        <input ref={fileInput} type="file" accept=".csv,.zip,.xlsx,.xls" onChange={handleFile} className="hidden" />
+      <div className="flex gap-1 mb-8">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className="text-sm px-4 py-2"
+            style={{
+              background: tab === t.key ? "#D4A644" : "#FFFFFF",
+              color: tab === t.key ? "#262421" : "#7A6A5C",
+              border: "1px solid #EDE3D5",
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-        {importMessage && (
-          <p className="text-sm mt-4" style={{ color: "#7A6A5C" }}>
-            {importMessage}
-          </p>
-        )}
-        {error && (
-          <div className="flex items-start gap-2 text-sm mt-4 px-4 py-3" style={{ background: "#FCEEE7", color: "#A84434" }}>
-            <AlertCircle size={16} className="mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-      </section>
+      {tab === "settings" && (
+        <div>
+          <section className="mb-12">
+            <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+              データ取り込み
+            </h3>
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              className="flex items-center gap-1.5 text-sm px-3 py-2"
+              style={{ background: "#D4A644", color: "#262421" }}
+            >
+              <Upload size={15} />
+              インポート
+            </button>
+            <input ref={fileInput} type="file" accept=".csv,.zip,.xlsx,.xls" onChange={handleFile} className="hidden" />
 
-      <section className="mb-12">
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          店舗設定
-        </h3>
-        <StoreSettings onChanged={onDataChanged} />
-      </section>
+            {importMessage && (
+              <p className="text-sm mt-4" style={{ color: "#7A6A5C" }}>
+                {importMessage}
+              </p>
+            )}
+            {error && (
+              <div className="flex items-start gap-2 text-sm mt-4 px-4 py-3" style={{ background: "#FCEEE7", color: "#A84434" }}>
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+          </section>
 
-      <section className="mb-12">
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          キャビネット・クーポン
-        </h3>
-        <CabinetsPage />
-      </section>
+          <section>
+            <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+              店舗設定
+            </h3>
+            <StoreSettings onChanged={onDataChanged} />
+          </section>
+        </div>
+      )}
 
-      <section className="mb-12">
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          出来事メモ
-        </h3>
-        <BusinessEventsSection />
-      </section>
+      {tab === "registry" && (
+        <div>
+          <section className="mb-12">
+            <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+              キャビネット・クーポン
+            </h3>
+            <CabinetsPage />
+          </section>
 
-      <section>
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          振り返り・やる事メモ
-        </h3>
-        <select
-          value={notePageKey}
-          onChange={(e) => setNotePageKey(e.target.value)}
-          className="text-sm px-3 py-2 border mb-4"
-          style={{ borderColor: "#EDE3D5", background: "#FFFFFF" }}
-        >
-          {NOTE_PAGES.map((n) => (
-            <option key={n.key} value={n.key}>
-              {n.label}
-            </option>
-          ))}
-        </select>
-        <PageNotes pageKey={notePageKey} />
-      </section>
+          <section className="mb-12">
+            <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+              出来事メモ
+            </h3>
+            <BusinessEventsSection />
+          </section>
+
+          <section>
+            <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+              振り返り・やる事メモ
+            </h3>
+            <select
+              value={notePageKey}
+              onChange={(e) => setNotePageKey(e.target.value)}
+              className="text-sm px-3 py-2 border mb-4"
+              style={{ borderColor: "#EDE3D5", background: "#FFFFFF" }}
+            >
+              {NOTE_PAGES.map((n) => (
+                <option key={n.key} value={n.key}>
+                  {n.label}
+                </option>
+              ))}
+            </select>
+            <PageNotes pageKey={notePageKey} />
+          </section>
+        </div>
+      )}
     </div>
   );
 }
