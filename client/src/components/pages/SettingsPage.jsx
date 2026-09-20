@@ -5,6 +5,7 @@ import { FONT_HEAD } from "../../constants.js";
 import { NAV_ITEMS } from "../Sidebar.jsx";
 import StoreSettings from "../StoreSettings.jsx";
 import PageNotes from "../PageNotes.jsx";
+import CabinetsPage from "./CabinetsPage.jsx";
 
 const NOTE_PAGES = NAV_ITEMS.filter((n) => n.key !== "settings");
 
@@ -76,6 +77,13 @@ export default function SettingsPage({ onDataChanged }) {
           店舗設定
         </h3>
         <StoreSettings onChanged={onDataChanged} />
+      </section>
+
+      <section className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          キャビネット・クーポン
+        </h3>
+        <CabinetsPage />
       </section>
 
       <section>

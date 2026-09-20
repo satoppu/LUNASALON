@@ -13,7 +13,6 @@ import CustomerPage from "./components/pages/CustomerPage.jsx";
 import CustomerListPage from "./components/pages/CustomerListPage.jsx";
 import RecentPage from "./components/pages/RecentPage.jsx";
 import SettingsPage from "./components/pages/SettingsPage.jsx";
-import CabinetsPage from "./components/pages/CabinetsPage.jsx";
 import LoginPage from "./components/LoginPage.jsx";
 
 // 顧客一覧/利用履歴は全期間の累計データを見る、または独自の日付範囲フィルタを
@@ -21,11 +20,6 @@ import LoginPage from "./components/LoginPage.jsx";
 // api.getCustomers()/api.searchTransactions()で直接取得する)ため、
 // 年度セレクタを表示しない。
 const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customerList", "recent", "daily"]);
-
-// 設定・キャビネット/クーポン管理は年度で絞り込む集計データ(dashboard)に
-// 依存しない独立したページなので、他のページと違いdashboard.yearの有無を
-// 待たずに表示する。
-const STANDALONE_VIEWS = new Set(["settings", "cabinets"]);
 
 const PAGES = {
   summary: SummaryPage,
@@ -125,11 +119,9 @@ export default function App() {
 
         {!loading && view === "settings" && <SettingsPage onDataChanged={() => loadDashboard(selectedYear)} />}
 
-        {!loading && view === "cabinets" && <CabinetsPage />}
+        {!loading && view !== "settings" && dashboard && dashboard.year && <PageComponent data={dashboard} />}
 
-        {!loading && !STANDALONE_VIEWS.has(view) && dashboard && dashboard.year && <PageComponent data={dashboard} />}
-
-        {!loading && !STANDALONE_VIEWS.has(view) && dashboard && !dashboard.year && (
+        {!loading && view !== "settings" && dashboard && !dashboard.year && (
           <p style={{ color: "#8F7D6E" }} className="text-sm py-12 text-center">
             {dashboard.message || "データがありません。"}
           </p>
