@@ -1,5 +1,16 @@
 import { Router } from "express";
-import { listCabinets, createCabinet, updateCabinet, deleteCabinet, listCoupons, createCoupon, updateCoupon, deleteCoupon } from "../cabinetsService.js";
+import db from "../db.js";
+import {
+  listCabinets,
+  createCabinet,
+  updateCabinet,
+  deleteCabinet,
+  listCoupons,
+  createCoupon,
+  updateCoupon,
+  deleteCoupon,
+  buildCouponPurchaseList,
+} from "../cabinetsService.js";
 
 const router = Router();
 
@@ -58,6 +69,12 @@ router.delete("/cabinets/:id", (req, res) => {
 
 router.get("/coupons", (req, res) => {
   res.json({ coupons: listCoupons() });
+});
+
+// 顧客分析とは別の、参照専用の一覧ページ(ReferencePage.jsx)向け。
+router.get("/coupons/purchases", (req, res) => {
+  const allRows = db.prepare(`SELECT date, user_name, status FROM transactions`).all();
+  res.json({ purchases: buildCouponPurchaseList(allRows) });
 });
 
 router.post("/coupons", (req, res) => {

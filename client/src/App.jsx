@@ -11,6 +11,7 @@ import DailyTrendsPage from "./components/pages/DailyTrendsPage.jsx";
 import CustomerPage from "./components/pages/CustomerPage.jsx";
 import CustomerListPage from "./components/pages/CustomerListPage.jsx";
 import RecentPage from "./components/pages/RecentPage.jsx";
+import ReferencePage from "./components/pages/ReferencePage.jsx";
 import SettingsPage from "./components/pages/SettingsPage.jsx";
 import LoginPage from "./components/LoginPage.jsx";
 
@@ -18,7 +19,7 @@ import LoginPage from "./components/LoginPage.jsx";
 // 持つページで、年度による絞り込みを行わない(dashboardのyearを使わず、
 // api.getCustomers()/api.searchTransactions()で直接取得する)ため、
 // 年度セレクタを表示しない。
-const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customerList", "recent", "daily"]);
+const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customerList", "recent", "daily", "reference"]);
 
 const PAGES = {
   summary: SummaryPage,
@@ -29,6 +30,7 @@ const PAGES = {
   customers: CustomerPage,
   customerList: CustomerListPage,
   recent: RecentPage,
+  reference: ReferencePage,
 };
 
 export default function App() {

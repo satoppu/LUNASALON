@@ -1,4 +1,4 @@
-import { LayoutDashboard, TrendingUp, Activity, Share2, Users, Contact, History, Settings, CalendarDays } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Activity, Share2, Users, Contact, History, Settings, CalendarDays, ListChecks } from "lucide-react";
 
 export const NAV_ITEMS = [
   { key: "summary", label: "サマリー", icon: LayoutDashboard },
@@ -9,6 +9,7 @@ export const NAV_ITEMS = [
   { key: "customerList", label: "顧客一覧", icon: Contact },
   { key: "recent", label: "利用履歴", icon: History },
   { key: "channel", label: "導線分析", icon: Share2 },
+  { key: "reference", label: "一覧", icon: ListChecks },
   { key: "settings", label: "設定", icon: Settings },
 ];
 
