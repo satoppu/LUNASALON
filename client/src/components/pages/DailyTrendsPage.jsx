@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
-import { FONT_HEAD, formatDateShort } from "../../constants.js";
+import { FONT_HEAD, yen, formatDateShort } from "../../constants.js";
 
 export default function DailyTrendsPage() {
   const [days, setDays] = useState(null);
@@ -35,21 +35,38 @@ export default function DailyTrendsPage() {
   return (
     <div>
       <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-        新規予約件数(直近10日間)
+        予約受付件数・売上(予約日ベース・直近10日間)
       </h3>
       <div style={{ background: "#FFFFFF" }} className="p-4">
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData}>
+        <ResponsiveContainer width="100%" height={320}>
+          <ComposedChart data={chartData}>
             <CartesianGrid stroke="#F0E6D8" vertical={false} />
             <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
-            <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} tickFormatter={(v) => `${v}件`} />
-            <Tooltip formatter={(v) => `${v}件`} />
-            <Bar dataKey="count" name="新規予約件数" fill="#D4A644" />
-          </BarChart>
+            <YAxis
+              yAxisId="count"
+              tick={{ fill: "#8F7D6E", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+              tickFormatter={(v) => `${v}件`}
+            />
+            <YAxis
+              yAxisId="revenue"
+              orientation="right"
+              tick={{ fill: "#8F7D6E", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
+            />
+            <Tooltip formatter={(v, name) => (name === "売上" ? yen(v) : `${v}件`)} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Bar yAxisId="count" dataKey="count" name="予約受付件数" fill="#D4A644" />
+            <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="売上" stroke="#D66B5C" strokeWidth={2.5} dot={{ r: 3 }} />
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
       <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-        その日に予約が入った件数です(決済日/申込日ベース。ステータスは問わず、後でキャンセルになったものも含みます)。
+        予約(または定期クーポン購入)が行われた日ベースです(利用日ではありません)。売上は他の集計と同じ実効売上ルールに基づきます。
       </p>
     </div>
   );
