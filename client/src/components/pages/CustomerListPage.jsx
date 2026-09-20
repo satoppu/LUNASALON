@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import Papa from "papaparse";
-import { Download } from "lucide-react";
+import { Download, ArrowUp, ArrowDown } from "lucide-react";
 import { api } from "../../api.js";
 import { FONT_HEAD, yen, makeStoreColor, formatDateShort, truncateName } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import StoreBadge from "../StoreBadge.jsx";
+
+const SORTABLE_COLUMNS = [
+  { key: "totalRevenue", label: "売上" },
+  { key: "totalCount", label: "回数" },
+  { key: "totalSubscriptionCount", label: "クーポン" },
+  { key: "totalCancelCount", label: "取消" },
+  { key: "firstUseDate", label: "初回" },
+];
 
 export default function CustomerListPage({ data }) {
   const storeColor = makeStoreColor(data?.storeMeta);
@@ -16,6 +24,8 @@ export default function CustomerListPage({ data }) {
   const [store, setStore] = useState("");
   const [user, setUser] = useState("");
   const [selected, setSelected] = useState(null);
+  const [sortKey, setSortKey] = useState("totalRevenue");
+  const [sortDir, setSortDir] = useState("desc");
 
   useEffect(() => {
     api
@@ -24,16 +34,27 @@ export default function CustomerListPage({ data }) {
       .catch((err) => setError(err.message));
   }, []);
 
+  function handleSort(key) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  }
+
   const filtered = useMemo(() => {
     if (!customers) return [];
-    return customers.filter((c) => {
+    const rows = customers.filter((c) => {
       if (user.trim() && !c.user.includes(user.trim())) return false;
       if (store && c.primaryStore !== store) return false;
       if (start && c.firstUseDate < start) return false;
       if (end && c.firstUseDate > end) return false;
       return true;
     });
-  }, [customers, start, end, store, user]);
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => (a[sortKey] < b[sortKey] ? -1 : a[sortKey] > b[sortKey] ? 1 : 0) * dir);
+  }, [customers, start, end, store, user, sortKey, sortDir]);
 
   const hasFilters = start || end || store || user;
   const selectClass = "text-sm px-3 py-2 border";
@@ -156,21 +177,27 @@ export default function CustomerListPage({ data }) {
               <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 利用者
               </th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                売上
-              </th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                回数
-              </th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                クーポン
-              </th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                取消
-              </th>
-              <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                初回
-              </th>
+              {SORTABLE_COLUMNS.map((col) => (
+                <th key={col.key} className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSort(col.key)}
+                    className="inline-flex items-center gap-1"
+                    style={{ color: sortKey === col.key ? "#262421" : "#8F7D6E" }}
+                  >
+                    {col.label}
+                    {sortKey === col.key ? (
+                      sortDir === "asc" ? (
+                        <ArrowUp size={12} />
+                      ) : (
+                        <ArrowDown size={12} />
+                      )
+                    ) : (
+                      <ArrowDown size={12} style={{ opacity: 0.25 }} />
+                    )}
+                  </button>
+                </th>
+              ))}
               <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                 店舗
               </th>
