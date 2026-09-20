@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { getDashboard, getAvailableYears, getYoyByStore } from "../dashboardService.js";
+import { getNewBookingsDaily } from "../newBookingsDaily.js";
 
 const router = Router();
+
+router.get("/dashboard/new-bookings-daily", (req, res) => {
+  res.json({ days: getNewBookingsDaily() });
+});
 
 router.get("/years", (req, res) => {
   res.json({ years: getAvailableYears() });

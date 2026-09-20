@@ -19,6 +19,7 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
   getDashboard: (year) => request(`/dashboard${year ? `?year=${year}` : ""}`),
+  getNewBookingsDaily: () => request("/dashboard/new-bookings-daily"),
   getYears: () => request("/years"),
   getYoyByStore: (year, month) => request(`/revenue/yoy-by-store?year=${year}${month ? `&month=${month}` : ""}`),
   getCustomers: () => request("/customers"),
