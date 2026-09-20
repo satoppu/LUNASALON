@@ -61,11 +61,11 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
       .sort((a, b) => b.monthsSinceLastUse - a.monthsSinceLastUse);
   }, [state]);
 
-  // キャンセル率 = 取消件数 ÷ (利用回数+取消件数)。取消が1件もない人は対象外。
+  // キャンセル率 = 取消件数 ÷ (利用回数+取消件数)。利用回数5回未満と取消0件の人は対象外。
   const cancelRateRanking = useMemo(() => {
     if (!state) return [];
     return state.customers
-      .filter((c) => c.totalCancelCount > 0)
+      .filter((c) => c.totalCount >= 5 && c.totalCancelCount > 0)
       .map((c) => ({ ...c, cancelRate: c.totalCancelCount / (c.totalCount + c.totalCancelCount) }))
       .sort((a, b) => b.cancelRate - a.cancelRate || b.totalCancelCount - a.totalCancelCount)
       .slice(0, 20);
@@ -280,7 +280,7 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
 
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          キャンセル率TOP20(全期間・クリックで詳細)
+          キャンセル率TOP20(利用回数5回以上・全期間・クリックで詳細)
         </h3>
         <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
           <table className="w-full text-sm whitespace-nowrap">
