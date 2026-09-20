@@ -5,7 +5,6 @@
 // 画面から直接ユーザー名を編集して修正する想定。
 import db from "./db.js";
 import { canonicalizeUserName } from "./importHelpers.js";
-import { SUBSCRIPTION_STATUS } from "./config.js";
 
 function normalizeUserNameInput(userName) {
   const trimmed = typeof userName === "string" ? userName.trim() : "";
@@ -102,48 +101,4 @@ export function attachAssignments(customerProfiles) {
       couponIds: couponsByUser.get(key) || [],
     };
   });
-}
-
-/**
- * 定額クーポンID一覧(利用者・初回購入日・購入回数・ID)。IDを軸にする —
- * coupon_idsに利用者が割り当てられている行はすべて含み(transactionsに
- * 購入実績が無ければ初回購入日null・購入回数0のまま)、ID順に並べる。
- * IDが割り当てられていないが購入実績はある利用者も、その後ろに続けて
- * 表示する(表記ゆれで一致しない場合はこちら側に出るので、キャビネット・
- * クーポン画面で名前を合わせれば上のID一覧側に移る)。coupon_idsの
- * user_nameが空(未割当ID)の行はここには出さない。
- */
-export function buildCouponPurchaseList(allRows) {
-  const purchasesByUser = new Map();
-  for (const r of allRows) {
-    if (r.status !== SUBSCRIPTION_STATUS) continue;
-    const key = canonicalizeUserName(r.user_name);
-    if (!purchasesByUser.has(key)) purchasesByUser.set(key, { user: r.user_name, firstPurchaseDate: null, purchaseCount: 0 });
-    const entry = purchasesByUser.get(key);
-    entry.purchaseCount += 1;
-    if (entry.firstPurchaseDate === null || r.date < entry.firstPurchaseDate) entry.firstPurchaseDate = r.date;
-  }
-
-  const matchedKeys = new Set();
-  const withId = [];
-  for (const c of listCoupons()) {
-    if (!c.user_name) continue;
-    const key = canonicalizeUserName(c.user_name);
-    matchedKeys.add(key);
-    const purchase = purchasesByUser.get(key);
-    withId.push({
-      user: c.user_name,
-      firstPurchaseDate: purchase ? purchase.firstPurchaseDate : null,
-      purchaseCount: purchase ? purchase.purchaseCount : 0,
-      couponId: c.coupon_id,
-    });
-  }
-  withId.sort((a, b) => (a.couponId < b.couponId ? -1 : a.couponId > b.couponId ? 1 : 0));
-
-  const withoutId = [...purchasesByUser.entries()]
-    .filter(([key]) => !matchedKeys.has(key))
-    .map(([, entry]) => ({ ...entry, couponId: null }))
-    .sort((a, b) => (a.firstPurchaseDate < b.firstPurchaseDate ? -1 : a.firstPurchaseDate > b.firstPurchaseDate ? 1 : 0));
-
-  return [...withId, ...withoutId];
 }
