@@ -97,10 +97,6 @@ if (!hasManualEntry) {
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store_date ON transactions(store, date);`);
-// 日次動向(newBookingsDaily.js)がbooking_date/revenue_confirmed_dateで絞り込む
-// ため、どちらも索引が必要(無いと直近10日分の絞り込みでも全件スキャンになる)。
-db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_booking_date ON transactions(booking_date);`);
-db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_revenue_confirmed_date ON transactions(revenue_confirmed_date);`);
 // external_id (決済ID/支払いID from the reservation platform) lets raw-export
 // imports be re-run safely — SQLite's UNIQUE index treats each NULL as
 // distinct, so historical rows without one never collide.
