@@ -9,7 +9,7 @@ const COLOR = {
   予約: "#D4A644",
   取消: "#A84434",
   定額: CHANNEL_COLOR.定期クーポン,
-  利用合売: "#8F7D6E", // subtotal before cancellation loss — informational only, not its own bar/line.
+  利用合売: "#8F7D6E", // 利用売上+定額売上+利用取消の単純合計(取消分も含めた総活動額) — informational only, not its own bar/line.
   合計: "#D66B5C", // matches the plotted Line's stroke.
 };
 
@@ -58,7 +58,7 @@ function DailyTrendsTooltip({ active, payload }) {
     { key: "bookingRevenue", labelText: "利用売上", text: yen(d.bookingRevenue), color: COLOR.予約 },
     { key: "subscriptionRevenue", labelText: "定額売上", text: yen(d.subscriptionRevenue), color: COLOR.定額 },
     { key: "cancelRevenue", labelText: "利用取消", text: d.cancelRevenue > 0 ? `-${yen(d.cancelRevenue)}` : yen(0), color: COLOR.取消 },
-    { key: "combined", labelText: "利用合売", text: yen(d.bookingRevenue + d.subscriptionRevenue - d.cancelRevenue), color: COLOR.利用合売 },
+    { key: "combined", labelText: "利用合売", text: yen(d.bookingRevenue + d.subscriptionRevenue + d.cancelRevenue), color: COLOR.利用合売 },
     { key: "revenue", labelText: "予約売上", text: yen(d.revenue), color: COLOR.合計 },
   ];
   return (
