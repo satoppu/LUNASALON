@@ -13,13 +13,11 @@ const BOOKING_COLOR = {
   合計: "#D66B5C", // matches the plotted Line's stroke.
 };
 
-// 利用日ベースの一覧は「利用売上=通常予約の利用日ベース売上」の語彙(売上分析
-// ページのMONTHLY_TREND_COLORと同じ色)に合わせる — 定額は同じ紫、合計に当たる
-// 利用合売は売上分析の利用合売と同じ色。
+// 利用日ベースの一覧は件数・売上のみ(定期クーポンは利用日という概念に
+// 馴染まないため含めない)。バー色は売上分析ページの利用売上と同じ色。
 const USAGE_COLOR = {
   利用: "#D4A644",
-  定額: CHANNEL_COLOR.定期クーポン,
-  合計: "#8F7D6E",
+  売上: "#8F7D6E",
 };
 
 // The visible chart only plots count/cancelCount/subscriptionCount (stacked
@@ -42,8 +40,7 @@ const BOOKING_LEGEND_ITEMS = [
 
 const USAGE_LEGEND_ITEMS = [
   { label: "利用", color: USAGE_COLOR.利用, shape: "square" },
-  { label: "定額", color: USAGE_COLOR.定額, shape: "square" },
-  { label: "利用合売", color: USAGE_COLOR.合計, shape: "line" },
+  { label: "利用売上", color: USAGE_COLOR.売上, shape: "line" },
 ];
 
 function TrendLegend({ items }) {
@@ -91,11 +88,8 @@ function UsageTrendsTooltip({ active, payload }) {
   if (!active || !payload || payload.length === 0) return null;
   const d = payload[0].payload;
   const rows = [
-    { key: "count", labelText: "利用", text: `${d.count}件`, color: USAGE_COLOR.利用 },
-    { key: "subscriptionCount", labelText: "定額", text: `${d.subscriptionCount}件`, color: USAGE_COLOR.定額 },
-    { key: "usageRevenue", labelText: "利用売", text: yen(d.usageRevenue), color: USAGE_COLOR.利用 },
-    { key: "subscriptionRevenue", labelText: "定額売", text: yen(d.subscriptionRevenue), color: USAGE_COLOR.定額 },
-    { key: "revenue", labelText: "合売", text: yen(d.revenue), color: USAGE_COLOR.合計 },
+    { key: "count", labelText: "件数", text: `${d.count}件`, color: USAGE_COLOR.利用 },
+    { key: "revenue", labelText: "売上", text: yen(d.revenue), color: USAGE_COLOR.売上 },
   ];
   return (
     <div style={{ background: "#FFFFFF", border: "1px solid #EDE3D5", padding: "8px 12px", fontSize: 12 }}>
@@ -219,21 +213,11 @@ export default function DailyTrendsPage({ data }) {
                   yAxisId="count"
                   dataKey="count"
                   name="利用"
-                  stackId="count"
                   fill={USAGE_COLOR.利用}
                   cursor="pointer"
                   onClick={(entry) => setSelectedUsageDate(entry.date)}
                 />
-                <Bar
-                  yAxisId="count"
-                  dataKey="subscriptionCount"
-                  name="定額"
-                  stackId="count"
-                  fill={USAGE_COLOR.定額}
-                  cursor="pointer"
-                  onClick={(entry) => setSelectedUsageDate(entry.date)}
-                />
-                <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="利用合売" stroke={USAGE_COLOR.合計} strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="利用売上" stroke={USAGE_COLOR.売上} strokeWidth={2.5} dot={{ r: 3 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
