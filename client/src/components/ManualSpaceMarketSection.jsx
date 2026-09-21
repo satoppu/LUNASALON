@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Trash2, Plus, AlertCircle } from "lucide-react";
 import { api } from "../api.js";
 import { yen, formatDuration } from "../constants.js";
+import { useKnownUserNames } from "../hooks/useKnownUserNames.js";
 
 const EMPTY_ENTRY = { date: "", store: "", userName: "", status: "利用済み", startTime: "", endTime: "", revenue: "", bookingDate: "" };
 
@@ -66,10 +67,10 @@ function EntryFields({ value, onChange, storeNames, statuses }) {
 }
 
 export default function ManualSpaceMarketSection() {
+  const userNames = useKnownUserNames();
   const [transactions, setTransactions] = useState(null);
   const [statuses, setStatuses] = useState([]);
   const [storeNames, setStoreNames] = useState([]);
-  const [userNames, setUserNames] = useState([]);
   const [error, setError] = useState(null);
   const [savedId, setSavedId] = useState(null);
   const [drafts, setDrafts] = useState({});
@@ -78,15 +79,13 @@ export default function ManualSpaceMarketSection() {
   async function load() {
     setError(null);
     try {
-      const [{ transactions, statuses }, { stores }, { userNames }] = await Promise.all([
+      const [{ transactions, statuses }, { stores }] = await Promise.all([
         api.getManualSpaceMarketTransactions(),
         api.getStoreSettings(),
-        api.getKnownUserNames(),
       ]);
       setTransactions(transactions);
       setStatuses(statuses);
       setStoreNames(stores.map((s) => s.store));
-      setUserNames(userNames);
       setDrafts(
         Object.fromEntries(
           transactions.map((t) => [

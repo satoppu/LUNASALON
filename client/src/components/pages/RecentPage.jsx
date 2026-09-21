@@ -7,8 +7,10 @@ import DayDetailModal from "../DayDetailModal.jsx";
 import ClickableUserName from "../ClickableUserName.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 import { useCustomerLookup } from "../../hooks/useCustomerLookup.js";
+import { useKnownUserNames } from "../../hooks/useKnownUserNames.js";
 
 const PAGE_SIZE = 100;
+const USER_NAMES_DATALIST_ID = "recent-page-user-names";
 
 // 累計利用回数/累計キャンセル数/うちクーポン購入回数のクリック元(customer detail
 // モーダル)から渡される statusGroup を、実際のstatus値(カンマ区切り可)に変換する。
@@ -25,6 +27,7 @@ function statusValueForGroup(statusGroup, statuses) {
 
 export default function RecentPage({ data, recentFilter, onNavigateToHistory }) {
   const storeColor = makeStoreColor(data?.storeMeta);
+  const userNames = useKnownUserNames();
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [store, setStore] = useState("");
@@ -161,12 +164,18 @@ export default function RecentPage({ data, recentFilter, onNavigateToHistory }) 
           </select>
           <input
             type="text"
+            list={USER_NAMES_DATALIST_ID}
             value={user}
             onChange={(e) => setUser(e.target.value)}
             placeholder="利用者名で検索"
             className={selectClass}
             style={selectStyle}
           />
+          <datalist id={USER_NAMES_DATALIST_ID}>
+            {userNames.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
           <button type="submit" className="text-sm px-3 py-2" style={{ background: "#D4A644", color: "#262421" }}>
             検索
           </button>

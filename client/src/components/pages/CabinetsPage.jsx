@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Check, Trash2, Plus, AlertCircle } from "lucide-react";
 import { api } from "../../api.js";
 import { FONT_HEAD } from "../../constants.js";
+import { useKnownUserNames } from "../../hooks/useKnownUserNames.js";
+
+const USER_NAMES_DATALIST_ID = "cabinets-page-user-names";
 
 const EMPTY_NEW_CABINET = { slotLabel: "", userName: "" };
 const EMPTY_NEW_COUPON = { couponId: "", userName: "" };
@@ -10,6 +13,7 @@ const inputStyle = { borderColor: "#EDE3D5" };
 const inputClass = "text-sm px-2 py-1.5 border w-full";
 
 export default function CabinetsPage() {
+  const userNames = useKnownUserNames();
   const [cabinets, setCabinets] = useState(null);
   const [coupons, setCoupons] = useState(null);
   const [storeNames, setStoreNames] = useState([]);
@@ -136,6 +140,12 @@ export default function CabinetsPage() {
 
   return (
     <div>
+      <datalist id={USER_NAMES_DATALIST_ID}>
+        {userNames.map((n) => (
+          <option key={n} value={n} />
+        ))}
+      </datalist>
+
       {error && (
         <div className="flex items-start gap-2 text-sm mb-6 px-4 py-3" style={{ background: "#FCEEE7", color: "#A84434" }}>
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
@@ -188,6 +198,7 @@ export default function CabinetsPage() {
                         <td className="px-4 py-2">
                           <input
                             type="text"
+                            list={USER_NAMES_DATALIST_ID}
                             value={draft.userName}
                             onChange={(e) => setCabinetDraft(c.id, { userName: e.target.value })}
                             placeholder="空き"
@@ -232,6 +243,7 @@ export default function CabinetsPage() {
               />
               <input
                 type="text"
+                list={USER_NAMES_DATALIST_ID}
                 value={(newCabinetDrafts[store] || EMPTY_NEW_CABINET).userName}
                 onChange={(e) => setNewCabinetDrafts((d) => ({ ...d, [store]: { ...(d[store] || EMPTY_NEW_CABINET), userName: e.target.value } }))}
                 placeholder="利用者(空欄=空き)"
@@ -297,6 +309,7 @@ export default function CabinetsPage() {
                     <td className="px-4 py-2">
                       <input
                         type="text"
+                        list={USER_NAMES_DATALIST_ID}
                         value={draft.userName}
                         onChange={(e) => setCouponDraft(c.id, { userName: e.target.value })}
                         placeholder="未割当"
@@ -341,6 +354,7 @@ export default function CabinetsPage() {
           />
           <input
             type="text"
+            list={USER_NAMES_DATALIST_ID}
             value={newCoupon.userName}
             onChange={(e) => setNewCoupon((d) => ({ ...d, userName: e.target.value }))}
             placeholder="利用者(空欄=未割当)"
