@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import { ResponsiveContainer, LineChart, Line, ComposedChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { ResponsiveContainer, LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
-
-function labelInterval(length) {
-  return Math.max(0, Math.ceil(length / 12) - 1);
-}
 
 const MONTHLY_TREND_COLOR = {
   利用売上: "#D4A644",
@@ -40,6 +36,40 @@ function MonthlyTrendTooltip({ active, payload }) {
   );
 }
 
+// 予約売上/利用全売上/利用件数/利用時間の4つとも「year/priorYear/priorYear2を
+// 折れ線で重ねて比較する」同じ形のグラフなので、共通コンポーネントにまとめる。
+function YoyLineChart({ title, yoyLabel, data, year, priorYear, priorYear2, hasPriorYear, hasPriorYear2, tickFormatter, tooltipFormatter }) {
+  return (
+    <div className="mb-12">
+      <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+        {title} — {yoyLabel}
+      </h3>
+      <div style={{ background: "#FFFFFF" }} className="p-4">
+        {hasPriorYear ? (
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={data}>
+              <CartesianGrid stroke="#F0E6D8" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
+              <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={tickFormatter} />
+              <Tooltip formatter={tooltipFormatter} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Line type="monotone" dataKey={`${year}年`} stroke="#D4A644" strokeWidth={2.5} dot={false} connectNulls />
+              <Line type="monotone" dataKey={`${priorYear}年`} stroke="#D66B5C" strokeWidth={2.5} strokeDasharray="4 3" dot={false} connectNulls />
+              {hasPriorYear2 && (
+                <Line type="monotone" dataKey={`${priorYear2}年`} stroke="#8F4A28" strokeWidth={2.5} strokeDasharray="2 2" dot={false} connectNulls />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
+            {priorYear}年のデータがないため比較できません。
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function RevenuePage({ data }) {
   const { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, storeMeta, storeNames } = data;
   const storeColor = makeStoreColor(storeMeta);
@@ -51,21 +81,21 @@ export default function RevenuePage({ data }) {
   const [store, setStore] = useState("");
   const [section, setSection] = useState({
     monthlyTrend: data.monthlyTrend,
-    bookingDateMonthlyTrend: data.bookingDateMonthlyTrend,
-    hoursMonthlyTrend: data.hoursMonthlyTrend,
     yoyMonthly: data.yoyMonthly,
     yoyMonthlyCount: data.yoyMonthlyCount,
+    yoyBookingRevenue: data.yoyBookingRevenue,
+    yoyHours: data.yoyHours,
   });
-  const { monthlyTrend, bookingDateMonthlyTrend, hoursMonthlyTrend, yoyMonthly, yoyMonthlyCount } = section;
+  const { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours } = section;
 
   useEffect(() => {
     if (!store) {
       setSection({
         monthlyTrend: data.monthlyTrend,
-        bookingDateMonthlyTrend: data.bookingDateMonthlyTrend,
-        hoursMonthlyTrend: data.hoursMonthlyTrend,
         yoyMonthly: data.yoyMonthly,
         yoyMonthlyCount: data.yoyMonthlyCount,
+        yoyBookingRevenue: data.yoyBookingRevenue,
+        yoyHours: data.yoyHours,
       });
       return;
     }
@@ -74,10 +104,10 @@ export default function RevenuePage({ data }) {
       .then((res) =>
         setSection({
           monthlyTrend: res.monthlyTrend,
-          bookingDateMonthlyTrend: res.bookingDateMonthlyTrend,
-          hoursMonthlyTrend: res.hoursMonthlyTrend,
           yoyMonthly: res.yoyMonthly,
           yoyMonthlyCount: res.yoyMonthlyCount,
+          yoyBookingRevenue: res.yoyBookingRevenue,
+          yoyHours: res.yoyHours,
         })
       )
       .catch(() => {});
@@ -141,134 +171,59 @@ export default function RevenuePage({ data }) {
         </p>
       </div>
 
-      <div className="mb-12">
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          予約売上推移(月別・過去3年)
-        </h3>
-        <div style={{ background: "#FFFFFF" }} className="p-4">
-          {bookingDateMonthlyTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={bookingDateMonthlyTrend} margin={{ bottom: 24 }}>
-                <CartesianGrid stroke="#F0E6D8" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: "#8F7D6E", fontSize: 10 }}
-                  axisLine={{ stroke: "#EDE3D5" }}
-                  tickLine={false}
-                  interval={labelInterval(bookingDateMonthlyTrend.length)}
-                  angle={-40}
-                  textAnchor="end"
-                  height={50}
-                />
-                <YAxis
-                  tick={{ fill: "#8F7D6E", fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
-                />
-                <Tooltip formatter={(v) => yen(v)} />
-                <Bar dataKey="revenue" name="予約売上" fill="#D9738F" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
-              対象データがありません。
-            </p>
-          )}
-        </div>
-        <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-          決済日(自社サイト: 決済日時(データ入力用)、Instabase: 申込日時、定期クーポン: 購入日時)を基準にした月別合計売上です。選択中の年度に関わらず、直近36か月分を表示します。自社サイトのキャンセルは、キャンセルが確定した月にマイナス反映されます。
-        </p>
-      </div>
+      <YoyLineChart
+        title="予約売上"
+        yoyLabel={yoyLabel}
+        data={yoyBookingRevenue}
+        year={year}
+        priorYear={priorYear}
+        priorYear2={priorYear2}
+        hasPriorYear={hasPriorYear}
+        hasPriorYear2={hasPriorYear2}
+        tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
+        tooltipFormatter={(v) => yen(v)}
+      />
 
-      <div className="mb-12">
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          利用時間推移(月別・過去3年)
-        </h3>
-        <div style={{ background: "#FFFFFF" }} className="p-4">
-          {hoursMonthlyTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={hoursMonthlyTrend} margin={{ bottom: 24 }}>
-                <CartesianGrid stroke="#F0E6D8" vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: "#8F7D6E", fontSize: 10 }}
-                  axisLine={{ stroke: "#EDE3D5" }}
-                  tickLine={false}
-                  interval={labelInterval(hoursMonthlyTrend.length)}
-                  angle={-40}
-                  textAnchor="end"
-                  height={50}
-                />
-                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}h`} />
-                <Tooltip formatter={(v) => `${v}h`} />
-                <Bar dataKey="hours" name="利用時間" fill="#D4A644" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
-              対象データがありません。
-            </p>
-          )}
-        </div>
-        <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-          利用月の合計利用時間です(全店舗・全チャネル)。定期クーポンは購入時にまとめて売上計上され実際の利用月には売上が乗らないため、金額より実際の稼働状況を正しく反映します。
-        </p>
-      </div>
+      <YoyLineChart
+        title="利用全売上"
+        yoyLabel={yoyLabel}
+        data={yoyMonthly}
+        year={year}
+        priorYear={priorYear}
+        priorYear2={priorYear2}
+        hasPriorYear={hasPriorYear}
+        hasPriorYear2={hasPriorYear2}
+        tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
+        tooltipFormatter={(v) => yen(v)}
+      />
+
+      <YoyLineChart
+        title="利用件数"
+        yoyLabel={yoyLabel}
+        data={yoyMonthlyCount}
+        year={year}
+        priorYear={priorYear}
+        priorYear2={priorYear2}
+        hasPriorYear={hasPriorYear}
+        hasPriorYear2={hasPriorYear2}
+        tickFormatter={(v) => `${v}件`}
+        tooltipFormatter={(v) => `${v}件`}
+      />
+
+      <YoyLineChart
+        title="利用時間"
+        yoyLabel={yoyLabel}
+        data={yoyHours}
+        year={year}
+        priorYear={priorYear}
+        priorYear2={priorYear2}
+        hasPriorYear={hasPriorYear}
+        hasPriorYear2={hasPriorYear2}
+        tickFormatter={(v) => `${v}h`}
+        tooltipFormatter={(v) => `${v}h`}
+      />
 
       <div>
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          利用全売上 — {yoyLabel}
-        </h3>
-        <div style={{ background: "#FFFFFF" }} className="p-4 mb-4">
-          {hasPriorYear ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={yoyMonthly}>
-                <CartesianGrid stroke="#F0E6D8" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
-                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v) => yen(v)} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey={`${year}年`} stroke="#D4A644" strokeWidth={2.5} dot={false} connectNulls />
-                <Line type="monotone" dataKey={`${priorYear}年`} stroke="#D66B5C" strokeWidth={2.5} strokeDasharray="4 3" dot={false} connectNulls />
-                {hasPriorYear2 && (
-                  <Line type="monotone" dataKey={`${priorYear2}年`} stroke="#8F4A28" strokeWidth={2.5} strokeDasharray="2 2" dot={false} connectNulls />
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
-              {priorYear}年のデータがないため比較できません。
-            </p>
-          )}
-        </div>
-
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          利用件数 — {yoyLabel}
-        </h3>
-        <div style={{ background: "#FFFFFF" }} className="p-4 mb-4">
-          {hasPriorYear ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={yoyMonthlyCount}>
-                <CartesianGrid stroke="#F0E6D8" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
-                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}件`} />
-                <Tooltip formatter={(v) => `${v}件`} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey={`${year}年`} stroke="#D4A644" strokeWidth={2.5} dot={false} connectNulls />
-                <Line type="monotone" dataKey={`${priorYear}年`} stroke="#D66B5C" strokeWidth={2.5} strokeDasharray="4 3" dot={false} connectNulls />
-                {hasPriorYear2 && (
-                  <Line type="monotone" dataKey={`${priorYear2}年`} stroke="#8F4A28" strokeWidth={2.5} strokeDasharray="2 2" dot={false} connectNulls />
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p style={{ color: "#8F7D6E" }} className="text-sm py-8 text-center">
-              {priorYear}年のデータがないため比較できません。
-            </p>
-          )}
-        </div>
-
         <div className="flex items-center justify-end gap-2 mb-2">
           <label className="text-xs" style={{ color: "#8F7D6E" }}>
             対象月

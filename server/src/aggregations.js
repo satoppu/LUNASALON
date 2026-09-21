@@ -208,7 +208,39 @@ export function buildRevenueSection({ year, priorYear, hasPriorYear, priorYear2,
     return entry;
   });
 
-  return { monthlyTrend, yoyMonthly, yoyMonthlyCount };
+  // 予約売上(決済日ベース)の年度比較 — 通常予約と違ってbookingRevenueContributionsは
+  // 対象年をまたいで探索する必要があるためallRowsから、年ごとに絞り込む。
+  const yoyBookingRevenue = MONTH_LABELS.map((label, idx) => {
+    const entry = { label };
+    yoyYears.forEach(({ year: y, has }) => {
+      if (!has) {
+        entry[`${y}年`] = undefined;
+        return;
+      }
+      let sum = 0;
+      allRows.forEach((r) => {
+        bookingRevenueContributions(r).forEach(({ month, amount }) => {
+          if (Number(month.slice(0, 4)) !== y || Number(month.slice(5, 7)) - 1 !== idx) return;
+          sum += amount;
+        });
+      });
+      entry[`${y}年`] = sum;
+    });
+    return entry;
+  });
+
+  // 利用時間の年度比較(通常予約と同じ利用日ベース)。
+  const yoyHours = MONTH_LABELS.map((label, idx) => {
+    const entry = { label };
+    yoyYears.forEach(({ year: y, rows, has }) => {
+      entry[`${y}年`] = has
+        ? Math.round(rows.filter((r) => Number(r.date.slice(5, 7)) - 1 === idx).reduce((sum, r) => sum + effectiveHours(r), 0) * 10) / 10
+        : undefined;
+    });
+    return entry;
+  });
+
+  return { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours };
 }
 
 export function buildDashboard({
@@ -257,7 +289,7 @@ export function buildDashboard({
   // bookingRevenueContributions: the full amount stays in the booking month
   // even after a later cancellation, and the cancellation itself shows up as
   // a separate negative dip in whatever month it was actually processed.
-  const { monthlyTrend, yoyMonthly, yoyMonthlyCount } = buildRevenueSection({
+  const { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours } = buildRevenueSection({
     year,
     priorYear,
     hasPriorYear,
@@ -403,6 +435,8 @@ export function buildDashboard({
     userSummary,
     yoyMonthly,
     yoyMonthlyCount,
+    yoyBookingRevenue,
+    yoyHours,
     yoyByStore,
     yearNarrative,
   };
@@ -543,37 +577,6 @@ export function buildAnnualTrend(allRows, storeNames) {
     byYear[y][r.store] += effectiveRevenue(r);
   });
   return Object.values(byYear).sort((a, b) => a.year - b.year);
-}
-
-/**
- * Monthly revenue for the last 36 months (3 years) ending at the latest
- * booking-date-having data, grouped by booking_date (自社サイト's 決済日時
- * (データ入力用), Instabase's 申込日時, or the row's own date as a fallback
- * for anything not yet backfilled/dated that way — 定期クーポン's date is
- * already its purchase date, so it needs no fallback distinction). For
- * 自社サイト rows with a captured booking_amount, each row contributes via
- * bookingRevenueContributions: the full booking-time amount in the booking
- * month, plus (for a cancellation processed in a later month) a separate
- * negative entry in the month the cancellation actually happened, instead of
- * netting it invisibly back into the booking month. Independent of the
- * selected year, like buildAnnualTrend.
- */
-export function buildBookingDateMonthlyTrend(allRows) {
-  const byYM = new Map();
-  allRows.forEach((r) => {
-    bookingRevenueContributions(r).forEach(({ month, amount }) => {
-      byYM.set(month, (byYM.get(month) || 0) + amount);
-    });
-  });
-  const yms = [...byYM.keys()].sort();
-  if (yms.length === 0) return [];
-  const maxYM = yms[yms.length - 1];
-  const minYM = shiftYearMonth(maxYM, -35);
-  return enumerateYearMonths(minYM, maxYM).map((ym) => ({
-    yearMonth: ym,
-    label: formatYearMonth(ym),
-    revenue: byYM.get(ym) || 0,
-  }));
 }
 
 // ---- Customer analysis (spans all years, independent of the selected year) ----
@@ -805,25 +808,3 @@ export function buildBookingToUsageMonthlyHours(allRows) {
   return buildBookingToUsageMonthlyBy(allRows, effectiveHours);
 }
 
-/**
- * Total 利用時間(hours used) per usage month for the last 36 months, across
- * all channels — the hours-based counterpart to buildBookingDateMonthlyTrend,
- * for reading actual room demand independent of how revenue was booked
- * (subscription vs per-visit).
- */
-export function buildHoursMonthlyTrend(allRows) {
-  const byYM = new Map();
-  allRows.forEach((r) => {
-    const ym = r.date.slice(0, 7);
-    byYM.set(ym, (byYM.get(ym) || 0) + effectiveHours(r));
-  });
-  const yms = [...byYM.keys()].sort();
-  if (yms.length === 0) return [];
-  const maxYM = yms[yms.length - 1];
-  const minYM = shiftYearMonth(maxYM, -35);
-  return enumerateYearMonths(minYM, maxYM).map((ym) => ({
-    yearMonth: ym,
-    label: formatYearMonth(ym),
-    hours: Math.round((byYM.get(ym) || 0) * 10) / 10,
-  }));
-}
