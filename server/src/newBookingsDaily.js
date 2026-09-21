@@ -142,7 +142,7 @@ export function getBookingsForDate(bookingDate, store) {
   const params = store ? [bookingDate, bookingDate, store] : [bookingDate, bookingDate];
   return db
     .prepare(
-      `SELECT date, store, user_name, revenue, status, channel
+      `SELECT date, store, user_name, revenue, status, channel, booking_amount
        FROM transactions
        WHERE (booking_date = ? OR cancelled_date = ?) ${storeClause}
        ORDER BY user_name`

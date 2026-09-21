@@ -39,6 +39,8 @@ export const STATUS_BADGE = {
   "キャンセル(オーナー)": { label: "オ", bg: "#8F4A28", text: "#FFFFFF" },
 };
 
+export const isCancellationStatus = (status) => typeof status === "string" && status.startsWith("キャンセル");
+
 export const FONT_HEAD = "'Shippori Mincho', serif";
 export const FONT_BODY = "'Noto Sans JP', sans-serif";
 

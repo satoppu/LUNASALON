@@ -1,8 +1,21 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { api } from "../api.js";
-import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor } from "../constants.js";
+import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, isCancellationStatus } from "../constants.js";
 import StoreBadge from "./StoreBadge.jsx";
+
+// キャンセル行は売上(revenue)がそのまま0(または一部返金あり分)になっている
+// だけなので、いくら分がキャンセルになったかが一見わからない。booking_amount
+// (自社サイトの本来の予約金額)がある行は、その差額をマイナス表示にして
+// 「いくら分がキャンセルされたか」がひと目でわかるようにする。他チャネルの
+// キャンセル(booking_amountを持たない)はそのままrevenueを表示する。
+function revenueDisplay(r) {
+  if (isCancellationStatus(r.status) && r.booking_amount != null) {
+    const refund = r.booking_amount - r.revenue;
+    return refund > 0 ? `-${yen(refund)}` : yen(0);
+  }
+  return yen(r.revenue);
+}
 
 export default function BookingDateDetailModal({ date, store, storeMeta, onClose }) {
   const storeColor = makeStoreColor(storeMeta);
@@ -81,7 +94,7 @@ export default function BookingDateDetailModal({ date, store, storeMeta, onClose
                       <StoreBadge store={r.store} storeColor={storeColor} />
                     </td>
                     <td className="px-6 py-3 text-center">{r.date}</td>
-                    <td className="px-6 py-3 text-right font-medium">{yen(r.revenue)}</td>
+                    <td className="px-6 py-3 text-right font-medium">{revenueDisplay(r)}</td>
                     <td className="px-6 py-3 text-center">
                       {CHANNEL_BADGE[r.channel] ? (
                         <span
