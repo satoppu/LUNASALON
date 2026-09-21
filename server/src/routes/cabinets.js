@@ -1,7 +1,7 @@
 import { Router } from "express";
 import db from "../db.js";
 import {
-  listCabinets,
+  listCabinetsWithRecentUsage,
   createCabinet,
   updateCabinet,
   deleteCabinet,
@@ -30,7 +30,7 @@ function runOrConflict(res, fn, conflictMessage) {
 }
 
 router.get("/cabinets", (req, res) => {
-  res.json({ cabinets: listCabinets() });
+  res.json({ cabinets: listCabinetsWithRecentUsage() });
 });
 
 router.post("/cabinets", (req, res) => {

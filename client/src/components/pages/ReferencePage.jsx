@@ -44,6 +44,12 @@ export default function ReferencePage({ data }) {
             <thead>
               <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  {cabinets[0]?.prevMonth2Label || "前々月"}の利用回数
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  {cabinets[0]?.prevMonthLabel || "前月"}の利用回数
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   店舗名
                 </th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -57,6 +63,12 @@ export default function ReferencePage({ data }) {
             <tbody>
               {cabinets.map((c) => (
                 <tr key={c.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
+                  <td className="px-4 py-3 text-center" style={c.prevMonth2Count == null ? { color: "#8F7D6E" } : undefined}>
+                    {c.prevMonth2Count != null ? `${c.prevMonth2Count}回` : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-center" style={c.prevMonthCount == null ? { color: "#8F7D6E" } : undefined}>
+                    {c.prevMonthCount != null ? `${c.prevMonthCount}回` : "—"}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <StoreBadge store={c.store} storeColor={storeColor} />
                   </td>
@@ -68,7 +80,7 @@ export default function ReferencePage({ data }) {
               ))}
               {cabinets.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                  <td colSpan={5} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                     登録されているキャビネットがありません。
                   </td>
                 </tr>
