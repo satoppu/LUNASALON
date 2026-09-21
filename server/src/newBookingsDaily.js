@@ -70,7 +70,8 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
     .prepare(
       `SELECT booking_date AS date, revenue_confirmed_date, cancelled_date, status, channel, revenue, booking_amount
        FROM transactions
-       WHERE ((booking_date >= ? AND booking_date <= ?) OR (COALESCE(revenue_confirmed_date, cancelled_date) >= ? AND COALESCE(revenue_confirmed_date, cancelled_date) <= ?))
+       WHERE ((booking_date >= ? AND booking_date <= ?)
+              OR (status LIKE 'キャンセル%' AND COALESCE(revenue_confirmed_date, cancelled_date) >= ? AND COALESCE(revenue_confirmed_date, cancelled_date) <= ?))
        ${storeClause}`
     )
     .all(...params);
@@ -139,7 +140,10 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
  * booking_date=その日(通常予約・定期クーポン・他チャネルのキャンセル)に
  * 加えて、自社サイトのキャンセルで確定日(revenue_confirmed_date、無ければ
  * cancelled_date)=その日の行も含む(キャンセル確定日側に「取消」として
- * 計上される行なので、明細にも出す)。
+ * 計上される行なので、明細にも出す)。確定日での一致はキャンセル行だけが
+ * 対象 — 利用済み/利用前の行はbooking_date一本で決まる(revenue_confirmed_date
+ * は利用時に利用日へ更新されるため、キャンセルでない行にまで適用すると
+ * 無関係な日のポップアップに紛れ込んでしまう)。
  */
 export function getBookingsForDate(bookingDate, store) {
   const storeClause = store ? "AND store = ?" : "";
@@ -148,7 +152,7 @@ export function getBookingsForDate(bookingDate, store) {
     .prepare(
       `SELECT date, store, user_name, revenue, status, channel, booking_amount
        FROM transactions
-       WHERE (booking_date = ? OR COALESCE(revenue_confirmed_date, cancelled_date) = ?) ${storeClause}
+       WHERE (booking_date = ? OR (status LIKE 'キャンセル%' AND COALESCE(revenue_confirmed_date, cancelled_date) = ?)) ${storeClause}
        ORDER BY user_name`
     )
     .all(...params);
