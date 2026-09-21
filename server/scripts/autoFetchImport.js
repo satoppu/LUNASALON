@@ -71,18 +71,23 @@ async function findInputByLiveValue(page, pattern) {
   return idx === -1 ? null : page.locator("input").nth(idx);
 }
 
-// "前日" 〜 "3ヶ月後の月末" — e.g. run on 2026-09-19 covers 2026-09-18 through
-// 2026-12-31. new Date(y, m, 0) is the last day of month m-1 in local time,
+// "前日" 〜 "6ヶ月後の月末" — e.g. run on 2026-09-19 covers 2026-09-18 through
+// 2027-03-31. new Date(y, m, 0) is the last day of month m-1 in local time,
 // so passing (targetMonthIndex + 1) as the month lands on the last day of
-// the target month.
+// the target month. 6ヶ月先まで取ることで、よやクルPro側で予約できる最大
+// 期間を毎日カバーし続け、cancelled_date(importService.jsが最初にキャンセル
+// への変化を検知した日をJSTで記録)が実際のキャンセル日とズレないようにする
+// — 取り込み漏れの空白期間があると、その間にキャンセルされた予約は後から
+// (利用日を過ぎて欠落に気づいた時などに)しか検知できず、cancelled_dateが
+// 実際より遅れてしまう。
 function formatDate(d) {
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 }
 function dateRange() {
   const today = new Date();
   const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
-  const endOfMonth3Ahead = new Date(today.getFullYear(), today.getMonth() + 4, 0);
-  return { from: yesterday, to: endOfMonth3Ahead };
+  const endOfMonth6Ahead = new Date(today.getFullYear(), today.getMonth() + 7, 0);
+  return { from: yesterday, to: endOfMonth6Ahead };
 }
 
 async function login(page) {
