@@ -8,39 +8,78 @@ function labelInterval(length) {
 }
 
 export default function RevenuePage({ data }) {
-  const {
-    year,
-    priorYear,
-    hasPriorYear,
-    priorYear2,
-    hasPriorYear2,
-    storeMeta,
-    monthlyTrend,
-    bookingDateMonthlyTrend,
-    hoursMonthlyTrend,
-    yoyMonthly,
-    yoyMonthlyCount,
-    yoyByStore: initialYoyByStore,
-  } = data;
+  const { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, storeMeta, storeNames } = data;
   const storeColor = makeStoreColor(storeMeta);
   const yoyLabel = [year, hasPriorYear && priorYear, hasPriorYear2 && priorYear2]
     .filter(Boolean)
     .map((y) => `${y}年`)
     .join(" vs ");
 
-  const [month, setMonth] = useState(initialYoyByStore[0]?.latestMonth ?? new Date().getMonth() + 1);
-  const [yoyByStore, setYoyByStore] = useState(initialYoyByStore);
+  const [store, setStore] = useState("");
+  const [section, setSection] = useState({
+    monthlyTrend: data.monthlyTrend,
+    bookingDateMonthlyTrend: data.bookingDateMonthlyTrend,
+    hoursMonthlyTrend: data.hoursMonthlyTrend,
+    yoyMonthly: data.yoyMonthly,
+    yoyMonthlyCount: data.yoyMonthlyCount,
+  });
+  const { monthlyTrend, bookingDateMonthlyTrend, hoursMonthlyTrend, yoyMonthly, yoyMonthlyCount } = section;
+
+  useEffect(() => {
+    if (!store) {
+      setSection({
+        monthlyTrend: data.monthlyTrend,
+        bookingDateMonthlyTrend: data.bookingDateMonthlyTrend,
+        hoursMonthlyTrend: data.hoursMonthlyTrend,
+        yoyMonthly: data.yoyMonthly,
+        yoyMonthlyCount: data.yoyMonthlyCount,
+      });
+      return;
+    }
+    api
+      .getRevenue(year, store)
+      .then((res) =>
+        setSection({
+          monthlyTrend: res.monthlyTrend,
+          bookingDateMonthlyTrend: res.bookingDateMonthlyTrend,
+          hoursMonthlyTrend: res.hoursMonthlyTrend,
+          yoyMonthly: res.yoyMonthly,
+          yoyMonthlyCount: res.yoyMonthlyCount,
+        })
+      )
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, store, data]);
+
+  const [month, setMonth] = useState(data.yoyByStore[0]?.latestMonth ?? new Date().getMonth() + 1);
+  const [yoyByStore, setYoyByStore] = useState(data.yoyByStore);
 
   useEffect(() => {
     api
-      .getYoyByStore(year, month)
+      .getYoyByStore(year, month, store)
       .then((res) => setYoyByStore(res.yoyByStore))
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, month]);
+  }, [year, month, store]);
 
   return (
     <>
+      <div className="mb-4">
+        <select
+          value={store}
+          onChange={(e) => setStore(e.target.value)}
+          className="text-sm px-3 py-2 border"
+          style={{ borderColor: "#EDE3D5", color: "#262421", background: "#FFFFFF" }}
+        >
+          <option value="">店舗(すべて)</option>
+          {storeNames?.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
           売上推移({year}年・月別・通常予約 / 定期クーポン)

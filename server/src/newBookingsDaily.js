@@ -43,16 +43,22 @@ function shiftISODate(iso, delta) {
  * は本来の予約金額を保持していないため0として扱う)を差し引いた金額
  * (revenue = grossRevenue - cancelRevenue)。
  */
-export function getNewBookingsDaily(offsetWindows = 0) {
+export function getNewBookingsDaily(offsetWindows = 0, store) {
   const yesterday = shiftISODate(getTodayISO(), -1);
   const end = shiftISODate(yesterday, -WINDOW_DAYS * offsetWindows);
   const start = shiftISODate(end, -(WINDOW_DAYS - 1));
 
-  const rows = db
-    .prepare(
-      `SELECT booking_date AS date, status, channel, revenue, booking_amount FROM transactions WHERE booking_date >= ? AND booking_date <= ?`
-    )
-    .all(start, end);
+  const rows = store
+    ? db
+        .prepare(
+          `SELECT booking_date AS date, status, channel, revenue, booking_amount FROM transactions WHERE booking_date >= ? AND booking_date <= ? AND store = ?`
+        )
+        .all(start, end, store)
+    : db
+        .prepare(
+          `SELECT booking_date AS date, status, channel, revenue, booking_amount FROM transactions WHERE booking_date >= ? AND booking_date <= ?`
+        )
+        .all(start, end);
 
   const countByDate = new Map();
   const cancelCountByDate = new Map();
@@ -97,10 +103,16 @@ export function getNewBookingsDaily(offsetWindows = 0) {
 }
 
 /** Rows whose booking_date is the given day — the detail behind one bar of getNewBookingsDaily(). */
-export function getBookingsForDate(bookingDate) {
-  return db
-    .prepare(
-      `SELECT date, store, user_name, revenue, status, channel FROM transactions WHERE booking_date = ? ORDER BY user_name`
-    )
-    .all(bookingDate);
+export function getBookingsForDate(bookingDate, store) {
+  return store
+    ? db
+        .prepare(
+          `SELECT date, store, user_name, revenue, status, channel FROM transactions WHERE booking_date = ? AND store = ? ORDER BY user_name`
+        )
+        .all(bookingDate, store)
+    : db
+        .prepare(
+          `SELECT date, store, user_name, revenue, status, channel FROM transactions WHERE booking_date = ? ORDER BY user_name`
+        )
+        .all(bookingDate);
 }

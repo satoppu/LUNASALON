@@ -27,7 +27,7 @@ const LEGEND_ITEMS = [
   { label: "予約", color: COLOR.予約, shape: "square" },
   { label: "取消", color: COLOR.取消, shape: "square" },
   { label: "定額", color: COLOR.定額, shape: "square" },
-  { label: "合計", color: COLOR.合計, shape: "line" },
+  { label: "売上", color: COLOR.合計, shape: "line" },
 ];
 
 function DailyTrendsLegend() {
@@ -72,6 +72,7 @@ function DailyTrendsTooltip({ active, payload }) {
 
 export default function DailyTrendsPage({ data }) {
   const [offset, setOffset] = useState(0);
+  const [store, setStore] = useState("");
   const [days, setDays] = useState(null);
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -80,15 +81,31 @@ export default function DailyTrendsPage({ data }) {
     setDays(null);
     setError(null);
     api
-      .getNewBookingsDaily(offset)
+      .getNewBookingsDaily(offset, store)
       .then((res) => setDays(res.days))
       .catch((err) => setError(err.message));
-  }, [offset]);
+  }, [offset, store]);
 
   const rangeLabel = days ? `${formatDateShort(days[0].date)}〜${formatDateShort(days[days.length - 1].date)}` : "";
 
   return (
     <div>
+      <div className="mb-4">
+        <select
+          value={store}
+          onChange={(e) => setStore(e.target.value)}
+          className="text-sm px-3 py-2 border"
+          style={{ borderColor: "#EDE3D5", color: "#262421", background: "#FFFFFF" }}
+        >
+          <option value="">店舗(すべて)</option>
+          {data?.storeNames?.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">
           予約受付件数・売上(予約日ベース{rangeLabel ? `・${rangeLabel}` : ""})
@@ -190,7 +207,7 @@ export default function DailyTrendsPage({ data }) {
         </>
       )}
 
-      <BookingDateDetailModal date={selectedDate} storeMeta={data?.storeMeta} onClose={() => setSelectedDate(null)} />
+      <BookingDateDetailModal date={selectedDate} store={store} storeMeta={data?.storeMeta} onClose={() => setSelectedDate(null)} />
     </div>
   );
 }

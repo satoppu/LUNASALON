@@ -1,6 +1,13 @@
 import db from "./db.js";
 import { getTodayISO } from "./config.js";
-import { buildDashboard, buildAnnualTrend, buildBookingDateMonthlyTrend, buildHoursMonthlyTrend, buildYoyByStore } from "./aggregations.js";
+import {
+  buildDashboard,
+  buildAnnualTrend,
+  buildBookingDateMonthlyTrend,
+  buildHoursMonthlyTrend,
+  buildYoyByStore,
+  buildRevenueSection,
+} from "./aggregations.js";
 import { listBusinessEventsInRange } from "./businessEventsService.js";
 
 export function getAvailableYears() {
@@ -21,17 +28,66 @@ function getRowsForYear(year) {
   return db.prepare(`SELECT * FROM transactions WHERE substr(date, 1, 4) = ? ORDER BY date`).all(String(year));
 }
 
-export function getYoyByStore(year, month) {
+export function getYoyByStore(year, month, store) {
   const storeSettingsRows = getStoreSettings();
-  const storeNames = storeSettingsRows.map((s) => s.store);
+  const storeNames = store ? [store] : storeSettingsRows.map((s) => s.store);
   const priorYear = year - 1;
   const years = getAvailableYears();
   const hasPriorYear = years.includes(priorYear);
 
-  const yearRows = getRowsForYear(year);
-  const priorYearRows = hasPriorYear ? getRowsForYear(priorYear) : [];
+  const filterStore = (rows) => (store ? rows.filter((r) => r.store === store) : rows);
+  const yearRows = filterStore(getRowsForYear(year));
+  const priorYearRows = hasPriorYear ? filterStore(getRowsForYear(priorYear)) : [];
 
   return buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorYear, month });
+}
+
+/**
+ * 売上分析ページの店舗フィルタ用。getDashboardと同じ売上系の集計
+ * (monthlyTrend/bookingDateMonthlyTrend/hoursMonthlyTrend/yoyMonthly/
+ * yoyMonthlyCount/yoyByStore)だけを、任意でstoreに絞り込んで返す。
+ */
+export function getRevenueSection(requestedYear, store) {
+  const years = getAvailableYears();
+  if (years.length === 0) return { year: null };
+
+  const year = requestedYear && years.includes(requestedYear) ? requestedYear : years[0];
+  const priorYear = year - 1;
+  const hasPriorYear = years.includes(priorYear);
+  const priorYear2 = year - 2;
+  const hasPriorYear2 = years.includes(priorYear2);
+
+  const storeSettingsRows = getStoreSettings();
+  const storeNames = store ? [store] : storeSettingsRows.map((s) => s.store);
+
+  const filterStore = (rows) => (store ? rows.filter((r) => r.store === store) : rows);
+  const yearRows = filterStore(getRowsForYear(year));
+  const priorYearRows = hasPriorYear ? filterStore(getRowsForYear(priorYear)) : [];
+  const priorYear2Rows = hasPriorYear2 ? filterStore(getRowsForYear(priorYear2)) : [];
+  const allRows = filterStore(getAllRows());
+
+  const { monthlyTrend, yoyMonthly, yoyMonthlyCount } = buildRevenueSection({
+    year,
+    priorYear,
+    hasPriorYear,
+    priorYear2,
+    hasPriorYear2,
+    yearRows,
+    priorYearRows,
+    priorYear2Rows,
+    allRows,
+  });
+
+  const bookingDateMonthlyTrend = buildBookingDateMonthlyTrend(allRows);
+  const hoursMonthlyTrend = buildHoursMonthlyTrend(allRows);
+
+  const todayISO = getTodayISO();
+  const todayYear = Number(todayISO.slice(0, 4));
+  const todayMonth = Number(todayISO.slice(5, 7));
+  const currentMonthTarget = year === todayYear ? todayMonth : null;
+  const yoyByStore = buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorYear, month: currentMonthTarget });
+
+  return { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, monthlyTrend, bookingDateMonthlyTrend, hoursMonthlyTrend, yoyMonthly, yoyMonthlyCount, yoyByStore };
 }
 
 function getAllRows() {

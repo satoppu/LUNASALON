@@ -19,10 +19,32 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
   getDashboard: (year) => request(`/dashboard${year ? `?year=${year}` : ""}`),
-  getNewBookingsDaily: (offset) => request(`/dashboard/new-bookings-daily${offset ? `?offset=${offset}` : ""}`),
-  getBookingsForDate: (date) => request(`/dashboard/new-bookings-daily/detail?date=${date}`),
+  getNewBookingsDaily: (offset, store) => {
+    const params = new URLSearchParams();
+    if (offset) params.set("offset", offset);
+    if (store) params.set("store", store);
+    const qs = params.toString();
+    return request(`/dashboard/new-bookings-daily${qs ? `?${qs}` : ""}`);
+  },
+  getBookingsForDate: (date, store) => {
+    const params = new URLSearchParams({ date });
+    if (store) params.set("store", store);
+    return request(`/dashboard/new-bookings-daily/detail?${params.toString()}`);
+  },
   getYears: () => request("/years"),
-  getYoyByStore: (year, month) => request(`/revenue/yoy-by-store?year=${year}${month ? `&month=${month}` : ""}`),
+  getYoyByStore: (year, month, store) => {
+    const params = new URLSearchParams({ year });
+    if (month) params.set("month", month);
+    if (store) params.set("store", store);
+    return request(`/revenue/yoy-by-store?${params.toString()}`);
+  },
+  getRevenue: (year, store) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", year);
+    if (store) params.set("store", store);
+    const qs = params.toString();
+    return request(`/revenue${qs ? `?${qs}` : ""}`);
+  },
   getCustomers: () => request("/customers"),
   searchTransactions: ({ start, end, store, status, user, offset, sort } = {}) => {
     const params = new URLSearchParams();

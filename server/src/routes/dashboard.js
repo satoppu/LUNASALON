@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getDashboard, getAvailableYears, getYoyByStore } from "../dashboardService.js";
+import { getDashboard, getAvailableYears, getYoyByStore, getRevenueSection } from "../dashboardService.js";
 import { getNewBookingsDaily, getBookingsForDate } from "../newBookingsDaily.js";
 
 const router = Router();
@@ -14,13 +14,13 @@ router.get("/dashboard/new-bookings-daily", (req, res) => {
       return res.status(400).json({ error: "offset must be a non-negative integer" });
     }
   }
-  res.json({ days: getNewBookingsDaily(offset) });
+  res.json({ days: getNewBookingsDaily(offset, req.query.store || undefined) });
 });
 
 router.get("/dashboard/new-bookings-daily/detail", (req, res) => {
   const { date } = req.query;
   if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date must be YYYY-MM-DD" });
-  res.json({ rows: getBookingsForDate(date) });
+  res.json({ rows: getBookingsForDate(date, req.query.store || undefined) });
 });
 
 router.get("/years", (req, res) => {
@@ -39,7 +39,18 @@ router.get("/revenue/yoy-by-store", (req, res) => {
       return res.status(400).json({ error: "month must be an integer between 1 and 12" });
     }
   }
-  res.json({ yoyByStore: getYoyByStore(year, month) });
+  res.json({ yoyByStore: getYoyByStore(year, month, req.query.store || undefined) });
+});
+
+router.get("/revenue", (req, res) => {
+  let year;
+  if (req.query.year !== undefined) {
+    year = Number(req.query.year);
+    if (!Number.isInteger(year)) {
+      return res.status(400).json({ error: "year must be an integer" });
+    }
+  }
+  res.json(getRevenueSection(year, req.query.store || undefined));
 });
 
 router.get("/dashboard", (req, res) => {

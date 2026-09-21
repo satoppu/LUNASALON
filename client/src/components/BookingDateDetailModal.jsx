@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor } from "../constants.js";
 import StoreBadge from "./StoreBadge.jsx";
 
-export default function BookingDateDetailModal({ date, storeMeta, onClose }) {
+export default function BookingDateDetailModal({ date, store, storeMeta, onClose }) {
   const storeColor = makeStoreColor(storeMeta);
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
@@ -14,10 +14,10 @@ export default function BookingDateDetailModal({ date, storeMeta, onClose }) {
     setRows(null);
     setError(null);
     api
-      .getBookingsForDate(date)
+      .getBookingsForDate(date, store)
       .then((res) => setRows(res.rows))
       .catch((err) => setError(err.message));
-  }, [date]);
+  }, [date, store]);
 
   if (!date) return null;
 
