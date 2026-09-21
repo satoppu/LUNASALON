@@ -9,20 +9,21 @@ const COLOR = {
   予約: "#D4A644",
   取消: "#A84434",
   定額: CHANNEL_COLOR.定期クーポン,
-  売上: "#8F7D6E", // grossRevenue subtotal — informational only, not its own bar/line.
+  利用合売: "#8F7D6E", // subtotal before cancellation loss — informational only, not its own bar/line.
   合計: "#D66B5C", // matches the plotted Line's stroke.
 };
 
 // The visible chart only plots count/cancelCount/subscriptionCount (stacked
-// bars) and revenue=grossRevenue-cancelRevenue (the line, "合計"). The
-// tooltip additionally breaks the money out into 売上(粗)→取消(差引)→合計
-// for transparency, so it reads straight off the day's raw datum
-// (payload[0].payload) rather than the chart's own series list — that also
-// sidesteps recharts' Tooltip listing series in registration order rather
-// than JSX order, and lets 取消 appear twice (件数・金額) unambiguously.
-// Passing an explicit `payload` prop to recharts' <Legend> did not reliably
-// keep this order either — same registration-order quirk as Tooltip — so
-// this renders the legend entirely by hand instead.
+// bars) and revenue=bookingRevenue+subscriptionRevenue-cancelRevenue (the
+// line, "予約売上"). The tooltip additionally breaks the money out into
+// 利用売上→定額売上→利用取消→利用合売→予約売上 for transparency, so it reads
+// straight off the day's raw datum (payload[0].payload) rather than the
+// chart's own series list — that also sidesteps recharts' Tooltip listing
+// series in registration order rather than JSX order, and lets 取消 appear
+// twice (件数・金額) unambiguously. Passing an explicit `payload` prop to
+// recharts' <Legend> did not reliably keep this order either — same
+// registration-order quirk as Tooltip — so this renders the legend entirely
+// by hand instead.
 const LEGEND_ITEMS = [
   { label: "予約", color: COLOR.予約, shape: "square" },
   { label: "取消", color: COLOR.取消, shape: "square" },
@@ -54,8 +55,10 @@ function DailyTrendsTooltip({ active, payload }) {
     { key: "count", labelText: "予約", text: `${d.count}件`, color: COLOR.予約 },
     { key: "cancelCount", labelText: "取消", text: `${d.cancelCount}件`, color: COLOR.取消 },
     { key: "subscriptionCount", labelText: "定額", text: `${d.subscriptionCount}件`, color: COLOR.定額 },
-    { key: "grossRevenue", labelText: "売上", text: yen(d.grossRevenue), color: COLOR.売上 },
-    { key: "cancelRevenue", labelText: "取消", text: d.cancelRevenue > 0 ? `-${yen(d.cancelRevenue)}` : yen(0), color: COLOR.取消 },
+    { key: "bookingRevenue", labelText: "利用売上", text: yen(d.bookingRevenue), color: COLOR.予約 },
+    { key: "subscriptionRevenue", labelText: "定額売上", text: yen(d.subscriptionRevenue), color: COLOR.定額 },
+    { key: "cancelRevenue", labelText: "利用取消", text: d.cancelRevenue > 0 ? `-${yen(d.cancelRevenue)}` : yen(0), color: COLOR.取消 },
+    { key: "combined", labelText: "利用合売", text: yen(d.bookingRevenue + d.subscriptionRevenue - d.cancelRevenue), color: COLOR.利用合売 },
     { key: "revenue", labelText: "予約売上", text: yen(d.revenue), color: COLOR.合計 },
   ];
   return (

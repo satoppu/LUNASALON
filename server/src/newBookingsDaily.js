@@ -37,11 +37,12 @@ function shiftISODate(iso, delta) {
  * offsetWindowsの大小やテーブル全体のサイズに関係なく一定のコストに収まる。
  *
  * 件数は通常予約・キャンセル・定期クーポンの3つに分けて集計する(積み上げ
- * 棒グラフ用)。売上は「予約(利用済み/利用前)+定期クーポン」の粗売上
- * (grossRevenue)から、キャンセル代(cancelRevenue — 自社サイトの本来の
- * 予約金額とキャンセル後に実際に残った売上の差額。他チャネルのキャンセル
- * は本来の予約金額を保持していないため0として扱う)を差し引いた金額
- * (revenue = grossRevenue - cancelRevenue)。
+ * 棒グラフ用)。売上は利用売上(bookingRevenue — 予約(利用済み/利用前)の
+ * 売上)と定額売上(subscriptionRevenue — 定期クーポンの売上)を分けて持ち、
+ * その合計からキャンセル代(cancelRevenue — 自社サイトの本来の予約金額と
+ * キャンセル後に実際に残った売上の差額。他チャネルのキャンセルは本来の
+ * 予約金額を保持していないため0として扱う)を差し引いた金額が最終的な
+ * 予約売上(revenue = bookingRevenue + subscriptionRevenue - cancelRevenue)。
  */
 export function getNewBookingsDaily(offsetWindows = 0, store) {
   const yesterday = shiftISODate(getTodayISO(), -1);
@@ -63,14 +64,15 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
   const countByDate = new Map();
   const cancelCountByDate = new Map();
   const subscriptionCountByDate = new Map();
-  const grossRevenueByDate = new Map();
+  const bookingRevenueByDate = new Map();
+  const subscriptionRevenueByDate = new Map();
   const cancelRevenueByDate = new Map();
   const add = (map, date, amount) => map.set(date, (map.get(date) || 0) + amount);
 
   for (const r of rows) {
     if (r.status === SUBSCRIPTION_STATUS) {
       add(subscriptionCountByDate, r.date, 1);
-      add(grossRevenueByDate, r.date, r.revenue);
+      add(subscriptionRevenueByDate, r.date, r.revenue);
     } else if (isCancellationStatus(r.status)) {
       add(cancelCountByDate, r.date, 1);
       if (r.channel === OWN_SITE_CHANNEL && r.booking_amount != null) {
@@ -79,7 +81,7 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
     } else {
       add(countByDate, r.date, 1);
       if (REVENUE_STATUSES.has(r.status)) {
-        add(grossRevenueByDate, r.date, r.revenue);
+        add(bookingRevenueByDate, r.date, r.revenue);
       }
     }
   }
@@ -87,16 +89,18 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
   const days = [];
   for (let i = 0; i < WINDOW_DAYS; i++) {
     const date = shiftISODate(start, i);
-    const grossRevenue = grossRevenueByDate.get(date) || 0;
+    const bookingRevenue = bookingRevenueByDate.get(date) || 0;
+    const subscriptionRevenue = subscriptionRevenueByDate.get(date) || 0;
     const cancelRevenue = cancelRevenueByDate.get(date) || 0;
     days.push({
       date,
       count: countByDate.get(date) || 0,
       cancelCount: cancelCountByDate.get(date) || 0,
       subscriptionCount: subscriptionCountByDate.get(date) || 0,
-      grossRevenue,
+      bookingRevenue,
+      subscriptionRevenue,
       cancelRevenue,
-      revenue: grossRevenue - cancelRevenue,
+      revenue: bookingRevenue + subscriptionRevenue - cancelRevenue,
     });
   }
   return days;

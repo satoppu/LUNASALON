@@ -10,7 +10,7 @@ function labelInterval(length) {
 const MONTHLY_TREND_COLOR = {
   利用売上: "#D4A644",
   定額売上: CHANNEL_COLOR["定期クーポン"],
-  利用合計: "#8F7D6E",
+  利用合売: "#8F7D6E",
   予約売上: "#262421",
 };
 
@@ -25,7 +25,7 @@ function MonthlyTrendTooltip({ active, payload }) {
   const rows = [
     { key: "利用売上", text: yen(d.利用売上), color: MONTHLY_TREND_COLOR.利用売上 },
     { key: "定額売上", text: yen(d.定額売上), color: MONTHLY_TREND_COLOR.定額売上 },
-    { key: "利用合計", text: yen(d.利用売上 + d.定額売上), color: MONTHLY_TREND_COLOR.利用合計 },
+    { key: "利用合売", text: yen(d.利用売上 + d.定額売上), color: MONTHLY_TREND_COLOR.利用合売 },
     { key: "予約売上", text: yen(d.予約売上), color: MONTHLY_TREND_COLOR.予約売上 },
   ];
   return (
@@ -218,7 +218,7 @@ export default function RevenuePage({ data }) {
 
       <div>
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          年度比較(売上) — {yoyLabel}
+          利用全売上 — {yoyLabel}
         </h3>
         <div style={{ background: "#FFFFFF" }} className="p-4 mb-4">
           {hasPriorYear ? (
@@ -244,7 +244,7 @@ export default function RevenuePage({ data }) {
         </div>
 
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          年度比較(利用件数) — {yoyLabel}
+          利用件数 — {yoyLabel}
         </h3>
         <div style={{ background: "#FFFFFF" }} className="p-4 mb-4">
           {hasPriorYear ? (
@@ -296,10 +296,10 @@ export default function RevenuePage({ data }) {
                     店舗({month}月)
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    当月売上
+                    当月利用全売上
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                    前年売上
+                    前年利用全売上
                   </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     前年同月比
