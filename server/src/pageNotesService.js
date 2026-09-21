@@ -1,6 +1,19 @@
 import db from "./db.js";
 
-const VALID_PAGE_KEYS = new Set(["summary", "revenue", "occupancy", "channel", "ranking", "customers", "recent", "settings"]);
+// Sidebar.jsx NAV_ITEMSと一致させる(settingsは記録タブ自身なので対象外だが、
+// 誤って指定されても弾く必要はないのでそのまま許可)。
+const VALID_PAGE_KEYS = new Set([
+  "summary",
+  "daily",
+  "revenue",
+  "occupancy",
+  "customers",
+  "customerList",
+  "recent",
+  "channel",
+  "reference",
+  "settings",
+]);
 
 export function isValidPageKey(pageKey) {
   return VALID_PAGE_KEYS.has(pageKey);
