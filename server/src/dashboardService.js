@@ -8,6 +8,17 @@ export function getAvailableYears() {
   return rows.map((r) => Number(r.y));
 }
 
+// 年度未指定時のデフォルトは「現在の年」(データがあれば)。単純にyears[0]
+// (データがある最新の年)にすると、6ヶ月先まで自動取り込みするようになった
+// 影響で年末近くに翌年の利用前(PENDING)予約が入っただけで、翌年がデフォルト
+// になってしまう。
+function resolveYear(requestedYear, years) {
+  if (requestedYear && years.includes(requestedYear)) return requestedYear;
+  const todayYear = Number(getTodayISO().slice(0, 4));
+  if (years.includes(todayYear)) return todayYear;
+  return years[0];
+}
+
 function getStoreSettings() {
   return db.prepare(`SELECT * FROM store_settings ORDER BY sort_order, store`).all();
 }
@@ -44,7 +55,7 @@ export function getRevenueSection(requestedYear, store) {
   const years = getAvailableYears();
   if (years.length === 0) return { year: null };
 
-  const year = requestedYear && years.includes(requestedYear) ? requestedYear : years[0];
+  const year = resolveYear(requestedYear, years);
   const priorYear = year - 1;
   const hasPriorYear = years.includes(priorYear);
   const priorYear2 = year - 2;
@@ -94,7 +105,7 @@ export function getDashboard(requestedYear) {
     return { years: [], year: null, message: "データがありません。CSVをインポートしてください。" };
   }
 
-  const year = requestedYear && years.includes(requestedYear) ? requestedYear : years[0];
+  const year = resolveYear(requestedYear, years);
   const priorYear = year - 1;
   const hasPriorYear = years.includes(priorYear);
   const priorYear2 = year - 2;
