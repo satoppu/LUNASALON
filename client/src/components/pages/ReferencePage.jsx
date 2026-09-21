@@ -3,6 +3,14 @@ import { api } from "../../api.js";
 import { FONT_HEAD, makeStoreColor, formatDateShort } from "../../constants.js";
 import StoreBadge from "../StoreBadge.jsx";
 
+// 3回未満(0〜2回)は利用が少ない要注意の目安として色を付けて目立たせる。
+// 未割当・表記ゆれで一致しない(null)場合は薄いグレーのまま。
+function countCellStyle(count) {
+  if (count == null) return { color: "#8F7D6E" };
+  if (count < 3) return { color: "#A84434", fontWeight: 600 };
+  return undefined;
+}
+
 export default function ReferencePage({ data }) {
   const storeColor = makeStoreColor(data?.storeMeta);
   const [cabinets, setCabinets] = useState(null);
@@ -69,11 +77,11 @@ export default function ReferencePage({ data }) {
                       {c.slot_label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center" style={c.prevMonthCount == null ? { color: "#8F7D6E" } : undefined}>
-                    {c.prevMonthCount != null ? `${c.prevMonthCount}月` : "—"}
+                  <td className="px-4 py-3 text-center" style={countCellStyle(c.prevMonthCount)}>
+                    {c.prevMonthCount != null ? c.prevMonthCount : "—"}
                   </td>
-                  <td className="px-4 py-3 text-center" style={c.prevMonth2Count == null ? { color: "#8F7D6E" } : undefined}>
-                    {c.prevMonth2Count != null ? `${c.prevMonth2Count}🌕` : "—"}
+                  <td className="px-4 py-3 text-center" style={countCellStyle(c.prevMonth2Count)}>
+                    {c.prevMonth2Count != null ? c.prevMonth2Count : "—"}
                   </td>
                 </tr>
               ))}
