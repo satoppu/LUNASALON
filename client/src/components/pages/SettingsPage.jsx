@@ -7,6 +7,7 @@ import StoreSettings from "../StoreSettings.jsx";
 import PageNotes from "../PageNotes.jsx";
 import CabinetsPage from "./CabinetsPage.jsx";
 import BusinessEventsSection from "../BusinessEventsSection.jsx";
+import ManualSpaceMarketSection from "../ManualSpaceMarketSection.jsx";
 
 const NOTE_PAGES = NAV_ITEMS.filter((n) => n.key !== "settings");
 
@@ -110,6 +111,13 @@ export default function SettingsPage({ onDataChanged }) {
 
       {tab === "registry" && (
         <div>
+          <section className="mb-12">
+            <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+              スペースマーケット手動入力
+            </h3>
+            <ManualSpaceMarketSection />
+          </section>
+
           <section className="mb-12">
             <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
               キャビネット・クーポン

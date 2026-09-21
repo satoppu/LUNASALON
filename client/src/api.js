@@ -83,6 +83,13 @@ export const api = {
   updateCoupon: (id, payload) =>
     request(`/coupons/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
   deleteCoupon: (id) => request(`/coupons/${id}`, { method: "DELETE" }),
+  getManualSpaceMarketTransactions: () => request("/manual-space-market"),
+  getKnownUserNames: () => request("/manual-space-market/user-names"),
+  createManualSpaceMarketTransaction: (payload) =>
+    request("/manual-space-market", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  updateManualSpaceMarketTransaction: (id, payload) =>
+    request(`/manual-space-market/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  deleteManualSpaceMarketTransaction: (id) => request(`/manual-space-market/${id}`, { method: "DELETE" }),
   getBusinessEvents: () => request("/business-events"),
   createBusinessEvent: (payload) =>
     request("/business-events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),

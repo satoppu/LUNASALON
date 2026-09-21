@@ -10,6 +10,7 @@ import customerRoutes from "./routes/customers.js";
 import cabinetsRoutes from "./routes/cabinets.js";
 import businessEventsRoutes from "./routes/businessEvents.js";
 import transactionRoutes from "./routes/transactions.js";
+import manualTransactionsRoutes from "./routes/manualTransactions.js";
 import pageNotesRoutes from "./routes/pageNotes.js";
 import { login, requireAuth } from "./auth.js";
 import "./seed.js"; // seeds transactions from the bundled CSV on first run only
@@ -35,6 +36,7 @@ app.use("/api", customerRoutes);
 app.use("/api", cabinetsRoutes);
 app.use("/api", businessEventsRoutes);
 app.use("/api", transactionRoutes);
+app.use("/api", manualTransactionsRoutes);
 app.use("/api", pageNotesRoutes);
 
 // Serve the built client in production (single-deployment setup per spec 7.4).

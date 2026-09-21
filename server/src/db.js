@@ -83,6 +83,17 @@ if (!hasCancelledDate) {
   db.exec(`ALTER TABLE transactions ADD COLUMN cancelled_date TEXT;`);
 }
 
+// manual_entry — marks rows entered by hand via 設定→記録(スペースマーケット
+// 手動入力), as opposed to CSV/xlsxインポート由来の行。編集・削除UIはこの
+// フラグが立った行だけを対象にすることで、インポート済みの実績データを
+// 誤って書き換えないようにする。
+const hasManualEntry = db
+  .prepare(`SELECT 1 FROM pragma_table_info('transactions') WHERE name = 'manual_entry'`)
+  .get();
+if (!hasManualEntry) {
+  db.exec(`ALTER TABLE transactions ADD COLUMN manual_entry INTEGER NOT NULL DEFAULT 0;`);
+}
+
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store_date ON transactions(store, date);`);
