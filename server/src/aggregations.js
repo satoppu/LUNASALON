@@ -158,23 +158,28 @@ export function buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorY
  * @param {string} params.todayISO
  */
 /**
- * 月別売上推移(通常予約/定期クーポン/決済日ベース)と年度比較(売上・利用件数)
- * — 売上分析ページの店舗フィルタ用に、buildDashboard本体から切り出したもの。
+ * 月別売上推移(利用売上/定額売上/予約売上)と年度比較(売上・利用件数) —
+ * 売上分析ページの店舗フィルタ用に、buildDashboard本体から切り出したもの。
  * yearRows/priorYearRows/priorYear2Rows/allRowsを事前に店舗で絞り込んでおけば
  * その店舗だけの数値になる(絞り込まなければ全店舗合算、buildDashboardと同じ)。
+ *
+ * 用語(UIの表記に合わせる): 利用売上=通常予約の利用日ベース売上、
+ * 定額売上=定期クーポンの購入日ベース売上、予約売上=決済日(自社サイトの
+ * 決済日時(データ入力用)、Instabaseの申込日時、それ以外は利用日で代用)
+ * ベースの合計売上。
  */
 export function buildRevenueSection({ year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, yearRows, priorYearRows, priorYear2Rows, allRows }) {
-  const monthlyTrend = MONTH_LABELS.map((label) => ({ label, 通常予約: 0, 定期クーポン: 0, 決済日ベース: 0 }));
+  const monthlyTrend = MONTH_LABELS.map((label) => ({ label, 利用売上: 0, 定額売上: 0, 予約売上: 0 }));
   yearRows.forEach((r) => {
     const m = Number(r.date.slice(5, 7)) - 1;
-    const key = r.status === SUBSCRIPTION_STATUS ? "定期クーポン" : "通常予約";
+    const key = r.status === SUBSCRIPTION_STATUS ? "定額売上" : "利用売上";
     monthlyTrend[m][key] += effectiveRevenue(r);
   });
   allRows.forEach((r) => {
     bookingRevenueContributions(r).forEach(({ month, amount }) => {
       if (Number(month.slice(0, 4)) !== year) return;
       const bm = Number(month.slice(5, 7)) - 1;
-      monthlyTrend[bm].決済日ベース += amount;
+      monthlyTrend[bm].予約売上 += amount;
     });
   });
 

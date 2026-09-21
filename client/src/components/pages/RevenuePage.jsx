@@ -7,6 +7,39 @@ function labelInterval(length) {
   return Math.max(0, Math.ceil(length / 12) - 1);
 }
 
+const MONTHLY_TREND_COLOR = {
+  利用売上: "#D4A644",
+  定額売上: CHANNEL_COLOR["定期クーポン"],
+  利用合計: "#8F7D6E",
+  予約売上: "#262421",
+};
+
+// 利用売上/定額売上は利用日(通常予約/定期クーポン)、予約売上は決済日
+// (自社サイトの決済日時、Instabaseの申込日時)の合計売上 — 3つとも集計基準
+// が異なるため、まとめて出すツールチップは各行を手書きする(recharts標準の
+// Tooltipはシリーズの登録順で表示され、利用合計のような追加の計算行も
+// 出せないため)。
+function MonthlyTrendTooltip({ active, payload }) {
+  if (!active || !payload || payload.length === 0) return null;
+  const d = payload[0].payload;
+  const rows = [
+    { key: "利用売上", text: yen(d.利用売上), color: MONTHLY_TREND_COLOR.利用売上 },
+    { key: "定額売上", text: yen(d.定額売上), color: MONTHLY_TREND_COLOR.定額売上 },
+    { key: "利用合計", text: yen(d.利用売上 + d.定額売上), color: MONTHLY_TREND_COLOR.利用合計 },
+    { key: "予約売上", text: yen(d.予約売上), color: MONTHLY_TREND_COLOR.予約売上 },
+  ];
+  return (
+    <div style={{ background: "#FFFFFF", border: "1px solid #EDE3D5", padding: "8px 12px", fontSize: 12 }}>
+      <p style={{ color: "#262421", fontWeight: 600, margin: "0 0 4px" }}>{d.label}</p>
+      {rows.map((row) => (
+        <p key={row.key} style={{ color: row.color, margin: 0 }}>
+          {row.key}:{row.text}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 export default function RevenuePage({ data }) {
   const { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, storeMeta, storeNames } = data;
   const storeColor = makeStoreColor(storeMeta);
@@ -82,7 +115,7 @@ export default function RevenuePage({ data }) {
 
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          売上推移({year}年・月別・通常予約 / 定期クーポン)
+          売上推移({year}年・月別・利用売上 / 定額売上)
         </h3>
         <div style={{ background: "#FFFFFF" }} className="p-4">
           <ResponsiveContainer width="100%" height={300}>
@@ -95,29 +128,22 @@ export default function RevenuePage({ data }) {
                 tickLine={false}
                 tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
               />
-              <Tooltip formatter={(v) => yen(v)} />
+              <Tooltip content={<MonthlyTrendTooltip />} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="通常予約" stackId="revenue" fill="#D4A644" name="通常予約(利用日ベース)" />
-              <Bar dataKey="定期クーポン" stackId="revenue" fill={CHANNEL_COLOR["定期クーポン"]} name="定期クーポン(利用日ベース)" />
-              <Line
-                type="monotone"
-                dataKey="決済日ベース"
-                name="決済日ベース(合計)"
-                stroke="#262421"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-              />
+              <Bar dataKey="利用売上" stackId="revenue" fill={MONTHLY_TREND_COLOR.利用売上} name="利用売上" />
+              <Bar dataKey="定額売上" stackId="revenue" fill={MONTHLY_TREND_COLOR.定額売上} name="定額売上" />
+              <Line type="monotone" dataKey="予約売上" name="予約売上" stroke={MONTHLY_TREND_COLOR.予約売上} strokeWidth={2.5} dot={{ r: 3 }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
         <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-          棒グラフは利用日基準、線グラフは決済日(自社サイト: 決済日時(データ入力用)、Instabase: 申込日時)基準の合計売上です。決済日が取得できない行は利用日を代用しています。自社サイトのキャンセルは、キャンセルが確定した月にマイナス反映されます。
+          利用売上・定額売上は利用日、予約売上は決済日(自社サイト: 決済日時(データ入力用)、Instabase: 申込日時)の合計売上です。決済日が取得できない行は利用日を代用しています。自社サイトのキャンセルは、キャンセルが確定した月にマイナス反映されます。
         </p>
       </div>
 
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          決済日ベース売上推移(月別・過去3年)
+          予約売上推移(月別・過去3年)
         </h3>
         <div style={{ background: "#FFFFFF" }} className="p-4">
           {bookingDateMonthlyTrend.length > 0 ? (
@@ -141,7 +167,7 @@ export default function RevenuePage({ data }) {
                   tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip formatter={(v) => yen(v)} />
-                <Bar dataKey="revenue" name="決済日ベース売上" fill="#D9738F" />
+                <Bar dataKey="revenue" name="予約売上" fill="#D9738F" />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -186,7 +212,7 @@ export default function RevenuePage({ data }) {
           )}
         </div>
         <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-          利用月ベースの合計利用時間です(全店舗・全チャネル)。定期クーポンは購入時にまとめて売上計上され実際の利用月には売上が乗らないため、金額より実際の稼働状況を正しく反映します。
+          利用月の合計利用時間です(全店舗・全チャネル)。定期クーポンは購入時にまとめて売上計上され実際の利用月には売上が乗らないため、金額より実際の稼働状況を正しく反映します。
         </p>
       </div>
 

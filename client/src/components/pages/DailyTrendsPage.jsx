@@ -27,7 +27,7 @@ const LEGEND_ITEMS = [
   { label: "予約", color: COLOR.予約, shape: "square" },
   { label: "取消", color: COLOR.取消, shape: "square" },
   { label: "定額", color: COLOR.定額, shape: "square" },
-  { label: "売上", color: COLOR.合計, shape: "line" },
+  { label: "予約売上", color: COLOR.合計, shape: "line" },
 ];
 
 function DailyTrendsLegend() {
@@ -56,7 +56,7 @@ function DailyTrendsTooltip({ active, payload }) {
     { key: "subscriptionCount", labelText: "定額", text: `${d.subscriptionCount}件`, color: COLOR.定額 },
     { key: "grossRevenue", labelText: "売上", text: yen(d.grossRevenue), color: COLOR.売上 },
     { key: "cancelRevenue", labelText: "取消", text: d.cancelRevenue > 0 ? `-${yen(d.cancelRevenue)}` : yen(0), color: COLOR.取消 },
-    { key: "revenue", labelText: "合計", text: yen(d.revenue), color: COLOR.合計 },
+    { key: "revenue", labelText: "予約売上", text: yen(d.revenue), color: COLOR.合計 },
   ];
   return (
     <div style={{ background: "#FFFFFF", border: "1px solid #EDE3D5", padding: "8px 12px", fontSize: 12 }}>
@@ -108,7 +108,7 @@ export default function DailyTrendsPage({ data }) {
 
       <div className="flex items-center justify-between mb-4">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">
-          予約受付件数・売上(予約日ベース{rangeLabel ? `・${rangeLabel}` : ""})
+          予約受付件数・予約売上(予約日ベース{rangeLabel ? `・${rangeLabel}` : ""})
         </h3>
         <div className="flex items-center gap-1">
           <button
@@ -197,12 +197,12 @@ export default function DailyTrendsPage({ data }) {
                   cursor="pointer"
                   onClick={(entry) => setSelectedDate(entry.date)}
                 />
-                <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="合計" stroke={COLOR.合計} strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line yAxisId="revenue" type="monotone" dataKey="revenue" name="予約売上" stroke={COLOR.合計} strokeWidth={2.5} dot={{ r: 3 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
           <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-            予約(または定期クーポン購入)が行われた日ベースです(利用日ではありません)。合計は「予約+定額クーポンの売上」からキャンセル代(自社サイトの本来の予約金額とキャンセル後に実際に残った売上の差額)を差し引いた金額です。棒をクリックすると、その日の明細を表示します。
+            予約(または定期クーポン購入)が行われた日です(利用日ではありません)。予約売上は「予約+定額クーポンの売上」からキャンセル代(自社サイトの本来の予約金額とキャンセル後に実際に残った売上の差額)を差し引いた金額です。棒をクリックすると、その日の明細を表示します。
           </p>
         </>
       )}

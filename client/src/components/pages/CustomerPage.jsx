@@ -412,7 +412,7 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
 
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-          月別 予約→利用の対応(利用時間ベース・過去3年)
+          月別 予約→利用の対応(利用時間・過去3年)
         </h3>
         <div style={{ background: "#FFFFFF" }} className="p-4">
           {state.bookingToUsageMonthlyHours.length > 0 ? (
