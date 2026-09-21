@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getDashboard, getAvailableYears, getYoyByStore, getRevenueSection } from "../dashboardService.js";
 import { getNewBookingsDaily, getBookingsForDate } from "../newBookingsDaily.js";
+import { getUsageDaily, getUsageForDate } from "../usageDaily.js";
 
 const router = Router();
 
@@ -21,6 +22,23 @@ router.get("/dashboard/new-bookings-daily/detail", (req, res) => {
   const { date } = req.query;
   if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date must be YYYY-MM-DD" });
   res.json({ rows: getBookingsForDate(date, req.query.store || undefined) });
+});
+
+router.get("/dashboard/usage-daily", (req, res) => {
+  let offset = 0;
+  if (req.query.offset !== undefined) {
+    offset = Number(req.query.offset);
+    if (!Number.isInteger(offset) || offset < 0) {
+      return res.status(400).json({ error: "offset must be a non-negative integer" });
+    }
+  }
+  res.json({ days: getUsageDaily(offset, req.query.store || undefined) });
+});
+
+router.get("/dashboard/usage-daily/detail", (req, res) => {
+  const { date } = req.query;
+  if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+  res.json({ rows: getUsageForDate(date, req.query.store || undefined) });
 });
 
 router.get("/years", (req, res) => {

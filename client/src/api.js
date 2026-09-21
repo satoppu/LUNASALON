@@ -31,6 +31,18 @@ export const api = {
     if (store) params.set("store", store);
     return request(`/dashboard/new-bookings-daily/detail?${params.toString()}`);
   },
+  getUsageDaily: (offset, store) => {
+    const params = new URLSearchParams();
+    if (offset) params.set("offset", offset);
+    if (store) params.set("store", store);
+    const qs = params.toString();
+    return request(`/dashboard/usage-daily${qs ? `?${qs}` : ""}`);
+  },
+  getUsageForDate: (date, store) => {
+    const params = new URLSearchParams({ date });
+    if (store) params.set("store", store);
+    return request(`/dashboard/usage-daily/detail?${params.toString()}`);
+  },
   getYears: () => request("/years"),
   getYoyByStore: (year, month, store) => {
     const params = new URLSearchParams({ year });
