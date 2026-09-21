@@ -1,8 +1,9 @@
 // 日次動向の「予約受付件数」— 過去の実装(aggregations.js に混ざっていた
 // buildDailyTrends)で原因不明のメモリ急増が起きたため、切り離して作り直した
 // 最小構成。allRowsをなめて集計するのではなく、直近10日間のbooking_date/
-// cancelled_dateに絞ったSELECTだけを行うことで、テーブル全体のサイズに
-// 依存しない小さく一定のコストに抑えている(どちらも索引あり)。
+// revenue_confirmed_date/cancelled_dateに絞ったSELECTだけを行うことで、
+// テーブル全体のサイズに依存しない小さく一定のコストに抑えている(いずれも
+// 索引あり)。
 import db from "./db.js";
 import { getTodayISO, REVENUE_STATUSES, SUBSCRIPTION_STATUS, isCancellationStatus } from "./config.js";
 
@@ -33,19 +34,21 @@ function shiftISODate(iso, delta) {
  * 件数・売上が必ず不完全な値になるため、一番新しい日は今日ではなく前日
  * (JST基準)にしている。offsetWindowsを1増やすごとに、その10日ブロックを
  * まるごと1つ過去にずらす(例: offsetWindows=1は「前日から数えて11〜20日
- * 前」)。booking_date/cancelled_dateの範囲を絞ったSELECTのみなので、
- * offsetWindowsの大小やテーブル全体のサイズに関係なく一定のコストに収まる。
+ * 前」)。booking_date/確定日の範囲を絞ったSELECTのみなので、offsetWindows
+ * の大小やテーブル全体のサイズに関係なく一定のコストに収まる。
  *
  * 予約した日にその日の売上として計上し、後日キャンセルされた場合はキャンセル
- * が確定した日(cancelled_date — 日次自動取り込みが最初にキャンセルへの
- * 変化を検知した日、importService.js。無ければbooking_dateにフォールバック)
- * の売上から差し引く — 実店舗の会計感覚に合わせた日ごとの分割計上(自社
- * サイトのbooking_amountを保持する行のみ可能。他チャネルは本来の予約金額を
- * 保持していないため、従来通りbooking_date側に「取消」として計上する)。
- * cancelled_dateが正しく当日を指すには、毎朝の自動取り込み
- * (autoFetchImport.js)が予約可能な最大期間(6ヶ月先)を毎日カバーし続けて
- * いる必要がある — 取り込みの空白期間があると、その間のキャンセルは後から
- * しか検知できず、cancelled_dateが実際より遅れる。
+ * が確定した日の売上から差し引く — 実店舗の会計感覚に合わせた日ごとの分割
+ * 計上(自社サイトのbooking_amountを保持する行のみ可能。他チャネルは本来の
+ * 予約金額を保持していないため、従来通りbooking_date側に「取消」として計上
+ * する)。確定日は次の優先順で決める:
+ *   1) revenue_confirmed_date — よやクルPro自体の「売り上げ確定日時」
+ *      (rawImportMappers.js)。予約・利用・キャンセルの都度更新される実際の
+ *      確定日で、検知の遅れが無く最も正確。
+ *   2) cancelled_date — 日次自動取り込みが最初にキャンセルへの変化を検知
+ *      した日(importService.js)。上記が無い行(古い履歴データなど)向けの
+ *      フォールバックで、検知の遅れが最大1日ある。
+ *   3) booking_date — どちらも無い場合の最終フォールバック。
  *
  * 件数は通常予約・キャンセル・定期クーポンの3つに分けて集計する(積み上げ
  * 棒グラフ用)。売上は利用売上(bookingRevenue — 予約(利用済み/利用前)の
@@ -65,9 +68,9 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
   const params = store ? [start, end, start, end, store] : [start, end, start, end];
   const rows = db
     .prepare(
-      `SELECT booking_date AS date, cancelled_date, status, channel, revenue, booking_amount
+      `SELECT booking_date AS date, revenue_confirmed_date, cancelled_date, status, channel, revenue, booking_amount
        FROM transactions
-       WHERE ((booking_date >= ? AND booking_date <= ?) OR (cancelled_date >= ? AND cancelled_date <= ?))
+       WHERE ((booking_date >= ? AND booking_date <= ?) OR (COALESCE(revenue_confirmed_date, cancelled_date) >= ? AND COALESCE(revenue_confirmed_date, cancelled_date) <= ?))
        ${storeClause}`
     )
     .all(...params);
@@ -91,7 +94,7 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
       if (r.channel === OWN_SITE_CHANNEL && r.booking_amount != null) {
         // 予約日に全額計上、キャンセル確定日にその分を差し引く(同じ日なら
         // 両方が同じ日のバケットに乗るだけで、実質は従来通りの単日相殺)。
-        const confirmDate = r.cancelled_date || r.date;
+        const confirmDate = r.revenue_confirmed_date || r.cancelled_date || r.date;
         if (inWindow(r.date)) {
           add(countByDate, r.date, 1);
           add(bookingRevenueByDate, r.date, r.booking_amount);
@@ -134,8 +137,9 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
 /**
  * ある1日の明細(getNewBookingsDaily()の棒をクリックした時の内訳)。
  * booking_date=その日(通常予約・定期クーポン・他チャネルのキャンセル)に
- * 加えて、自社サイトのキャンセルでcancelled_date=その日の行も含む(キャン
- * セル確定日側に「取消」として計上される行なので、明細にも出す)。
+ * 加えて、自社サイトのキャンセルで確定日(revenue_confirmed_date、無ければ
+ * cancelled_date)=その日の行も含む(キャンセル確定日側に「取消」として
+ * 計上される行なので、明細にも出す)。
  */
 export function getBookingsForDate(bookingDate, store) {
   const storeClause = store ? "AND store = ?" : "";
@@ -144,7 +148,7 @@ export function getBookingsForDate(bookingDate, store) {
     .prepare(
       `SELECT date, store, user_name, revenue, status, channel, booking_amount
        FROM transactions
-       WHERE (booking_date = ? OR cancelled_date = ?) ${storeClause}
+       WHERE (booking_date = ? OR COALESCE(revenue_confirmed_date, cancelled_date) = ?) ${storeClause}
        ORDER BY user_name`
     )
     .all(...params);
