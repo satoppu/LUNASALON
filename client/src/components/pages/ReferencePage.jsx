@@ -44,43 +44,42 @@ export default function ReferencePage({ data }) {
             <thead>
               <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  {cabinets[0]?.prevMonth2Label || "前々月"}の利用回数
-                </th>
-                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  {cabinets[0]?.prevMonthLabel || "前月"}の利用回数
-                </th>
-                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  店舗名
-                </th>
-                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  番号
-                </th>
-                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   利用者
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  店舗
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  前月
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  前々月
                 </th>
               </tr>
             </thead>
             <tbody>
               {cabinets.map((c) => (
                 <tr key={c.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                  <td className="px-4 py-3 text-center" style={c.prevMonth2Count == null ? { color: "#8F7D6E" } : undefined}>
-                    {c.prevMonth2Count != null ? `${c.prevMonth2Count}回` : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-center" style={c.prevMonthCount == null ? { color: "#8F7D6E" } : undefined}>
-                    {c.prevMonthCount != null ? `${c.prevMonthCount}回` : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <StoreBadge store={c.store} storeColor={storeColor} />
-                  </td>
-                  <td className="px-4 py-3 text-center">{c.slot_label}</td>
                   <td className="px-4 py-3 text-left" style={!c.user_name ? { color: "#8F7D6E" } : undefined}>
                     {c.user_name || "空き"}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="inline-flex items-center gap-1">
+                      <StoreBadge store={c.store} storeColor={storeColor} />
+                      {c.slot_label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center" style={c.prevMonthCount == null ? { color: "#8F7D6E" } : undefined}>
+                    {c.prevMonthCount != null ? `${c.prevMonthCount}月` : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-center" style={c.prevMonth2Count == null ? { color: "#8F7D6E" } : undefined}>
+                    {c.prevMonth2Count != null ? `${c.prevMonth2Count}🌕` : "—"}
                   </td>
                 </tr>
               ))}
               {cabinets.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                  <td colSpan={4} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                     登録されているキャビネットがありません。
                   </td>
                 </tr>
