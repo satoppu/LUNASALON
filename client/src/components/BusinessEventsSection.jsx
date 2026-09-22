@@ -88,7 +88,7 @@ export default function BusinessEventsSection() {
       )}
 
       <div style={{ background: "#FFFFFF" }} className="overflow-x-auto mb-3">
-        <table className="w-full text-sm">
+        <table className="min-w-[760px] w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
               <th className="text-left px-4 py-2 font-medium w-32" style={{ color: "#8F7D6E" }}>
@@ -100,7 +100,7 @@ export default function BusinessEventsSection() {
               <th className="text-left px-4 py-2 font-medium w-40" style={{ color: "#8F7D6E" }}>
                 対象店舗
               </th>
-              <th className="text-left px-4 py-2 font-medium" style={{ color: "#8F7D6E" }}>
+              <th className="text-left px-4 py-2 font-medium min-w-[180px]" style={{ color: "#8F7D6E" }}>
                 内容
               </th>
               <th className="text-center px-4 py-2 font-medium w-32" style={{ color: "#8F7D6E" }}>
