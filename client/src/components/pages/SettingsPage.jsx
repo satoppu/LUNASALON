@@ -19,6 +19,9 @@ const TABS = [
 function describeImportResult(result) {
   const parts = [`${result.inserted}件のデータを取り込みました。`];
   if (result.updated) parts.push(`${result.updated}件は状況が更新されました(例: 利用前→利用済み)。`);
+  if (result.claimed) parts.push(`${result.claimed}件は過去データと紐付けて最新の内容に更新しました。`);
+  if (result.claimSkippedAmbiguous) parts.push(`${result.claimSkippedAmbiguous}件は一致候補が複数あり自動更新をスキップしました(要確認)。`);
+  if (result.claimSkippedConflict) parts.push(`${result.claimSkippedConflict}件は既に別の行と紐付いていたためスキップしました(重複の可能性、要確認)。`);
   if (result.skippedAlreadyCovered) parts.push(`${result.skippedAlreadyCovered}件は既に取り込み済みのためスキップしました。`);
   if (result.skippedUnparseable) parts.push(`${result.skippedUnparseable}件は読み取れませんでした。`);
   if (result.unresolvedOrBad) parts.push(`${result.unresolvedOrBad}件は利用実績がなく店舗を特定できないため保留しました。`);

@@ -1,7 +1,7 @@
 import Papa from "papaparse";
 import db from "./db.js";
 import { normalizeImportRow } from "./importRows.js";
-import { SUBSCRIPTION_STATUS, PENDING_STATUS, isCancellationStatus, getTodayISO } from "./config.js";
+import { SUBSCRIPTION_STATUS, isCancellationStatus, getTodayISO } from "./config.js";
 import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow, mapRawSpaceMarketRow } from "./rawImportMappers.js";
 import { ensureStoreRegistered } from "./storeSettingsService.js";
 
@@ -70,12 +70,14 @@ function rowChanged(existing, incoming) {
   return COMPARE_FIELDS.some((f) => (existing[f] ?? null) !== (incoming[f] ?? null));
 }
 
-function insertRows(rows) {
+// inTransaction: true は、呼び出し側が既にBEGIN済みの時用(importRawBookingCsv
+// がclaimLegacyRowsと1つのトランザクションにまとめるために使う)。SQLiteは
+// トランザクションのネストができないため、その場合は自前でBEGIN/COMMITしない。
+function insertRows(rows, { inTransaction = false } = {}) {
   const seenStores = new Set(rows.map((r) => r.store));
   let inserted = 0;
   let updated = 0;
-  db.exec("BEGIN");
-  try {
+  const run = () => {
     for (const store of seenStores) ensureStoreRegistered(store);
     for (const r of rows) {
       const existing = r.external_id ? selectExistingStmt.get(r.external_id) : undefined;
@@ -89,10 +91,18 @@ function insertRows(rows) {
       // else: already present with identical values — counted as a
       // duplicate by callers (rows.length - inserted - updated), not written.
     }
-    db.exec("COMMIT");
-  } catch (err) {
-    db.exec("ROLLBACK");
-    throw err;
+  };
+  if (inTransaction) {
+    run();
+  } else {
+    db.exec("BEGIN");
+    try {
+      run();
+      db.exec("COMMIT");
+    } catch (err) {
+      db.exec("ROLLBACK");
+      throw err;
+    }
   }
   return { inserted, updated };
 }
@@ -106,23 +116,96 @@ function importSimpleCsv(parsed) {
   return { format: "simple", inserted, skipped: parsed.data.length - rows.length, duplicates: rows.length - inserted, error: null };
 }
 
-// The bundled historical CSVs predate external_id tracking, so the upsert
-// alone can't tell "already imported via a previous raw export" apart from
-// "already covered by the original historical data". Only importing rows
-// past the latest matching date among those *historical* (external_id-less)
-// rows avoids double-counting revenue from that overlap — computed that way,
-// rather than as a plain MAX(date) over the whole table, so it stays fixed
-// even as later imports add PENDING_STATUS ("利用前") rows dated months into
-// the future (see rawImportMappers.js). PENDING_STATUS itself is exempt from
-// this cutoff entirely: that status didn't exist in the historical export
-// (未確定 rows were skipped outright before this pipeline handled them), so a
-// row mapped to it can never actually be historical-CSV ground, even when its
-// date happens to land on/before the cutoff (e.g. a same-day booking for
-// later today, dated the same as the cutoff day itself).
+// 予約枠を特定できる不変キー(利用日+店舗+利用者+開始時。分は古い履歴データに
+// 無い行があるため使わない)。status/revenue/hours_usedはキャンセル等で後から
+// 変わりうるため、あえてキーに含めない — 変わる前後で同じ枠だと突き合わせる
+// のがこの関数の目的そのもの。
+function legacyMatchKey(r) {
+  return [r.date, r.store, r.user_name, r.start_hour].join("|");
+}
+
+// 履歴の一括インポート(external_idが無い、まだ紐付いていない行)は、この
+// キーで今回のexportと突き合わせ、一致した行はexternal_idごと丸ごと今回の
+// 内容に更新する(「このzipを正として、以後はexternal_idで追随できるように
+// 紐付け直す」)。1つのキーに複数行が絡む場合(同一人物が同じ日・同じ店舗・
+// 同じ開始時に複数回など)は誤って紐付けるくらいなら何もしない方が安全なので
+// スキップする(claimSkippedAmbiguous)。external_idが既に別の行で使われて
+// いる場合(履歴データと日次自動取り込みの両方に同じ予約が別行として入って
+// しまっている重複)も、どちらが正しいか自動判断できないためスキップし
+// (claimSkippedConflict)、利用者側で内容を見て手動で判断してもらう。
+// 突き合わせで紐付けられなかった行は、以降の通常のexternal_idベースの
+// upsert(insertRows)に回す — 既存なら更新、無ければ新規追加になる。
+function claimLegacyRows(rows) {
+  const legacyExisting = db
+    .prepare(`SELECT id, date, store, user_name, start_hour FROM transactions WHERE external_id IS NULL AND channel = '自社サイト'`)
+    .all();
+  const legacyByKey = groupByKey(legacyExisting, legacyMatchKey);
+  const fileByKey = groupByKey(rows, legacyMatchKey);
+
+  const claimStmt = db.prepare(`
+    UPDATE transactions SET
+      date = @date, user_name = @user_name, revenue = @revenue, hours_used = @hours_used,
+      start_hour = @start_hour, start_minute = @start_minute, weekday = @weekday, status = @status,
+      external_id = @external_id, booking_date = @booking_date, revenue_confirmed_date = @revenue_confirmed_date,
+      booking_amount = @booking_amount
+    WHERE id = @id
+  `);
+  const externalIdTakenStmt = db.prepare(`SELECT 1 FROM transactions WHERE external_id = ? AND id != ?`);
+
+  let claimed = 0;
+  let claimSkippedAmbiguous = 0;
+  let claimSkippedConflict = 0;
+  const claimedRows = new Set();
+  const ambiguousRows = new Set();
+
+  for (const [key, fileRows] of fileByKey) {
+    const dbRows = legacyByKey.get(key);
+    if (!dbRows || dbRows.length === 0) continue; // 履歴に無い = 通常のインポートに任せる
+    if (dbRows.length !== fileRows.length) {
+      // どの履歴行に対応するか一意に決められない — 誤って紐付けるより、
+      // この行はここでは何もしない方が安全。通常のinsertRowsにも回さない
+      // (そのまま新規行として追加すると、既にある複数の履歴行のどれかと
+      // 中身が重複する行をもう1件増やしてしまうため)。
+      claimSkippedAmbiguous += fileRows.length;
+      for (const fileRow of fileRows) ambiguousRows.add(fileRow);
+      continue;
+    }
+    for (let i = 0; i < dbRows.length; i++) {
+      const fileRow = fileRows[i];
+      if (fileRow.external_id && externalIdTakenStmt.get(fileRow.external_id, dbRows[i].id)) {
+        claimSkippedConflict++;
+        continue;
+      }
+      claimStmt.run({
+        date: fileRow.date,
+        user_name: fileRow.user_name,
+        revenue: fileRow.revenue,
+        hours_used: fileRow.hours_used,
+        start_hour: fileRow.start_hour,
+        start_minute: fileRow.start_minute,
+        weekday: fileRow.weekday,
+        status: fileRow.status,
+        external_id: fileRow.external_id,
+        booking_date: fileRow.booking_date,
+        revenue_confirmed_date: fileRow.revenue_confirmed_date,
+        booking_amount: fileRow.booking_amount,
+        id: dbRows[i].id,
+      });
+      claimed++;
+      claimedRows.add(fileRow);
+    }
+  }
+
+  return {
+    claimed,
+    claimSkippedAmbiguous,
+    claimSkippedConflict,
+    remainingRows: rows.filter((r) => !claimedRows.has(r) && !ambiguousRows.has(r)),
+  };
+}
+
 function importRawBookingCsv(parsed) {
-  const since = db.prepare("SELECT MAX(date) AS d FROM transactions WHERE external_id IS NULL").get().d ?? "0000-00-00";
   let skippedUnparseable = 0;
-  let skippedAlreadyCovered = 0;
   const rows = [];
 
   for (const raw of parsed.data) {
@@ -131,21 +214,35 @@ function importRawBookingCsv(parsed) {
       skippedUnparseable++;
       continue;
     }
-    if (row.date <= since && row.status !== PENDING_STATUS) {
-      skippedAlreadyCovered++;
-      continue;
-    }
     rows.push(row);
   }
 
-  const { inserted, updated } = rows.length > 0 ? insertRows(rows) : { inserted: 0, updated: 0 };
+  let claimed = 0;
+  let claimSkippedAmbiguous = 0;
+  let claimSkippedConflict = 0;
+  let remainingRows = rows;
+  let inserted = 0;
+  let updated = 0;
+
+  db.exec("BEGIN");
+  try {
+    ({ claimed, claimSkippedAmbiguous, claimSkippedConflict, remainingRows } = claimLegacyRows(rows));
+    if (remainingRows.length > 0) ({ inserted, updated } = insertRows(remainingRows, { inTransaction: true }));
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
+
   return {
     format: "rawBooking",
     inserted,
     updated,
-    duplicates: rows.length - inserted - updated,
+    claimed,
+    claimSkippedAmbiguous,
+    claimSkippedConflict,
+    duplicates: remainingRows.length - inserted - updated,
     skippedUnparseable,
-    skippedAlreadyCovered,
     error: null,
   };
 }

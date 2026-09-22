@@ -39,7 +39,18 @@ function importXlsxBuffer(buffer) {
 // Combines each CSV's importCsv() result (e.g. the 予約 and 有料クーポン
 // exports bundled in the 自社サイトの zip download) into one summary by
 // summing the numeric fields every format can produce.
-const NUMERIC_RESULT_KEYS = ["inserted", "updated", "duplicates", "skipped", "skippedUnparseable", "skippedAlreadyCovered", "unresolvedOrBad"];
+const NUMERIC_RESULT_KEYS = [
+  "inserted",
+  "updated",
+  "duplicates",
+  "skipped",
+  "skippedUnparseable",
+  "skippedAlreadyCovered",
+  "unresolvedOrBad",
+  "claimed",
+  "claimSkippedAmbiguous",
+  "claimSkippedConflict",
+];
 function mergeResults(results) {
   const merged = { format: results.map((r) => r.format).join("+"), error: null };
   for (const key of NUMERIC_RESULT_KEYS) {
