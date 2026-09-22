@@ -11,20 +11,20 @@ router.get("/transactions/filters", (req, res) => {
 });
 
 router.get("/transactions", (req, res) => {
-  const { start, end, store, status, user, limit, offset, sort } = req.query;
+  const { start, end, store, status, channel, user, limit, offset, sort } = req.query;
   if (start && !DATE_RE.test(start)) return res.status(400).json({ error: "start must be YYYY-MM-DD" });
   if (end && !DATE_RE.test(end)) return res.status(400).json({ error: "end must be YYYY-MM-DD" });
   if (sort && sort !== "asc" && sort !== "desc") return res.status(400).json({ error: "sort must be asc or desc" });
-  res.json(searchTransactions({ start, end, store, status, user, limit, offset, sort }));
+  res.json(searchTransactions({ start, end, store, status, channel, user, limit, offset, sort }));
 });
 
 router.get("/transactions/export", (req, res) => {
-  const { start, end, store, status, user, sort } = req.query;
+  const { start, end, store, status, channel, user, sort } = req.query;
   if (start && !DATE_RE.test(start)) return res.status(400).json({ error: "start must be YYYY-MM-DD" });
   if (end && !DATE_RE.test(end)) return res.status(400).json({ error: "end must be YYYY-MM-DD" });
   if (sort && sort !== "asc" && sort !== "desc") return res.status(400).json({ error: "sort must be asc or desc" });
 
-  const rows = exportTransactions({ start, end, store, status, user, sort });
+  const rows = exportTransactions({ start, end, store, status, channel, user, sort });
   const csv = Papa.unparse(
     rows.map((r) => ({
       日付: r.date,

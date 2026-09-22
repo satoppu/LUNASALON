@@ -32,12 +32,13 @@ export default function RecentPage({ data, recentFilter, onNavigateToHistory }) 
   const [end, setEnd] = useState("");
   const [store, setStore] = useState("");
   const [status, setStatus] = useState("");
+  const [channel, setChannel] = useState("");
   const [user, setUser] = useState(recentFilter?.user || "");
   const [sort, setSort] = useState("desc");
   const [offset, setOffset] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({ stores: [], statuses: [] });
+  const [filters, setFilters] = useState({ stores: [], statuses: [], channels: [] });
   const customerByName = useCustomerLookup();
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -70,6 +71,7 @@ export default function RecentPage({ data, recentFilter, onNavigateToHistory }) 
         end: end || undefined,
         store: store || undefined,
         status: resolved || undefined,
+        channel: channel || undefined,
         user: user || undefined,
         sort,
       },
@@ -94,6 +96,7 @@ export default function RecentPage({ data, recentFilter, onNavigateToHistory }) 
       end: end || undefined,
       store: store || undefined,
       status: status || undefined,
+      channel: channel || undefined,
       user: user || undefined,
       sort,
     };
@@ -115,12 +118,13 @@ export default function RecentPage({ data, recentFilter, onNavigateToHistory }) 
     setEnd("");
     setStore("");
     setStatus("");
+    setChannel("");
     setUser("");
     setOffset(0);
     load({ sort }, 0);
   }
 
-  const hasFilters = start || end || store || status || user;
+  const hasFilters = start || end || store || status || channel || user;
   const selectClass = "text-sm px-3 py-2 border";
   const selectStyle = { borderColor: "#EDE3D5", background: "#FFFFFF" };
 
@@ -159,6 +163,14 @@ export default function RecentPage({ data, recentFilter, onNavigateToHistory }) 
             {filters.statuses.map((s) => (
               <option key={s} value={s}>
                 {s}
+              </option>
+            ))}
+          </select>
+          <select value={channel} onChange={(e) => setChannel(e.target.value)} className={selectClass} style={selectStyle}>
+            <option value="">導線(すべて)</option>
+            {filters.channels.map((c) => (
+              <option key={c} value={c}>
+                {c}
               </option>
             ))}
           </select>

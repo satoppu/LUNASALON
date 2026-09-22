@@ -58,12 +58,13 @@ export const api = {
     return request(`/revenue${qs ? `?${qs}` : ""}`);
   },
   getCustomers: () => request("/customers"),
-  searchTransactions: ({ start, end, store, status, user, offset, sort } = {}) => {
+  searchTransactions: ({ start, end, store, status, channel, user, offset, sort } = {}) => {
     const params = new URLSearchParams();
     if (start) params.set("start", start);
     if (end) params.set("end", end);
     if (store) params.set("store", store);
     if (status) params.set("status", status);
+    if (channel) params.set("channel", channel);
     if (user) params.set("user", user);
     if (offset) params.set("offset", offset);
     if (sort) params.set("sort", sort);
@@ -71,12 +72,13 @@ export const api = {
     return request(`/transactions${qs ? `?${qs}` : ""}`);
   },
   getTransactionFilters: () => request("/transactions/filters"),
-  transactionsExportUrl: ({ start, end, store, status, user, sort } = {}) => {
+  transactionsExportUrl: ({ start, end, store, status, channel, user, sort } = {}) => {
     const params = new URLSearchParams();
     if (start) params.set("start", start);
     if (end) params.set("end", end);
     if (store) params.set("store", store);
     if (status) params.set("status", status);
+    if (channel) params.set("channel", channel);
     if (user) params.set("user", user);
     if (sort) params.set("sort", sort);
     const qs = params.toString();

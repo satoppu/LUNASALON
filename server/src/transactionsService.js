@@ -9,7 +9,7 @@ const MAX_LIMIT = 100;
  * filter) — the 累計利用回数/累計キャンセル数/クーポン購入回数 drill-down
  * links on customer detail rely on this.
  */
-function buildFilterClause({ start, end, store, status, user }) {
+function buildFilterClause({ start, end, store, status, channel, user }) {
   const conditions = [];
   const params = {};
   if (start) {
@@ -23,6 +23,10 @@ function buildFilterClause({ start, end, store, status, user }) {
   if (store) {
     conditions.push("store = @store");
     params.store = store;
+  }
+  if (channel) {
+    conditions.push("channel = @channel");
+    params.channel = channel;
   }
   if (status) {
     const statuses = status
@@ -53,11 +57,11 @@ function buildFilterClause({ start, end, store, status, user }) {
  * match on user_name, capped at 100 rows per page with offset-based
  * pagination.
  */
-export function searchTransactions({ start, end, store, status, user, limit, offset, sort } = {}) {
+export function searchTransactions({ start, end, store, status, channel, user, limit, offset, sort } = {}) {
   const cappedLimit = Math.min(Math.max(Number(limit) || MAX_LIMIT, 1), MAX_LIMIT);
   const cappedOffset = Math.max(Number(offset) || 0, 0);
   const direction = sort === "asc" ? "ASC" : "DESC"; // whitelisted, never interpolated from raw input otherwise
-  const { where, params } = buildFilterClause({ start, end, store, status, user });
+  const { where, params } = buildFilterClause({ start, end, store, status, channel, user });
 
   const rows = db
     .prepare(`SELECT * FROM transactions ${where} ORDER BY date ${direction}, id ${direction} LIMIT ${cappedLimit} OFFSET ${cappedOffset}`)
@@ -72,16 +76,17 @@ export function searchTransactions({ start, end, store, status, user, limit, off
  * user_name match) but returns every matching row, unpaginated, for CSV
  * export.
  */
-export function exportTransactions({ start, end, store, status, user, sort } = {}) {
+export function exportTransactions({ start, end, store, status, channel, user, sort } = {}) {
   const direction = sort === "asc" ? "ASC" : "DESC"; // whitelisted, never interpolated from raw input otherwise
-  const { where, params } = buildFilterClause({ start, end, store, status, user });
+  const { where, params } = buildFilterClause({ start, end, store, status, channel, user });
 
   return db.prepare(`SELECT * FROM transactions ${where} ORDER BY date ${direction}, id ${direction}`).all(params);
 }
 
-/** Distinct store/status values actually present in transactions, for filter dropdowns. */
+/** Distinct store/status/channel values actually present in transactions, for filter dropdowns. */
 export function getTransactionFilters() {
   const stores = db.prepare("SELECT DISTINCT store FROM transactions ORDER BY store").all().map((r) => r.store);
   const statuses = db.prepare("SELECT DISTINCT status FROM transactions ORDER BY status").all().map((r) => r.status);
-  return { stores, statuses };
+  const channels = db.prepare("SELECT DISTINCT channel FROM transactions ORDER BY channel").all().map((r) => r.channel);
+  return { stores, statuses, channels };
 }
