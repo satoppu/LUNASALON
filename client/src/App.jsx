@@ -52,8 +52,12 @@ export default function App() {
     setView("recent");
   }
 
-  async function loadDashboard(year) {
-    setLoading(true);
+  // silent: trueは設定画面からのインポート後のバックグラウンド更新用 —
+  // loadingをtrueにすると「読み込み中…」表示がSettingsPageごと差し替えて
+  // しまい、インポート直後にセットしたばかりの結果メッセージが表示される
+  // 前に消えてしまう(画面が一切変わらないように見えるバグの原因だった)。
+  async function loadDashboard(year, { silent = false } = {}) {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const data = await api.getDashboard(year);
@@ -67,7 +71,7 @@ export default function App() {
         setError(err.message);
       }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -128,7 +132,7 @@ export default function App() {
 
         {loading && <p style={{ color: "#8F7D6E" }}>読み込み中…</p>}
 
-        {!loading && view === "settings" && <SettingsPage onDataChanged={() => loadDashboard(selectedYear)} />}
+        {!loading && view === "settings" && <SettingsPage onDataChanged={() => loadDashboard(selectedYear, { silent: true })} />}
 
         {!loading && view !== "settings" && dashboard && dashboard.year && (
           <PageComponent
