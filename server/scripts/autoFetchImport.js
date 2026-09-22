@@ -62,13 +62,24 @@ async function dumpInputs(page, label) {
 
 // Finds the <input> whose current value (live DOM property, not the
 // original HTML attribute — a JS widget updates the former without
-// necessarily touching the latter) matches the given pattern.
-async function findInputByLiveValue(page, pattern) {
-  const idx = await page.evaluate((src) => {
-    const re = new RegExp(src);
-    return Array.from(document.querySelectorAll("input")).findIndex((el) => re.test(el.value || ""));
-  }, pattern.source);
-  return idx === -1 ? null : page.locator("input").nth(idx);
+// necessarily touching the latter) matches the given pattern. This is a
+// one-shot synchronous DOM scan, not an auto-waiting Playwright locator —
+// if the page's JS widget hasn't finished populating the field's default
+// value yet even though `networkidle` already fired (observed in
+// production: a manual re-run right after an unexplained failure succeeded
+// with no code change), a single immediate scan can race and find nothing.
+// Polling for a few seconds absorbs that race instead of failing outright.
+async function findInputByLiveValue(page, pattern, { timeoutMs = 10000, intervalMs = 500 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const idx = await page.evaluate((src) => {
+      const re = new RegExp(src);
+      return Array.from(document.querySelectorAll("input")).findIndex((el) => re.test(el.value || ""));
+    }, pattern.source);
+    if (idx !== -1) return page.locator("input").nth(idx);
+    if (Date.now() >= deadline) return null;
+    await page.waitForTimeout(intervalMs);
+  }
 }
 
 // "前日" 〜 "6ヶ月後の月末" — e.g. run on 2026-09-19 covers 2026-09-18 through
