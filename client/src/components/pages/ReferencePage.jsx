@@ -1,0 +1,146 @@
+import { useEffect, useState } from "react";
+import { api } from "../../api.js";
+import { FONT_HEAD, makeStoreColor, formatDateShort } from "../../constants.js";
+import StoreBadge from "../StoreBadge.jsx";
+
+// 3回未満(0〜2回)は利用が少ない要注意の目安として色を付けて目立たせる。
+// 未割当・表記ゆれで一致しない(null)場合は薄いグレーのまま。
+function countCellStyle(count) {
+  if (count == null) return { color: "#8F7D6E" };
+  if (count < 3) return { color: "#A84434", fontWeight: 600 };
+  return undefined;
+}
+
+export default function ReferencePage({ data }) {
+  const storeColor = makeStoreColor(data?.storeMeta);
+  const [cabinets, setCabinets] = useState(null);
+  const [purchases, setPurchases] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    Promise.all([api.getCabinets(), api.getCouponPurchases()])
+      .then(([c, p]) => {
+        setCabinets(c.cabinets);
+        setPurchases(p.purchases);
+      })
+      .catch((err) => setError(err.message));
+  }, []);
+
+  if (error) {
+    return (
+      <p className="text-sm" style={{ color: "#A84434" }}>
+        {error}
+      </p>
+    );
+  }
+  if (!cabinets || !purchases) {
+    return <p style={{ color: "#8F7D6E" }}>読み込み中…</p>;
+  }
+
+  return (
+    <div>
+      <p className="text-sm mb-8" style={{ color: "#8F7D6E" }}>
+        キャビネットの割当や定額クーポンIDの参照用一覧です。変更・削除は設定→記録の「キャビネット・クーポン」で行えます。
+      </p>
+
+      <div className="mb-12">
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          キャビネット貸し出し一覧
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead>
+              <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  利用者
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  店舗
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  前月
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  前々月
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {cabinets.map((c) => (
+                <tr key={c.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
+                  <td className="px-4 py-3 text-left" style={!c.user_name ? { color: "#8F7D6E" } : undefined}>
+                    {c.user_name || "空き"}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <span className="inline-flex items-center gap-1">
+                      <StoreBadge store={c.store} storeColor={storeColor} />
+                      {c.slot_label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center" style={countCellStyle(c.prevMonthCount)}>
+                    {c.prevMonthCount != null ? c.prevMonthCount : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-center" style={countCellStyle(c.prevMonth2Count)}>
+                    {c.prevMonth2Count != null ? c.prevMonth2Count : "—"}
+                  </td>
+                </tr>
+              ))}
+              {cabinets.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                    登録されているキャビネットがありません。
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          定額クーポンの一覧
+        </h3>
+        <div style={{ background: "#FFFFFF" }} className="overflow-x-auto">
+          <table className="w-full text-sm whitespace-nowrap">
+            <thead>
+              <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  利用者
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  初回購入日
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  購入回数
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  ID
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchases.map((c) => (
+                <tr key={c.user} style={{ borderBottom: "1px solid #F3EBDF" }}>
+                  <td className="px-4 py-3 text-left">{c.user}</td>
+                  <td className="px-4 py-3 text-center">{c.firstPurchaseDate ? formatDateShort(c.firstPurchaseDate) : "—"}</td>
+                  <td className="px-4 py-3 text-center">{c.purchaseCount}</td>
+                  <td className="px-4 py-3 text-center" style={!c.couponId ? { color: "#8F7D6E" } : undefined}>
+                    {c.couponId || "—"}
+                  </td>
+                </tr>
+              ))}
+              {purchases.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                    定額クーポンの購入履歴がありません。
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

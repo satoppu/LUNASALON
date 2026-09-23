@@ -1,0 +1,30 @@
+{
+  "name": "luna-dashboard-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/seed.js",
+    "import-subscriptions": "node src/importSubscriptions.js",
+    "backfill-booking-date": "node src/backfillBookingDate.js",
+    "backfill-spacemarket-hours": "node src/backfillSpaceMarketHours.js",
+    "dedupe-user-names": "node src/dedupeUserNames.js",
+    "auto-import": "node scripts/autoFetchImport.js",
+    "auto-import:debug": "node scripts/autoFetchImport.js --debug"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.10",
+    "papaparse": "^5.7.0",
+    "playwright": "^1.56.1",
+    "xlsx": "^0.18.5"
+  }
+}
