@@ -175,7 +175,7 @@ function formatDailySummary() {
   const y = days[days.length - 1];
   const totalCount = y.count + y.subscriptionCount + y.cancelCount;
   return (
-    `\n\n日付：${y.date}\n` +
+    `日付：${y.date}\n` +
     `予約：${y.count}件　予売：${yen(y.bookingRevenue)}\n` +
     `定額：${y.subscriptionCount}件　定売：${yen(y.subscriptionRevenue)}\n` +
     `取消：${y.cancelCount}件　消売：${y.cancelRevenue > 0 ? "-" + yen(y.cancelRevenue) : yen(0)}\n\n` +
@@ -218,14 +218,15 @@ async function main() {
       await sendResultEmail({
         subject: "【LUNA】自動取り込み成功",
         text:
+          formatDailySummary() +
+          `\n\n----------------\n\n` +
           `よやクルProからの自動取り込みが完了しました。\n\n` +
           `新規登録: ${result.inserted}件\n` +
           `更新: ${result.updated}件\n` +
           `重複スキップ: ${result.duplicates}件\n` +
           `期間対象外スキップ: ${result.skipped}件\n` +
           `解析不能スキップ: ${result.skippedUnparseable}件\n` +
-          `解決不能/不正: ${result.unresolvedOrBad}件` +
-          formatDailySummary(),
+          `解決不能/不正: ${result.unresolvedOrBad}件`,
       }).catch((e) => console.error("メール通知に失敗しました:", e.message));
     }
   } catch (err) {
