@@ -51,7 +51,10 @@ function shiftISODate(iso, delta) {
  *   3) booking_date — どちらも無い場合の最終フォールバック。
  *
  * 件数は通常予約・キャンセル・定期クーポンの3つに分けて集計する(積み上げ
- * 棒グラフ用)。売上は利用売上(bookingRevenue — 予約(利用済み/利用前)の
+ * 棒グラフ用)。「予約」件数にはキャンセル済みの行を含めない — キャンセル
+ * された予約は取消側にだけカウントし、予約日側の件数からは除く(現在有効な
+ * 利用前/利用済みの件数と一致させるため。売上だけは予約日に全額計上→確定日
+ * で差し引く従来通りの会計処理のまま)。売上は利用売上(bookingRevenue — 予約(利用済み/利用前)の
  * 売上、キャンセルされた行はbooking_date側にbooking_amount全額を計上)と
  * 定額売上(subscriptionRevenue — 定期クーポンの売上)を分けて持ち、その
  * 合計からキャンセル代(cancelRevenue — 自社サイトの本来の予約金額と
@@ -93,11 +96,13 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
       }
     } else if (isCancellationStatus(r.status)) {
       if (r.channel === OWN_SITE_CHANNEL && r.booking_amount != null) {
-        // 予約日に全額計上、キャンセル確定日にその分を差し引く(同じ日なら
-        // 両方が同じ日のバケットに乗るだけで、実質は従来通りの単日相殺)。
+        // 売上は予約日に全額計上、キャンセル確定日にその分を差し引く(同じ日
+        // なら両方が同じ日のバケットに乗るだけで、実質は従来通りの単日相殺)。
+        // 件数(予約)はキャンセル済みの予約を含めない — 取消側にだけ計上する
+        // ことで、「予約」が現在有効な(利用前/利用済みの)件数と一致するように
+        // する。
         const confirmDate = r.revenue_confirmed_date || r.cancelled_date || r.date;
         if (inWindow(r.date)) {
-          add(countByDate, r.date, 1);
           add(bookingRevenueByDate, r.date, r.booking_amount);
         }
         if (inWindow(confirmDate)) {
