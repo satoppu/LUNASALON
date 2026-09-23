@@ -37,15 +37,31 @@ const selectExistingStmt = db.prepare(`
   FROM transactions WHERE external_id = ?
 `);
 
-// The source export carries no cancellation-date field, so it's derived at
-// import time instead: the first daily run that sees a row's status switch
-// to a cancellation status stamps today (JST) as cancelled_date, and later
-// runs — cancelled or not — leave an already-stamped date alone rather than
-// re-deriving it, since "today" would just be whenever that later run
-// happened to execute, not the real cancellation date.
+// The source export carries no cancellation-date field for channels other
+// than 自社サイト(which has revenue_confirmed_date instead — see
+// rawImportMappers.js — so cancelled_date is only a fallback for it), so
+// it's derived at import time instead: the first daily run that sees an
+// *already-tracked* row's status switch to a cancellation status stamps
+// today (JST) as cancelled_date, and later runs — cancelled or not — leave
+// an already-stamped date alone rather than re-deriving it, since "today"
+// would just be whenever that later run happened to execute, not the real
+// cancellation date.
+//
+// Crucially, a row with no `existing` counterpart (external_id seen for the
+// first time — e.g. historical data getting external_id-tracked for the
+// first time, not a same-day new booking) must NOT stamp today either: that
+// would misrecord a booking that was actually cancelled long ago as
+// "cancelled today" just because today happens to be the first time this
+// pipeline ever saw it. Only a genuine transition — a row we've seen before
+// in a non-cancelled state, now cancelled — has real evidence for "today".
+// leaving it null here falls through to the confirm-date fallback chain in
+// newBookingsDaily.js (revenue_confirmed_date → cancelled_date →
+// booking_date), which lands on booking_date instead: not perfectly
+// accurate either, but far less wrong than a fabricated "cancelled today".
 function computeCancelledDate(existing, incoming) {
   if (!isCancellationStatus(incoming.status)) return null;
-  if (existing && isCancellationStatus(existing.status)) return existing.cancelled_date ?? null;
+  if (!existing) return null;
+  if (isCancellationStatus(existing.status)) return existing.cancelled_date ?? null;
   return getTodayISO();
 }
 
