@@ -27,6 +27,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { importFileBuffer } from "../src/importFileBuffer.js";
 import { sendResultEmail } from "../src/notifyEmail.js";
+import { getNewBookingsDaily } from "../src/newBookingsDaily.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, "..", ".env");
@@ -161,6 +162,27 @@ async function selectDateRange(page) {
   if (DEBUG) await shot(page, "06-after-switch");
 }
 
+function yen(n) {
+  return "¥" + Math.round(n).toLocaleString("ja-JP");
+}
+
+// 取り込み成功メールに添える「前日」の日次動向サマリー — 日次動向ページの
+// 棒グラフのツールチップ(newBookingsDaily.js)と同じ用語・同じ値。この
+// スクリプトはbooking_date=前日までの分を確定させる形で毎朝動くため、
+// 直近で内容が固まっている「前日」を報告対象にする。
+function formatDailySummary() {
+  const days = getNewBookingsDaily(0);
+  const y = days[days.length - 1];
+  const totalCount = y.count + y.subscriptionCount + y.cancelCount;
+  return (
+    `\n\n日付：${y.date}\n` +
+    `予約：${y.count}件　予売：${yen(y.bookingRevenue)}\n` +
+    `定額：${y.subscriptionCount}件　定売：${yen(y.subscriptionRevenue)}\n` +
+    `取消：${y.cancelCount}件　消売：${y.cancelRevenue > 0 ? "-" + yen(y.cancelRevenue) : yen(0)}\n\n` +
+    `合計：${totalCount}件　合売：${yen(y.revenue)}`
+  );
+}
+
 async function downloadZip(page) {
   const [download] = await Promise.all([
     page.waitForEvent("download"),
@@ -202,7 +224,8 @@ async function main() {
           `重複スキップ: ${result.duplicates}件\n` +
           `期間対象外スキップ: ${result.skipped}件\n` +
           `解析不能スキップ: ${result.skippedUnparseable}件\n` +
-          `解決不能/不正: ${result.unresolvedOrBad}件`,
+          `解決不能/不正: ${result.unresolvedOrBad}件` +
+          formatDailySummary(),
       }).catch((e) => console.error("メール通知に失敗しました:", e.message));
     }
   } catch (err) {
