@@ -33,8 +33,17 @@ const PAGES = {
   reference: ReferencePage,
 };
 
+// URL の ?page= から初期表示ページを決める(例: 自動取り込みメールから
+// 「日次動向」に直接リンクするため)。ページ間の遷移自体はURLと連動させず
+// (Sidebarクリックでは変えない)、初回表示時にだけ見る — 無効な値や指定が
+// 無ければ従来通り概要から始まる。
+function initialViewFromURL() {
+  const page = new URLSearchParams(window.location.search).get("page");
+  return page && PAGES[page] ? page : "summary";
+}
+
 export default function App() {
-  const [view, setView] = useState("summary");
+  const [view, setView] = useState(initialViewFromURL);
   const [dashboard, setDashboard] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [loading, setLoading] = useState(true);

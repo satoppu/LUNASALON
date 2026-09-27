@@ -34,6 +34,9 @@ const envPath = path.join(__dirname, "..", ".env");
 if (fs.existsSync(envPath)) process.loadEnvFile?.(envPath);
 
 const LOGIN_URL = "https://v3.yoyakul.com/login";
+// ?page=daily はApp.jsxのinitialViewFromURLが読み、初期表示ページを
+// 「日次動向」にする(通常はサイドバー操作のみでURLと連動しない)。
+const DASHBOARD_DAILY_URL = "http://103.3.189.115/?page=daily";
 const YOYAKUL_ID = process.env.YOYAKUL_ID;
 const YOYAKUL_PASSWORD = process.env.YOYAKUL_PASSWORD;
 const DEBUG = process.argv.includes("--debug");
@@ -219,7 +222,8 @@ async function main() {
         subject: "【LUNA】自動取り込み成功",
         text:
           formatDailySummary() +
-          `\n\n----------------\n\n` +
+          `\n\n${DASHBOARD_DAILY_URL}\n` +
+          `\n----------------\n\n` +
           `よやクルProからの自動取り込みが完了しました。\n\n` +
           `新規登録: ${result.inserted}件\n` +
           `更新: ${result.updated}件\n` +
