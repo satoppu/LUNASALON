@@ -5,8 +5,25 @@ function shortYear(y) {
   return String(y).slice(-2);
 }
 
+// 前年比(相対増減率) — RevenuePage/buildYoyByStoreと同じ考え方(前年値が
+// 無い/0なら比較不能としてnull)。
+function pctChange(current, prior) {
+  if (prior == null || prior === 0) return null;
+  return ((current - prior) / prior) * 100;
+}
+
+function YoyBadge({ pct }) {
+  if (pct == null) return null;
+  return (
+    <span className="ml-1.5" style={{ color: pct >= 0 ? "#D4A644" : "#D66B5C" }}>
+      ({pct >= 0 ? "+" : ""}
+      {pct.toFixed(1)}%)
+    </span>
+  );
+}
+
 export default function SummaryPage({ data }) {
-  const { year, storeNames, storeMeta, summary, occupancyData, overallStats, annualTrend, yearNarrative } = data;
+  const { year, storeNames, storeMeta, summary, priorYearSummary, occupancyData, overallStats, annualTrend, yearNarrative } = data;
   const storeColor = makeStoreColor(storeMeta);
   const yearTotals = annualTrend.map((y) => ({
     year: y.year,
@@ -127,6 +144,9 @@ export default function SummaryPage({ data }) {
           const color = storeColor(name);
           const meta = storeMeta?.[name];
           const availableHours = occupancyData.find((o) => o.store === name);
+          const prior = priorYearSummary?.[name];
+          const priorAvgHours = prior && prior.count > 0 ? prior.hoursUsed / prior.count : null;
+          const currentAvgHours = s.count > 0 ? s.hoursUsed / s.count : 0;
           return (
             <div key={name} style={{ background: "#FFFFFF", borderLeft: `4px solid ${color}` }} className="px-6 py-5">
               <div className="flex items-baseline justify-between mb-3">
@@ -149,6 +169,7 @@ export default function SummaryPage({ data }) {
                 <div>
                   <p style={{ color: "#262421" }} className="font-medium">
                     {(availableHours?.["稼働率"] ?? 0).toFixed(1)}%
+                    <YoyBadge pct={pctChange(availableHours?.["稼働率"] ?? 0, prior?.occupancy)} />
                   </p>
                   <p style={{ color: "#8F7D6E" }} className="text-xs">
                     稼働率
@@ -156,7 +177,8 @@ export default function SummaryPage({ data }) {
                 </div>
                 <div>
                   <p style={{ color: "#262421" }} className="font-medium">
-                    {s.count > 0 ? (s.hoursUsed / s.count).toFixed(1) : "0.0"}h
+                    {currentAvgHours.toFixed(1)}h
+                    <YoyBadge pct={pctChange(currentAvgHours, priorAvgHours)} />
                   </p>
                   <p style={{ color: "#8F7D6E" }} className="text-xs">
                     平均利用時間
@@ -165,6 +187,7 @@ export default function SummaryPage({ data }) {
                 <div>
                   <p style={{ color: "#262421" }} className="font-medium">
                     {s.hoursUsed.toFixed(1)}h
+                    <YoyBadge pct={pctChange(s.hoursUsed, prior?.hoursUsed)} />
                   </p>
                   <p style={{ color: "#8F7D6E" }} className="text-xs">
                     総利用時間
@@ -173,6 +196,7 @@ export default function SummaryPage({ data }) {
                 <div>
                   <p style={{ color: "#262421" }} className="font-medium">
                     {s.count}
+                    <YoyBadge pct={pctChange(s.count, prior?.count)} />
                   </p>
                   <p style={{ color: "#8F7D6E" }} className="text-xs">
                     利用件数

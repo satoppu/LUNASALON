@@ -309,6 +309,33 @@ export function buildDashboard({
     return { store: name, 稼働率: Math.round(rate * 10) / 10 };
   });
 
+  // ---- Per-store summary (prior year) — feeds the 前年比 shown next to each
+  // store card's 稼働率/平均利用時間/総利用時間/利用件数 (spec: same relative
+  // %-change convention as buildYoyByStore's revenue comparison). Computed
+  // the same way as summary/occupancyData above but against priorYearRows
+  // and the prior year's own date range; availableHoursForStore already caps
+  // at todayISO only when relevant, so a fully-elapsed prior year is
+  // unaffected. Left as {} when there's no prior year at all.
+  const priorYearStartISO = `${priorYear}-01-01`;
+  const priorYearEndISO = `${priorYear}-12-31`;
+  const priorYearSummary = {};
+  if (hasPriorYear) {
+    storeNames.forEach((name) => {
+      priorYearSummary[name] = { revenue: 0, hoursUsed: 0, count: 0, occupancy: 0 };
+    });
+    priorYearRows.forEach((r) => {
+      if (!priorYearSummary[r.store]) priorYearSummary[r.store] = { revenue: 0, hoursUsed: 0, count: 0, occupancy: 0 };
+      priorYearSummary[r.store].revenue += effectiveRevenue(r);
+      priorYearSummary[r.store].hoursUsed += effectiveHours(r);
+      if (effectiveHours(r) > 0) priorYearSummary[r.store].count += 1;
+    });
+    storeNames.forEach((name) => {
+      const availableHours = availableHoursForStore(name, priorYearStartISO, priorYearEndISO, storeMeta, todayISO);
+      const hoursUsed = priorYearSummary[name].hoursUsed;
+      priorYearSummary[name].occupancy = availableHours > 0 ? Math.round((hoursUsed / availableHours) * 1000) / 10 : 0;
+    });
+  }
+
   // ---- Hourly usage (time-of-day) ----
   const hourlyBuckets = {};
   for (let h = 0; h < 24; h++) hourlyBuckets[h] = { hour: `${h}時`, total: 0 };
@@ -424,6 +451,7 @@ export function buildDashboard({
     hasPriorYear2,
     storeNames,
     summary,
+    priorYearSummary,
     monthlyTrend,
     occupancyData,
     hourlyUsage,
