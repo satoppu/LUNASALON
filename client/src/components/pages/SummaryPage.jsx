@@ -1,25 +1,9 @@
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import { pctChange, YoyBadge } from "../../yoy.jsx";
 
 function shortYear(y) {
   return String(y).slice(-2);
-}
-
-// 前年比(相対増減率) — RevenuePage/buildYoyByStoreと同じ考え方(前年値が
-// 無い/0なら比較不能としてnull)。
-function pctChange(current, prior) {
-  if (prior == null || prior === 0) return null;
-  return ((current - prior) / prior) * 100;
-}
-
-function YoyBadge({ pct, className = "" }) {
-  if (pct == null) return null;
-  return (
-    <span className={`ml-1.5 ${className}`} style={{ color: pct >= 0 ? "#D4A644" : "#D66B5C" }}>
-      ({pct >= 0 ? "+" : ""}
-      {pct.toFixed(1)}%)
-    </span>
-  );
 }
 
 export default function SummaryPage({ data }) {

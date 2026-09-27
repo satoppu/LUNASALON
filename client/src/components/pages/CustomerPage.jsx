@@ -1,10 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
-import { FONT_HEAD, yen, makeStoreColor, formatDateShort } from "../../constants.js";
+import { FONT_HEAD, yen, makeStoreColor, formatDateShort, getTodayISO } from "../../constants.js";
+import { pctChange, YoyBadge } from "../../yoy.jsx";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 import RankingPage from "./RankingPage.jsx";
+
+// "2026-03" -> "2025-03"。前年同月比較用(月別グラフは全期間を1本の配列で
+// 持っているため、単純に年を1つ戻したキーで前年の同じ月を探せる)。
+function yearMonthMinus1Year(ym) {
+  const [y, m] = ym.split("-");
+  return `${Number(y) - 1}-${m}`;
+}
+
+// 月別配列(全期間)の中から「直近の完了済み月」を選ぶ — buildYearNarrative
+// と同じ考え方で、当月分はまだ途中のため前年同月比較の対象から外す。
+function latestCompletedMonth(monthly) {
+  if (!monthly || monthly.length === 0) return null;
+  const todayYM = getTodayISO().slice(0, 7);
+  const completed = monthly.filter((m) => m.yearMonth < todayYM);
+  return completed.length > 0 ? completed[completed.length - 1] : monthly[monthly.length - 1];
+}
+
+function monthlyYoy(monthly) {
+  const latest = latestCompletedMonth(monthly);
+  if (!latest) return null;
+  const prior = monthly.find((m) => m.yearMonth === yearMonthMinus1Year(latest.yearMonth));
+  return { latest, prior, pct: prior ? pctChange(latest.count, prior.count) : null };
+}
 
 function labelInterval(length) {
   return Math.max(0, Math.ceil(length / 8) - 1);
@@ -38,6 +62,9 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
     if (!state) return new Map();
     return new Map(state.customers.map((c) => [c.user, c]));
   }, [state]);
+
+  const newCustomersYoy = useMemo(() => (state ? monthlyYoy(state.newCustomersByMonth) : null), [state]);
+  const activeCustomersYoy = useMemo(() => (state ? monthlyYoy(state.activeCustomersByMonth) : null), [state]);
 
   const monthFilteredCustomers = useMemo(() => {
     if (!state || !monthFilter) return [];
@@ -90,8 +117,14 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
         <div>
-          <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4 flex items-baseline flex-wrap gap-x-2">
             新規顧客数(月別・全期間)
+            {newCustomersYoy && (
+              <span className="text-xs font-normal" style={{ color: "#8F7D6E" }}>
+                {newCustomersYoy.latest.label}: 前年同月比
+                {newCustomersYoy.pct == null ? <span className="ml-1.5">(—)</span> : <YoyBadge pct={newCustomersYoy.pct} />}
+              </span>
+            )}
           </h3>
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={240}>
@@ -124,8 +157,14 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
         </div>
 
         <div>
-          <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+          <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4 flex items-baseline flex-wrap gap-x-2">
             アクティブ顧客数(月別・全期間)
+            {activeCustomersYoy && (
+              <span className="text-xs font-normal" style={{ color: "#8F7D6E" }}>
+                {activeCustomersYoy.latest.label}: 前年同月比
+                {activeCustomersYoy.pct == null ? <span className="ml-1.5">(—)</span> : <YoyBadge pct={activeCustomersYoy.pct} />}
+              </span>
+            )}
           </h3>
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={240}>

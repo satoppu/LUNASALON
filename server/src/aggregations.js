@@ -350,18 +350,61 @@ export function buildDashboard({
   let endIdx = hourlyArr.length - 1 - [...hourlyArr].reverse().findIndex((b) => b.total > 0);
   const hourlyUsage = startIdx === -1 ? hourlyArr : hourlyArr.slice(startIdx, endIdx + 1);
 
+  // 前年の同じ時間帯別グラフ(全店舗合算)。稼働率ページの前年比較チャート用 —
+  // 店舗別内訳までは前年分不要なので合計のみ、当年と同じ表示時間帯
+  // (startIdx〜endIdx)に揃えて返す。
+  const priorHourlyTotals = {};
+  for (let h = 0; h < 24; h++) priorHourlyTotals[h] = 0;
+  if (hasPriorYear) {
+    priorYearRows.forEach((r) => {
+      const hrs = effectiveHours(r);
+      if (r.start_hour == null || hrs <= 0) return;
+      priorHourlyTotals[r.start_hour] += hrs;
+    });
+  }
+  const priorYearHourlyUsage =
+    hasPriorYear && startIdx !== -1
+      ? Array.from({ length: endIdx - startIdx + 1 }, (_, i) => startIdx + i).map((h) => ({
+          hour: `${h}時`,
+          total: Math.round(priorHourlyTotals[h] * 10) / 10,
+        }))
+      : [];
+
   // ---- Weekday occupancy ----
   const weekdayOccupancy = WEEKDAYS.map((wd, idx) => {
     const entry = { weekday: wd };
+    let usedTotal = 0;
+    let availableTotal = 0;
     storeNames.forEach((name) => {
       const used = yearRows
         .filter((r) => r.store === name && r.weekday === wd)
         .reduce((sum, r) => sum + effectiveHours(r), 0);
       const available = availableHoursForStoreWeekday(name, idx, yearStartISO, yearEndISO, storeMeta, todayISO);
       entry[name] = available > 0 ? Math.round((used / available) * 1000) / 10 : 0;
+      usedTotal += used;
+      availableTotal += available;
     });
+    entry.合計 = availableTotal > 0 ? Math.round((usedTotal / availableTotal) * 1000) / 10 : 0;
     return entry;
   });
+
+  // 前年の曜日別稼働率(全店舗合算)。既存の店舗別内訳チャートはそのままに、
+  // 前年比較用の合計だけを別途返す。
+  const priorYearWeekdayOccupancy = hasPriorYear
+    ? WEEKDAYS.map((wd, idx) => {
+        let usedTotal = 0;
+        let availableTotal = 0;
+        storeNames.forEach((name) => {
+          const used = priorYearRows
+            .filter((r) => r.store === name && r.weekday === wd)
+            .reduce((sum, r) => sum + effectiveHours(r), 0);
+          const available = availableHoursForStoreWeekday(name, idx, priorYearStartISO, priorYearEndISO, storeMeta, todayISO);
+          usedTotal += used;
+          availableTotal += available;
+        });
+        return { weekday: wd, 合計: availableTotal > 0 ? Math.round((usedTotal / availableTotal) * 1000) / 10 : 0 };
+      })
+    : [];
 
   // ---- Channel (導線) analysis ----
   // 定期クーポン revenue is store-linked but isn't a booking channel (spec 4.6),
@@ -391,6 +434,20 @@ export function buildDashboard({
     entry.total = total;
     return entry;
   });
+
+  // 前年のチャネル別売上(導線分析ページの前年比較用)。channelSummaryと同じ
+  // ルールでpriorYearRowsから集計し、チャネル名をキーにした参照用マップで返す。
+  const priorYearChannelRows = hasPriorYear ? priorYearRows.filter((r) => r.status !== SUBSCRIPTION_STATUS) : [];
+  const priorYearChannelSummary = {};
+  if (hasPriorYear) {
+    CHANNELS.forEach((c) => (priorYearChannelSummary[c] = { revenue: 0, count: 0 }));
+    priorYearChannelRows.forEach((r) => {
+      const c = CHANNELS.includes(r.channel) ? r.channel : "その他";
+      if (!priorYearChannelSummary[c]) priorYearChannelSummary[c] = { revenue: 0, count: 0 };
+      priorYearChannelSummary[c].revenue += effectiveRevenue(r);
+      if (effectiveHours(r) > 0) priorYearChannelSummary[c].count += 1;
+    });
+  }
 
   // ---- Recent rows (most recent 12) ----
   const recentRows = [...yearRows].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 12);
@@ -455,9 +512,12 @@ export function buildDashboard({
     monthlyTrend,
     occupancyData,
     hourlyUsage,
+    priorYearHourlyUsage,
     weekdayOccupancy,
+    priorYearWeekdayOccupancy,
     channelSummary,
     channelByStore,
+    priorYearChannelSummary,
     recentRows,
     overallStats,
     userSummary,
