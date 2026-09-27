@@ -48,6 +48,13 @@ export function yen(n) {
   return "¥" + Math.round(n).toLocaleString("ja-JP");
 }
 
+// Today's date in JST as YYYY-MM-DD — mirrors server/src/config.js's
+// getTodayISO() so "today" means the same day for a viewer regardless of
+// their device's own timezone.
+export function getTodayISO() {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(new Date());
+}
+
 export function makeStoreColor(storeMeta) {
   return (name) => storeMeta?.[name]?.color || "#8F7D6E";
 }

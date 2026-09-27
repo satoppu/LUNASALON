@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, Download } from "lucide-react";
 import { api } from "../../api.js";
-import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatDateShort, formatStartTime, formatDuration } from "../../constants.js";
+import { CHANNEL_BADGE, STATUS_BADGE, FONT_HEAD, yen, makeStoreColor, formatDateShort, formatStartTime, formatDuration, getTodayISO } from "../../constants.js";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import DayDetailModal from "../DayDetailModal.jsx";
 import ClickableUserName from "../ClickableUserName.jsx";
@@ -29,7 +29,9 @@ export default function RecentPage({ data, recentFilter, onNavigateToHistory }) 
   const storeColor = makeStoreColor(data?.storeMeta);
   const userNames = useKnownUserNames();
   const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+  // デフォルトは当日まで — 空文字だと「日付降順」で並べたときに一番未来の
+  // 予約(利用前ステータス)が先頭に来てしまうため、常に当日を起点にする。
+  const [end, setEnd] = useState(getTodayISO());
   const [store, setStore] = useState("");
   const [status, setStatus] = useState("");
   const [channel, setChannel] = useState("");
@@ -115,16 +117,18 @@ export default function RecentPage({ data, recentFilter, onNavigateToHistory }) 
 
   function handleClear() {
     setStart("");
-    setEnd("");
+    setEnd(getTodayISO());
     setStore("");
     setStatus("");
     setChannel("");
     setUser("");
     setOffset(0);
-    load({ sort }, 0);
+    load({ end: getTodayISO(), sort }, 0);
   }
 
-  const hasFilters = start || end || store || status || channel || user;
+  // end が既定値(当日)のままなら「絞り込み中」として扱わない — クリア
+  // ボタンは、初期表示から実際に何か変えたときだけ出す。
+  const hasFilters = start || (end && end !== getTodayISO()) || store || status || channel || user;
   const selectClass = "text-sm px-3 py-2 border";
   const selectStyle = { borderColor: "#EDE3D5", background: "#FFFFFF" };
 
