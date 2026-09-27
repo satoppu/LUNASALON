@@ -45,30 +45,31 @@ export function deleteCabinet(id) {
   db.prepare(`DELETE FROM cabinet_assignments WHERE id = ?`).run(id);
 }
 
-// 今日を基準にした前月・前々月(YYYY-MM)。年またぎも Date のロールオーバーに
-// 任せる(例: 1月なら前月=前年12月、前々月=前年11月)。
+// 今日を基準にした当月・前月・前々月(YYYY-MM)。年またぎも Date のロール
+// オーバーに任せる(例: 1月なら前月=前年12月、前々月=前年11月)。
 function recentMonths() {
   const [y, m] = getTodayISO().split("-").map(Number);
   const toYM = (offset) => {
     const d = new Date(y, m - 1 + offset, 1);
     return { year: d.getFullYear(), month: d.getMonth() + 1, ym: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` };
   };
-  return { prev: toYM(-1), prev2: toYM(-2) };
+  return { current: toYM(0), prev: toYM(-1), prev2: toYM(-2) };
 }
 
 /**
  * 提供一覧(ReferencePage.jsx)のキャビネット貸し出し一覧向け — 各行の
- * 利用者について、前月・前々月の利用回数(実際に利用した行数、spec 4.3と
- * 同じ基準)をcanonicalizeUserNameでの緩いつき合わせで付け足す。未割当
- * (空き)行や、表記ゆれで一致しない利用者はnullになる。
+ * 利用者について、当月・前月・前々月の利用回数(実際に利用した行数、spec
+ * 4.3と同じ基準)をcanonicalizeUserNameでの緩いつき合わせで付け足す。未割当
+ * (空き)行や、表記ゆれで一致しない利用者はnullになる。当月分はまだ月の
+ * 途中の値(進行中の集計)である点に注意。
  */
 export function listCabinetsWithRecentUsage() {
   const cabinets = listCabinets();
-  const { prev, prev2 } = recentMonths();
+  const { current, prev, prev2 } = recentMonths();
 
   const rows = db
-    .prepare(`SELECT user_name, substr(date, 1, 7) AS ym, status FROM transactions WHERE substr(date, 1, 7) IN (?, ?)`)
-    .all(prev.ym, prev2.ym);
+    .prepare(`SELECT user_name, substr(date, 1, 7) AS ym, status FROM transactions WHERE substr(date, 1, 7) IN (?, ?, ?)`)
+    .all(current.ym, prev.ym, prev2.ym);
 
   const countsByKey = new Map();
   for (const r of rows) {
@@ -81,6 +82,8 @@ export function listCabinetsWithRecentUsage() {
     const key = c.user_name ? canonicalizeUserName(c.user_name) : null;
     return {
       ...c,
+      currentMonthLabel: `${current.month}月`,
+      currentMonthCount: key ? countsByKey.get(`${key}|${current.ym}`) || 0 : null,
       prevMonthLabel: `${prev.month}月`,
       prevMonthCount: key ? countsByKey.get(`${key}|${prev.ym}`) || 0 : null,
       prevMonth2Label: `${prev2.month}月`,

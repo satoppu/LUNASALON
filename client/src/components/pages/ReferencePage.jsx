@@ -58,6 +58,9 @@ export default function ReferencePage({ data }) {
                   店舗
                 </th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                  当月
+                </th>
+                <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                   前月
                 </th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
@@ -77,6 +80,9 @@ export default function ReferencePage({ data }) {
                       {c.slot_label}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-center" style={countCellStyle(c.currentMonthCount)}>
+                    {c.currentMonthCount != null ? c.currentMonthCount : "—"}
+                  </td>
                   <td className="px-4 py-3 text-center" style={countCellStyle(c.prevMonthCount)}>
                     {c.prevMonthCount != null ? c.prevMonthCount : "—"}
                   </td>
@@ -87,7 +93,7 @@ export default function ReferencePage({ data }) {
               ))}
               {cabinets.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                  <td colSpan={5} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                     登録されているキャビネットがありません。
                   </td>
                 </tr>
