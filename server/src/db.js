@@ -5,6 +5,7 @@ import fs from "node:fs";
 import { DEFAULT_STORES, DEFAULT_OPERATING_HOURS_PER_DAY } from "./config.js";
 import { INITIAL_CABINETS, INITIAL_COUPONS } from "./initialCabinetsAndCoupons.js";
 import { INITIAL_BUSINESS_EVENTS } from "./initialBusinessEvents.js";
+import { INITIAL_EXPENSES } from "./initialExpenses.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.LUNA_DB_PATH || path.join(__dirname, "..", "luna.db");
@@ -211,6 +212,37 @@ if (businessEventsCount === 0) {
   );
   for (const e of INITIAL_BUSINESS_EVENTS) {
     seedEventStmt.run(e.startDate, e.endDate, e.stores, e.note);
+  }
+}
+
+// 収支(経費)。既存のtransactions(予約・利用実績の売上)とは完全に別系統 —
+// 銀行口座・クレジットカード明細から手動で勘定科目に分類した実際の支出。
+// storeは家賃など店舗ごとに紐付けられるものだけ設定し(Bellezza/Forest/
+// Asteria)、全社共通の経費はNULLのまま。sourceは取り込み元の参考情報
+// (bank/card_rakuten/card_nicos/manual)。自然な一意キーが無いため、
+// business_eventsと同様にテーブルが空のときだけ初回シードする。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    category TEXT NOT NULL,
+    store TEXT,
+    amount INTEGER NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT 'manual',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);`);
+
+const expensesCount = db.prepare(`SELECT COUNT(*) AS c FROM expenses`).get().c;
+if (expensesCount === 0) {
+  const seedExpenseStmt = db.prepare(
+    `INSERT INTO expenses (date, category, store, amount, description, source) VALUES (?, ?, ?, ?, ?, ?)`
+  );
+  for (const e of INITIAL_EXPENSES) {
+    seedExpenseStmt.run(e.date, e.category, e.store, e.amount, e.description, e.source);
   }
 }
 

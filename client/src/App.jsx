@@ -12,6 +12,8 @@ import CustomerPage from "./components/pages/CustomerPage.jsx";
 import CustomerListPage from "./components/pages/CustomerListPage.jsx";
 import RecentPage from "./components/pages/RecentPage.jsx";
 import ReferencePage from "./components/pages/ReferencePage.jsx";
+import ExpenseSummaryPage from "./components/pages/ExpenseSummaryPage.jsx";
+import ExpenseListPage from "./components/pages/ExpenseListPage.jsx";
 import SettingsPage from "./components/pages/SettingsPage.jsx";
 import LoginPage from "./components/LoginPage.jsx";
 
@@ -19,7 +21,7 @@ import LoginPage from "./components/LoginPage.jsx";
 // 持つページで、年度による絞り込みを行わない(dashboardのyearを使わず、
 // api.getCustomers()/api.searchTransactions()で直接取得する)ため、
 // 年度セレクタを表示しない。
-const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customerList", "recent", "daily", "reference"]);
+const YEAR_SELECTOR_HIDDEN_VIEWS = new Set(["customerList", "recent", "daily", "reference", "expenseList"]);
 
 const PAGES = {
   summary: SummaryPage,
@@ -31,6 +33,8 @@ const PAGES = {
   customerList: CustomerListPage,
   recent: RecentPage,
   reference: ReferencePage,
+  expenseSummary: ExpenseSummaryPage,
+  expenseList: ExpenseListPage,
 };
 
 // URL の ?page= から初期表示ページを決める(例: 自動取り込みメールから
@@ -94,7 +98,8 @@ export default function App() {
   }
 
   const PageComponent = PAGES[view];
-  const currentLabel = NAV_ITEMS.find((n) => n.key === view)?.label ?? "";
+  const flatNavItems = NAV_ITEMS.flatMap((n) => n.children ?? [n]);
+  const currentLabel = flatNavItems.find((n) => n.key === view)?.label ?? "";
 
   if (authenticated === false) {
     return <LoginPage onSuccess={() => loadDashboard(undefined)} />;

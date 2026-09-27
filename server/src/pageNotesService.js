@@ -12,6 +12,8 @@ const VALID_PAGE_KEYS = new Set([
   "recent",
   "channel",
   "reference",
+  "expenseSummary",
+  "expenseList",
   "settings",
 ]);
 

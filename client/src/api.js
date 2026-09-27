@@ -132,4 +132,21 @@ export const api = {
   updateBusinessEvent: (id, payload) =>
     request(`/business-events/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
   deleteBusinessEvent: (id) => request(`/business-events/${id}`, { method: "DELETE" }),
+  getExpenseFilters: () => request("/expenses/filters"),
+  getExpenses: ({ start, end, category, store, offset } = {}) => {
+    const params = new URLSearchParams();
+    if (start) params.set("start", start);
+    if (end) params.set("end", end);
+    if (category) params.set("category", category);
+    if (store) params.set("store", store);
+    if (offset) params.set("offset", offset);
+    const qs = params.toString();
+    return request(`/expenses${qs ? `?${qs}` : ""}`);
+  },
+  getExpenseSummary: (year) => request(`/expenses/summary?year=${year}`),
+  createExpense: (payload) =>
+    request("/expenses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  updateExpense: (id, payload) =>
+    request(`/expenses/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
+  deleteExpense: (id) => request(`/expenses/${id}`, { method: "DELETE" }),
 };

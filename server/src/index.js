@@ -12,6 +12,7 @@ import businessEventsRoutes from "./routes/businessEvents.js";
 import transactionRoutes from "./routes/transactions.js";
 import manualTransactionsRoutes from "./routes/manualTransactions.js";
 import pageNotesRoutes from "./routes/pageNotes.js";
+import expensesRoutes from "./routes/expenses.js";
 import { login, requireAuth } from "./auth.js";
 import "./seed.js"; // seeds transactions from the bundled CSV on first run only
 
@@ -38,6 +39,7 @@ app.use("/api", businessEventsRoutes);
 app.use("/api", transactionRoutes);
 app.use("/api", manualTransactionsRoutes);
 app.use("/api", pageNotesRoutes);
+app.use("/api", expensesRoutes);
 
 // Serve the built client in production (single-deployment setup per spec 7.4).
 const clientDist = path.join(__dirname, "..", "..", "client", "dist");
