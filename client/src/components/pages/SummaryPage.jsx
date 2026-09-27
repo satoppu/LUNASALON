@@ -12,10 +12,10 @@ function pctChange(current, prior) {
   return ((current - prior) / prior) * 100;
 }
 
-function YoyBadge({ pct }) {
+function YoyBadge({ pct, className = "" }) {
   if (pct == null) return null;
   return (
-    <span className="ml-1.5" style={{ color: pct >= 0 ? "#D4A644" : "#D66B5C" }}>
+    <span className={`ml-1.5 ${className}`} style={{ color: pct >= 0 ? "#D4A644" : "#D66B5C" }}>
       ({pct >= 0 ? "+" : ""}
       {pct.toFixed(1)}%)
     </span>
@@ -161,6 +161,7 @@ export default function SummaryPage({ data }) {
               </div>
               <p style={{ fontFamily: FONT_HEAD, color }} className="text-3xl font-bold mb-1">
                 {yen(s.revenue)}
+                <YoyBadge pct={pctChange(s.revenue, prior?.revenue)} className="text-base font-medium align-middle" />
               </p>
               <p style={{ color: "#8F7D6E" }} className="text-xs mb-4">
                 {shortYear(year)}年 累計売上
