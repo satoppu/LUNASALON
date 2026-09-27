@@ -240,11 +240,17 @@ export function buildRevenueSection({ year, priorYear, hasPriorYear, priorYear2,
     return entry;
   });
 
-  // 月次の平均単価 — 料金改定(値上げ等)の効果を追うための指標。通常利用は
-  // 「利用売上 ÷ 利用時間」(円/時間、複数チャネル・割引が混ざった実効単価)、
-  // 定期クーポンは「定額売上 ÷ 購入件数」(円/件、まとめ買いも1件として数える
-  // ため、複数ヶ月分をまとめ買いした月は単価が高く出る点に注意)。件数が0の
-  // 月はnull(グラフ上は線がつながらない)。
+  // 月次の平均単価 — 料金改定(値上げ等)の効果を追うための指標。
+  // 定期クーポンで来店した回(status=利用済み・channelは通常予約と同じだが、
+  // 代金は購入時に定期クーポン扱いで計上済みのためrevenue=0)は、利用時間には
+  // 乗るが売上には乗らないため、これを含む「利用売上÷利用時間」だけだと
+  // クーポン利用が多い月ほど単価が不自然に低く出てしまう。そこで合算単価は
+  // 分子に「利用売上(通常予約分)+定額売上(その月のクーポン購入額)」を
+  // 使い、クーポン購入時の売上をクーポン利用時間の穴埋めとして扱う(購入月と
+  // 利用月がずれるため厳密な対応ではないが、単純な利用売上÷利用時間より
+  // 実態に近い)。定期クーポンは別途「定額売上 ÷ 購入件数」(円/件、まとめ買い
+  // も1件として数えるため、複数ヶ月分をまとめ買いした月は単価が高く出る点に
+  // 注意)も参考値として残す。件数が0の月はnull(グラフ上は線がつながらない)。
   const monthlyUnitPrice = MONTH_LABELS.map((label, idx) => {
     const monthRows = yearRows.filter((r) => Number(r.date.slice(5, 7)) - 1 === idx);
     const regularRows = monthRows.filter((r) => r.status !== SUBSCRIPTION_STATUS);
@@ -255,7 +261,7 @@ export function buildRevenueSection({ year, priorYear, hasPriorYear, priorYear2,
     const subCount = subRows.length;
     return {
       label,
-      通常単価: regularHours > 0 ? Math.round((regularRevenue / regularHours) * 10) / 10 : null,
+      合算単価: regularHours > 0 ? Math.round(((regularRevenue + subRevenue) / regularHours) * 10) / 10 : null,
       定期単価: subCount > 0 ? Math.round(subRevenue / subCount) : null,
     };
   });

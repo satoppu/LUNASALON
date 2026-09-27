@@ -177,7 +177,7 @@ export default function RevenuePage({ data }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
         <div>
           <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-            通常利用 平均単価({year}年・月別・円/時間)
+            合算単価({year}年・月別・円/時間)
           </h3>
           <div style={{ background: "#FFFFFF" }} className="p-4">
             <ResponsiveContainer width="100%" height={220}>
@@ -187,7 +187,7 @@ export default function RevenuePage({ data }) {
                 <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${v}`} domain={["auto", "auto"]} />
                 <Tooltip formatter={(v) => (v == null ? "—" : `¥${v}/h`)} />
                 {year === 2026 && <ReferenceLine x="10月" stroke="#A84434" strokeDasharray="4 3" label={{ value: "10月値上げ", position: "insideTopRight", fill: "#A84434", fontSize: 11 }} />}
-                <Line type="monotone" dataKey="通常単価" stroke="#D4A644" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+                <Line type="monotone" dataKey="合算単価" stroke="#D4A644" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -210,7 +210,7 @@ export default function RevenuePage({ data }) {
           </div>
         </div>
         <p className="text-xs -mt-4 lg:col-span-2" style={{ color: "#8F7D6E" }}>
-          通常利用の単価はチャネル・割引が混ざった実効平均(利用売上÷利用時間)。定期クーポンの単価は購入1件あたり(まとめ買いした月は単価が高く出ます)。10月からの料金改定の効果を、前後の値で見比べる目安としてご利用ください。
+          合算単価は(利用売上+当月の定期クーポン購入額)÷利用時間。クーポン利用回(利用時間はカウントされるが代金は購入時に計上済みのため売上0円)による単価の見かけ上の低下を補正した値です。定期クーポンの単価は購入1件あたり(まとめ買いした月は単価が高く出ます)。10月からの料金改定の効果を、前後の値で見比べる目安としてご利用ください。
         </p>
       </div>
 
