@@ -70,7 +70,7 @@ export function getRevenueSection(requestedYear, store) {
   const priorYear2Rows = hasPriorYear2 ? filterStore(getRowsForYear(priorYear2)) : [];
   const allRows = filterStore(getAllRows());
 
-  const { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours } = buildRevenueSection({
+  const { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours, monthlyUnitPrice } = buildRevenueSection({
     year,
     priorYear,
     hasPriorYear,
@@ -88,7 +88,7 @@ export function getRevenueSection(requestedYear, store) {
   const currentMonthTarget = year === todayYear ? todayMonth : null;
   const yoyByStore = buildYoyByStore({ storeNames, yearRows, priorYearRows, hasPriorYear, month: currentMonthTarget });
 
-  return { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours, yoyByStore };
+  return { year, priorYear, hasPriorYear, priorYear2, hasPriorYear2, monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours, monthlyUnitPrice, yoyByStore };
 }
 
 function getAllRows() {

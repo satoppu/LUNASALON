@@ -240,7 +240,27 @@ export function buildRevenueSection({ year, priorYear, hasPriorYear, priorYear2,
     return entry;
   });
 
-  return { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours };
+  // 月次の平均単価 — 料金改定(値上げ等)の効果を追うための指標。通常利用は
+  // 「利用売上 ÷ 利用時間」(円/時間、複数チャネル・割引が混ざった実効単価)、
+  // 定期クーポンは「定額売上 ÷ 購入件数」(円/件、まとめ買いも1件として数える
+  // ため、複数ヶ月分をまとめ買いした月は単価が高く出る点に注意)。件数が0の
+  // 月はnull(グラフ上は線がつながらない)。
+  const monthlyUnitPrice = MONTH_LABELS.map((label, idx) => {
+    const monthRows = yearRows.filter((r) => Number(r.date.slice(5, 7)) - 1 === idx);
+    const regularRows = monthRows.filter((r) => r.status !== SUBSCRIPTION_STATUS);
+    const regularHours = regularRows.reduce((sum, r) => sum + effectiveHours(r), 0);
+    const regularRevenue = regularRows.reduce((sum, r) => sum + effectiveRevenue(r), 0);
+    const subRows = monthRows.filter((r) => r.status === SUBSCRIPTION_STATUS);
+    const subRevenue = subRows.reduce((sum, r) => sum + effectiveRevenue(r), 0);
+    const subCount = subRows.length;
+    return {
+      label,
+      通常単価: regularHours > 0 ? Math.round((regularRevenue / regularHours) * 10) / 10 : null,
+      定期単価: subCount > 0 ? Math.round(subRevenue / subCount) : null,
+    };
+  });
+
+  return { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours, monthlyUnitPrice };
 }
 
 export function buildDashboard({
@@ -289,7 +309,7 @@ export function buildDashboard({
   // bookingRevenueContributions: the full amount stays in the booking month
   // even after a later cancellation, and the cancellation itself shows up as
   // a separate negative dip in whatever month it was actually processed.
-  const { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours } = buildRevenueSection({
+  const { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours, monthlyUnitPrice } = buildRevenueSection({
     year,
     priorYear,
     hasPriorYear,
@@ -510,6 +530,7 @@ export function buildDashboard({
     summary,
     priorYearSummary,
     monthlyTrend,
+    monthlyUnitPrice,
     occupancyData,
     hourlyUsage,
     priorYearHourlyUsage,

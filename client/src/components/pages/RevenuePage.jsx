@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ResponsiveContainer, LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { ResponsiveContainer, LineChart, Line, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine } from "recharts";
 import { api } from "../../api.js";
 import { CHANNEL_COLOR, FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
 
@@ -85,8 +85,9 @@ export default function RevenuePage({ data }) {
     yoyMonthlyCount: data.yoyMonthlyCount,
     yoyBookingRevenue: data.yoyBookingRevenue,
     yoyHours: data.yoyHours,
+    monthlyUnitPrice: data.monthlyUnitPrice,
   });
-  const { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours } = section;
+  const { monthlyTrend, yoyMonthly, yoyMonthlyCount, yoyBookingRevenue, yoyHours, monthlyUnitPrice } = section;
 
   useEffect(() => {
     if (!store) {
@@ -96,6 +97,7 @@ export default function RevenuePage({ data }) {
         yoyMonthlyCount: data.yoyMonthlyCount,
         yoyBookingRevenue: data.yoyBookingRevenue,
         yoyHours: data.yoyHours,
+        monthlyUnitPrice: data.monthlyUnitPrice,
       });
       return;
     }
@@ -108,6 +110,7 @@ export default function RevenuePage({ data }) {
           yoyMonthlyCount: res.yoyMonthlyCount,
           yoyBookingRevenue: res.yoyBookingRevenue,
           yoyHours: res.yoyHours,
+          monthlyUnitPrice: res.monthlyUnitPrice,
         })
       )
       .catch(() => {});
@@ -168,6 +171,46 @@ export default function RevenuePage({ data }) {
         </div>
         <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
           利用売上・定額売上は利用日、予約売上は決済日(自社サイト: 決済日時(データ入力用)、Instabase: 申込日時)の合計売上です。決済日が取得できない行は利用日を代用しています。自社サイトのキャンセルは、キャンセルが確定した月にマイナス反映されます。
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <div>
+          <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+            通常利用 平均単価({year}年・月別・円/時間)
+          </h3>
+          <div style={{ background: "#FFFFFF" }} className="p-4">
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={monthlyUnitPrice}>
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
+                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${v}`} domain={["auto", "auto"]} />
+                <Tooltip formatter={(v) => (v == null ? "—" : `¥${v}/h`)} />
+                {year === 2026 && <ReferenceLine x="10月" stroke="#A84434" strokeDasharray="4 3" label={{ value: "10月値上げ", position: "insideTopRight", fill: "#A84434", fontSize: 11 }} />}
+                <Line type="monotone" dataKey="通常単価" stroke="#D4A644" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div>
+          <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
+            定期クーポン 平均単価({year}年・月別・円/件)
+          </h3>
+          <div style={{ background: "#FFFFFF" }} className="p-4">
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={monthlyUnitPrice}>
+                <CartesianGrid stroke="#F0E6D8" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={{ stroke: "#EDE3D5" }} tickLine={false} />
+                <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `¥${v}`} domain={["auto", "auto"]} />
+                <Tooltip formatter={(v) => (v == null ? "—" : `¥${v}/件`)} />
+                {year === 2026 && <ReferenceLine x="10月" stroke="#A84434" strokeDasharray="4 3" label={{ value: "10月値上げ", position: "insideTopRight", fill: "#A84434", fontSize: 11 }} />}
+                <Line type="monotone" dataKey="定期単価" stroke={CHANNEL_COLOR["定期クーポン"]} strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <p className="text-xs -mt-4 lg:col-span-2" style={{ color: "#8F7D6E" }}>
+          通常利用の単価はチャネル・割引が混ざった実効平均(利用売上÷利用時間)。定期クーポンの単価は購入1件あたり(まとめ買いした月は単価が高く出ます)。10月からの料金改定の効果を、前後の値で見比べる目安としてご利用ください。
         </p>
       </div>
 
