@@ -40,7 +40,7 @@ export default function ReferencePage({ data }) {
   return (
     <div>
       <p className="text-sm mb-8" style={{ color: "#8F7D6E" }}>
-        キャビネットの割当や定額クーポンIDの参照用一覧です。変更・削除は設定→記録の「キャビネット・クーポン」で行えます。
+        キャビネットの割当や定額クーポン購入者の参照用一覧です。変更・削除は設定→記録の「キャビネット・クーポン」で行えます。
       </p>
 
       <div className="mb-12">
@@ -118,10 +118,10 @@ export default function ReferencePage({ data }) {
                   初回購入日
                 </th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  購入回数
+                  最近の購入日
                 </th>
                 <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
-                  ID
+                  購入回数
                 </th>
               </tr>
             </thead>
@@ -130,10 +130,8 @@ export default function ReferencePage({ data }) {
                 <tr key={c.user} style={{ borderBottom: "1px solid #F3EBDF" }}>
                   <td className="px-4 py-3 text-left">{c.user}</td>
                   <td className="px-4 py-3 text-center">{c.firstPurchaseDate ? formatDateShort(c.firstPurchaseDate) : "—"}</td>
+                  <td className="px-4 py-3 text-center">{c.lastPurchaseDate ? formatDateShort(c.lastPurchaseDate) : "—"}</td>
                   <td className="px-4 py-3 text-center">{c.purchaseCount}</td>
-                  <td className="px-4 py-3 text-center" style={!c.couponId ? { color: "#8F7D6E" } : undefined}>
-                    {c.couponId || "—"}
-                  </td>
                 </tr>
               ))}
               {purchases.length === 0 && (

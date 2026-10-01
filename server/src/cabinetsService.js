@@ -152,45 +152,34 @@ export function attachAssignments(customerProfiles) {
 }
 
 /**
- * 定額クーポンID一覧(利用者・初回購入日・購入回数・ID)。IDを軸にする —
- * coupon_idsに利用者が割り当てられている行はすべて含み(transactionsに
- * 購入実績が無ければ初回購入日null・購入回数0のまま)、ID順に並べる。
- * IDが割り当てられていないが購入実績はある利用者も、その後ろに続けて
- * 表示する(表記ゆれで一致しない場合はこちら側に出るので、キャビネット・
- * クーポン画面で名前を合わせれば上のID一覧側に移る)。coupon_idsの
- * user_nameが空(未割当ID)の行はここには出さない。
+ * 定額クーポンの一覧(利用者・初回購入日・最近の購入日・購入回数)。1利用者
+ * 1行で、購入実績のある利用者に加え、クーポンIDが割り当てられているが
+ * transactionsに購入実績が無い利用者(購入回数0)も含める。最近の購入日の
+ * 新しい順に並べ、購入実績の無い利用者は末尾に置く。
  */
 export function buildCouponPurchaseList(allRows) {
-  const purchasesByUser = new Map();
+  const byUser = new Map();
+  const entryFor = (userName) => {
+    const key = canonicalizeUserName(userName);
+    if (!byUser.has(key)) byUser.set(key, { user: userName, firstPurchaseDate: null, lastPurchaseDate: null, purchaseCount: 0 });
+    return byUser.get(key);
+  };
+
+  for (const c of listCoupons()) {
+    if (c.user_name) entryFor(c.user_name);
+  }
   for (const r of allRows) {
     if (r.status !== SUBSCRIPTION_STATUS) continue;
-    const key = canonicalizeUserName(r.user_name);
-    if (!purchasesByUser.has(key)) purchasesByUser.set(key, { user: r.user_name, firstPurchaseDate: null, purchaseCount: 0 });
-    const entry = purchasesByUser.get(key);
+    const entry = entryFor(r.user_name);
     entry.purchaseCount += 1;
     if (entry.firstPurchaseDate === null || r.date < entry.firstPurchaseDate) entry.firstPurchaseDate = r.date;
+    if (entry.lastPurchaseDate === null || r.date > entry.lastPurchaseDate) entry.lastPurchaseDate = r.date;
   }
 
-  const matchedKeys = new Set();
-  const withId = [];
-  for (const c of listCoupons()) {
-    if (!c.user_name) continue;
-    const key = canonicalizeUserName(c.user_name);
-    matchedKeys.add(key);
-    const purchase = purchasesByUser.get(key);
-    withId.push({
-      user: c.user_name,
-      firstPurchaseDate: purchase ? purchase.firstPurchaseDate : null,
-      purchaseCount: purchase ? purchase.purchaseCount : 0,
-      couponId: c.coupon_id,
-    });
-  }
-  withId.sort((a, b) => (a.couponId < b.couponId ? -1 : a.couponId > b.couponId ? 1 : 0));
-
-  const withoutId = [...purchasesByUser.entries()]
-    .filter(([key]) => !matchedKeys.has(key))
-    .map(([, entry]) => ({ ...entry, couponId: null }))
-    .sort((a, b) => (a.firstPurchaseDate < b.firstPurchaseDate ? -1 : a.firstPurchaseDate > b.firstPurchaseDate ? 1 : 0));
-
-  return [...withId, ...withoutId];
+  return [...byUser.values()].sort((a, b) => {
+    if (a.lastPurchaseDate === b.lastPurchaseDate) return 0;
+    if (a.lastPurchaseDate === null) return 1;
+    if (b.lastPurchaseDate === null) return -1;
+    return a.lastPurchaseDate < b.lastPurchaseDate ? 1 : -1;
+  });
 }
