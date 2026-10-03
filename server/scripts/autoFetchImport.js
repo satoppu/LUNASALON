@@ -36,7 +36,7 @@ if (fs.existsSync(envPath)) process.loadEnvFile?.(envPath);
 const LOGIN_URL = "https://v3.yoyakul.com/login";
 // ?page=daily はApp.jsxのinitialViewFromURLが読み、初期表示ページを
 // 「日次動向」にする(通常はサイドバー操作のみでURLと連動しない)。
-const DASHBOARD_DAILY_URL = "http://103.3.189.115/?page=daily";
+const DASHBOARD_DAILY_URL = "https://apps.lunasalon.jp/?page=daily";
 const YOYAKUL_ID = process.env.YOYAKUL_ID;
 const YOYAKUL_PASSWORD = process.env.YOYAKUL_PASSWORD;
 const DEBUG = process.argv.includes("--debug");
