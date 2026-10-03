@@ -1,0 +1,178 @@
+# LUNAレンタルサロン 店舗運営ダッシュボード
+
+チャット内プロトタイプ(`luna_dashboard.jsx`)を、SQLiteで永続化する本格的なWebアプリとして再構築したもの。仕様は `LUNA_DASHBOARD_SPEC.md`(元 `luna_dashboard_spec.md`)を参照。
+
+## 構成
+
+- `server/` — Node.js(Express)+ SQLite(Node組み込みの `node:sqlite`)。集計ロジック・CSVインポートAPI。
+- `client/` — React + Vite + Tailwind CSS + Recharts。ダッシュボードUI。
+
+Node.js **v22.5 以上**が必要(`node:sqlite` を使用しているため)。
+
+## セットアップ
+
+```bash
+npm run install:all   # server / client の依存関係をインストール
+npm run dev            # サーバー(:3001)とクライアント(:5173)を同時起動
+```
+
+初回起動時、`server/data/luna_usage_2023-2026.csv` の実績データ(約4,800件)が自動的にSQLiteへ投入されます(`server/luna.db`、2回目以降は再投入されません)。
+
+ブラウザで `http://localhost:5173` を開くとダッシュボードが表示されます。
+
+### スマホなど他の端末から見る
+
+`npm run dev` はLAN内の他端末からもアクセスできるように起動します(`vite.config.js` の `server.host: true`)。起動時のログに表示される `Network: http://<PCのIPアドレス>:5173/` を、同じWiFiに繋がっているスマホのブラウザで開いてください。初回はWindows Defender ファイアウォールの確認画面が出るので「アクセスを許可する」を選択してください。
+
+## 本番起動(単一デプロイ)
+
+```bash
+npm run build   # client をビルド
+npm start        # client の dist を Express から配信しつつ API サーバーを起動(:3001 のみ)
+```
+
+Vercel / Render などシンプルなホスティング先へは `server` をNodeアプリとしてデプロイし、`npm run build && npm start` 相当のコマンドを実行すれば単一プロセスで動作します。
+
+## データモデル
+
+```
+transactions(
+  id, date, store, user_name, revenue, hours_used,
+  start_hour, weekday, channel, status, external_id, booking_date, created_at
+)
+store_settings(
+  store, area, color, open_date, operating_hours_per_day, sort_order
+)
+cabinet_assignments(
+  id, store, slot_label, sort_order, user_name
+)
+coupon_ids(
+  id, coupon_id, sort_order, user_name
+)
+```
+
+`store_settings` に開業日(`open_date`)・1日あたり稼働可能時間(`operating_hours_per_day`)を保存しており、画面右上の「店舗設定」から編集できます(仕様書 7.3 の「基準日・店舗開業日をハードコードしない」要件に対応)。`open_date` を空欄にすると、実績データ上のその店舗の初回利用日から自動推定されます。
+
+`booking_date`(予約が実際に行われた日。`date` は利用日)は自社サイト・Instabaseの生データ取り込み(決済日時/申込日時から取得)でのみ埋まり、履歴CSVやシンプルテンプレートのインポートでは常にNULLです。「顧客分析」ページの「予約は何日前にされているか」グラフはこの値が入っている行のみを対象にしているため、取り込み時期より前のデータは反映されません。
+
+基準日(本日)は仕様書 4.4 のとおりサーバーの現在日時(JST)から動的に算出しており、設定値としては保持していません。
+
+`cabinet_assignments`(店舗ごとの物理キャビネット番号と利用者)・`coupon_ids`(定額クーポンIDと利用者)は、サイドバー「キャビネット・クーポン」から一覧・追加・編集・削除できます。初回起動時に管理用スプレッドシートの内容を `server/src/initialCabinetsAndCoupons.js` から自動投入しますが(以後はDBが正)、店舗設定と同じく再投入はされません。「顧客一覧」の詳細では、その顧客の`user_name`と`canonicalizeUserName`(空白・全角半角・登録済みエイリアスの差異を吸収)で一致した行だけを表示します — 表記ゆれ(同姓同名の漢字違いなど)で一致しない場合は「キャビネット・クーポン」画面側の利用者名を実績データの表記に合わせて直接編集してください。
+
+## 集計ロジック(仕様書 4章のビジネスルール)
+
+`server/src/aggregations.js` に実装。プロトタイプの `useMemo` ロジックを1:1で移植しつつ、`status` 列に基づいて売上・稼働時間を判定するよう変更しています(`server/src/config.js` の `REVENUE_STATUSES` / `HOURS_USED_STATUSES`)。
+
+- 稼働可能時間:店舗ごとに `operating_hours_per_day × 営業日数`(開業日〜基準日/年末の早い方)
+- 売上:ステータスが「利用済み」「キャンセル(返金あり)」「定期クーポン」の金額を計上
+- 稼働時間:ステータスが「利用済み」の予約のみ計上
+- 年度比較:暦年ベース
+
+### 定期クーポン(サブスク収入)の扱い
+
+「定期クーポン」は元データ上は店舗に紐付かないが、**購入者が最も多く利用している店舗**に紐付けたうえで、店舗別売上・月次売上・年度比較・利用者別売上には計上している。ただし「導線別売上」(集客チャネル分析)には含めない(予約経由のチャネルではないため)。`hours_used` は常に0で、稼働率・利用時間帯・曜日別稼働率には影響しない。
+
+店舗の紐付けは `server/src/importSubscriptions.js`(生のExcelエクスポートの「データ」シートを読み込み、`transactions` テーブルの既存実績から購入者ごとの最頻店舗を集計するワンショットツール)で解決し、結果を `server/data/luna_subscriptions_2023-2026.csv` に書き出してコミットしている(再現可能なシードデータとして扱うため)。新しいExcelエクスポートが来た場合の再生成手順:
+
+```bash
+cd server
+npm run seed              # 先に通常利用データが投入されている必要がある
+npm run import-subscriptions -- /path/to/raw-export.xlsx
+rm luna.db luna.db-shm luna.db-wal   # 作り直して両方のCSVを反映
+npm run seed
+```
+
+利用履歴が1件もない購入者(店舗を特定できない行)はCSVに書き出されず、コンソールに警告として一覧表示される。
+
+### 予約プラットフォームの生エクスポートを直接取り込む
+
+以下の生データ形式は、上記のダッシュボード用CSVテンプレートとは全く別の列構成だが、**画面の「CSVインポート」ボタンからそのままアップロードできる**(`server/src/rawImportMappers.js` がヘッダーを見て自動判別する)。予約データ(自社サイト・Instabaseいずれも)を先に、定額クーポンを後にアップロードすること(店舗紐付けに利用実績を使うため)。
+
+- **自社サイトの予約エクスポート**(列: スペース名,顧客名,HN,決済元金,割引金額,返金額,利益確定後返金,利益,使用クーポン,決済方法,状態,決済日時,決済日時（データ入力用）,利用日時,売り上げ確定日時,決済ID)
+- **定額クーポン購入エクスポート**(列: クーポン名,顧客名,金額,返金額,利益,支払いID,購入日時)
+- **Instabaseの予約エクスポート**(列: 予約ID,施設名,スペース名,ステータス,決済方法,決済状況,予約者ID,予約者会社名・屋号,予約者名,利用用途,用途詳細,利用人数,申込日時,利用開始日時,利用終了日時,利用時間 (時間),予約金額 (税込),支払金額 (税込))。施設名から店舗を判定する(`server/src/rawImportMappers.js` の `INSTABASE_FACILITY_STORE`)。売上は「予約金額(税込)」(Instabaseの手数料差引前の総額)を使用し、「支払金額(税込)」(手数料差引後の入金額)は使わない — 既存の実績データも手数料を経費ではなく総額から差し引かない形で計上しているため。
+
+自社サイトの予約・定額クーポンの2つは同じロジックをCLIからも実行できる(サーバー起動を待たずに取り込みたい場合や、再現用CSVを生成したい場合向け。Instabase分はCLI版は用意していない、画面からのアップロードのみ):
+
+```bash
+cd server
+node src/importRawBookings.js /path/to/booking-export.csv
+node src/importRawSubscriptions.js /path/to/coupon-export.csv   # 予約データの後に実行
+```
+
+- 状態「未確定」(自社サイト)・本日より先の日付の「予約確定」(Instabase。こちらは確定済み予約に日付を問わず同じラベルが付くため、日付で判定する)は、いずれも本日より先の未来予約として、ステータス「利用前」で売上に計上する。自社サイトの売上は「決済元金」+「割引金額」から算出(「利益」列はこの時点では空欄のため使用できない)。Instabaseの売上は他の行と同じ「予約金額(税込)」列をそのまま使用(予約確定時点で金額が決まっているため)。いずれもただし稼働時間(`hours_used`)には含めない — まだ実際に利用されていないため。日付が過ぎて次回以降のエクスポートで「利用済み」に変われば、同じ決済ID/予約IDの行が自動的に更新され(下記の通り)、稼働時間も計上されるようになる。「利用済み」→利用済み、「キャンセル(顧客)」相当は利益(またはInstabaseの予約金額)>0なら「キャンセル(返金あり)」・0なら「キャンセル(顧客)」、「キャンセル(オーナー)」はそのまま新しいステータスとして保存(売上・稼働時間ともに計上対象外)。
+- 自社サイト分の売上(「未確定」=利用前を除く)は「利益」列(クーポン充当後の純額)を使用。クーポンで支払われた予約は、この行では売上0(その分の売上は定期クーポン購入時点で別途計上済み)だが `hours_used` はきちんと計上される。
+- 顧客名は既存の `transactions` の名前と空白を無視して突き合わせ、同一人物の実績が分裂しないようにしている(例:「HARUNA TAKAGI」→ 既存の「HARUNATAKAGI」に統合)。
+- 各行の決済ID/支払いID/予約IDを `external_id` として保存し、同じ決済ID/支払いID/予約IDの行が既にある場合は新規追加ではなく上書き更新する(UPSERT)。これにより「利用前」→「利用済み」のようなステータス変化も、行を重複させずに反映できる。ただし同梱の履歴データ(`luna_usage_2023-2026.csv` など)には `external_id` が無いため、**そのエクスポートが既にカバーしている期間を再度取り込むと二重計上になる**。自社サイト予約・定額クーポンは「履歴データ内の最新日付より後」のみ取り込むことでこれを防いでいる(CLIのみ初回など範囲が離れている場合に `--since=YYYY-MM-DD` で明示できる)。「利用前」ステータスの行だけはこのカットオフの対象外(履歴データには存在し得ないステータスのため、日付に関わらず常に取り込む)。Instabase分は日付カットオフではなく、日付・店舗・利用者・金額が完全一致する履歴データが既にあるかどうかで判定する(実績データ上、Instabaseの取り込み済み範囲に穴があり、単純な日付カットオフでは新規分を取りこぼすため)。
+- 画面からアップロードした分はその場で `server/luna.db` に反映されるのみ(再現用CSVへの追記はCLI版のみ)。CLIで取り込んだ分は再現用として `server/data/luna_usage_<YYYY-MM>_raw_imports.csv` / `luna_subscriptions_<YYYY-MM>_raw_imports.csv` に追記される(`npm run seed` はこれらも自動的に読み込む。新規追加された行のみを追記するため、上書き更新のみだった行は追記されない)。
+
+## CSVインポート
+
+ヘッダーは英語(`date,store,user,revenue,hoursUsed,hour,weekday,channel`)・日本語(`日付,店舗,利用者,売上,利用時間,hour,weekday,channel`)のどちらにも対応(`server/src/importRows.js`)。`status`/`ステータス` 列を明示的に含めることもでき、省略時は売上・稼働時間の値から自動推定します。画面の「テンプレートDL」から取り込み用CSVのひな形をダウンロードできます。インポートは追加(アペンド)方式で、未登録の店舗名はCSVに含まれていれば自動的に店舗設定へ登録されます。
+
+## 自動取り込み(毎朝のバッチ、よやクルPro)
+
+予約サイト(よやクルPro, `v3.yoyakul.com` — 自社サイト予約の実体)に毎朝自動ログインして「売り上げ情報」タブのzipをダウンロードし、そのまま上記のCSV/zipインポートと同じ処理(`importFileBuffer`)に流し込むスクリプトです。**VPS(ダッシュボードのサーバー)上で実行する前提**(`server/luna.db` に直接書き込むため)。
+
+### セットアップ(初回のみ)
+
+```bash
+cd /opt/lunasalon/server
+npm install
+```
+
+VPSのOS(Ubuntu 20.04)はサポート期限切れのため、Playwright同梱のChromiumはインストールできません。代わりにGoogle Chrome本体を直接インストールします(初回のみ)。
+
+```bash
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor | tee /usr/share/keyrings/google-chrome.gpg >/dev/null
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | tee /etc/apt/sources.list.d/google-chrome.list
+apt-get update
+apt-get install -y google-chrome-stable
+```
+
+```bash
+cp .env.example .env
+```
+
+`server/.env` を編集し、よやクルProのID/PASSWORDを入力して保存してください(このファイルはgit管理外です)。
+
+### 動作確認
+
+```bash
+node scripts/autoFetchImport.js --debug
+```
+
+VPSはヘッドレス(画面なし)なので、実行しても操作中の画面は表示されません。代わりに各ステップのスクリーンショットが `server/scripts/debug-shots/` に保存されるので、`scp`などでダウンロードして確認してください。ログイン画面やダウンロードボタンなど、サイト側の画面構成が想定と違う場合はここで気づけます(`server/scripts/autoFetchImport.js` の該当箇所を調整してください)。
+
+問題なければ通常実行で試します:
+
+```bash
+npm run auto-import
+```
+
+`inserted`/`updated` などの件数がJSONで出力されれば成功です。
+
+### 毎朝の自動実行(cron)
+
+```bash
+crontab -e
+```
+
+以下の行を追加(毎朝6:00、VPSのシステム時刻がJSTである前提):
+
+```
+0 6 * * * cd /opt/lunasalon/server && /usr/bin/env node scripts/autoFetchImport.js >> /opt/lunasalon/server/logs/auto-import.log 2>&1
+```
+
+`node`のフルパスが違う場合は `which node` で確認してください。ログは `server/logs/auto-import.log` に追記されていきます(このフォルダはgit管理外)。
+
+### 実行結果のメール通知(任意)
+
+`server/.env` に `GMAIL_USER` / `GMAIL_APP_PASSWORD` / `NOTIFY_EMAIL_TO` を設定すると、毎朝の自動取り込みが成功・失敗した際にメールで結果が届きます(`.env.example` にセットアップ手順のコメントあり)。3つとも未設定の場合は通知だけスキップされ、自動取り込み自体は通常通り動作します。
+
+## 仕様書からの未確定事項(要本人確認・引き継ぎ)
+
+- Forest(2024-10-31〜)・Asteria(2026-04-10〜)の開業日は実績データからの自動推定値。実際の契約開業日と異なる場合は「店舗設定」画面から修正してください。
+- 稼働可能時間 14時間/日 が実際の営業時間と一致しているか。
+- 集客チャネル(導線)は今後、予約システム側または入力フォームで明示的に持たせる設計への移行を推奨(現行はCSV列としてのみ管理)。
+- 「定期クーポン」は購入者の最頻利用店舗に紐付けて店舗別売上へ計上するよう対応済み(上記「定期クーポンの扱い」参照)。この紐付けルールが実態と合っているか要確認。
