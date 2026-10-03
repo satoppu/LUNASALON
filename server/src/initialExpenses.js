@@ -275,6 +275,7 @@ export const INITIAL_EXPENSES = [
   { date: "2026-09-05", category: "消耗品費", store: null, amount: 2161, description: "AMAZON", source: "card_rakuten" },
   { date: "2026-09-01", category: "通信費", store: null, amount: 550, description: "サブライン(mj-japanの電話)", source: "card_rakuten" },
   { date: "2026-09-01", category: "通信費", store: null, amount: 5500, description: "LINE公式(LINE予約)", source: "card_rakuten" },
+  { date: "2026-10-03", category: "消耗品費", store: "Bellezza", amount: 4400, description: "ダイソー(マット・スリッパ)", source: "card_rakuten" },
   { date: "2026-04-10", category: "開業費・設備費", store: "Asteria", amount: 3999, description: "サイドテーブル", source: "card_rakuten" },
   { date: "2026-03-26", category: "開業費・設備費", store: "Asteria", amount: 1980, description: "レースカーテン", source: "card_rakuten" },
   { date: "2026-03-22", category: "開業費・設備費", store: "Asteria", amount: 8950, description: "遮光1級カーテン", source: "card_rakuten" },
