@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { Trash2, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Trash2, Plus, Paperclip, Camera, X } from "lucide-react";
 import { api } from "../../api.js";
 import { FONT_HEAD, yen, makeStoreColor } from "../../constants.js";
+import { shrinkImage } from "../../shrinkImage.js";
 import StoreBadge from "../StoreBadge.jsx";
+
+const RECEIPT_ACCEPT = "image/*,application/pdf";
 
 const PAGE_SIZE = 100;
 
@@ -20,7 +23,13 @@ export default function ExpenseListPage({ data }) {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [formReceipt, setFormReceipt] = useState(null);
   const [formError, setFormError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [uploadingId, setUploadingId] = useState(null);
+  const rowFileInput = useRef(null);
+  const rowUploadTarget = useRef(null);
+  const formFileInput = useRef(null);
 
   useEffect(() => {
     api.getExpenseFilters().then(setFilters).catch(() => {});
@@ -53,9 +62,42 @@ export default function ExpenseListPage({ data }) {
     load({}, 0);
   }
 
-  async function handleDelete(id) {
-    await api.deleteExpense(id);
+  function reload() {
     load({ start, end, category, store }, offset);
+  }
+
+  async function handleDelete(row) {
+    if (row.receipt_file && !window.confirm("この経費と添付のレシート画像を削除します。よろしいですか？")) return;
+    await api.deleteExpense(row.id);
+    reload();
+  }
+
+  async function handleRemoveReceipt(row) {
+    if (!window.confirm("添付のレシート画像を削除します。よろしいですか？")) return;
+    await api.deleteExpenseReceipt(row.id);
+    reload();
+  }
+
+  function startRowUpload(id) {
+    rowUploadTarget.current = id;
+    rowFileInput.current.click();
+  }
+
+  async function handleRowFileChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const id = rowUploadTarget.current;
+    if (!file || !id) return;
+    setError(null);
+    setUploadingId(id);
+    try {
+      await api.uploadExpenseReceipt(id, await shrinkImage(file));
+      reload();
+    } catch (err) {
+      setError(`レシートのアップロードに失敗しました: ${err.message}`);
+    } finally {
+      setUploadingId(null);
+    }
   }
 
   async function handleAddSubmit(e) {
@@ -65,19 +107,31 @@ export default function ExpenseListPage({ data }) {
       setFormError("日付・勘定科目・金額は必須です。");
       return;
     }
+    setSaving(true);
     try {
-      await api.createExpense({
+      const { expense } = await api.createExpense({
         date: form.date,
         category: form.category,
         store: form.store || null,
         amount: Number(form.amount),
         description: form.description,
       });
+      if (formReceipt) {
+        try {
+          await api.uploadExpenseReceipt(expense.id, await shrinkImage(formReceipt));
+        } catch (err) {
+          setError(`経費は追加しましたが、レシートのアップロードに失敗しました(一覧の「添付」から再度お試しください): ${err.message}`);
+        }
+      }
       setForm(EMPTY_FORM);
+      setFormReceipt(null);
+      if (formFileInput.current) formFileInput.current.value = "";
       setShowForm(false);
-      load({ start, end, category, store }, offset);
+      reload();
     } catch (err) {
       setFormError(err.message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -87,6 +141,7 @@ export default function ExpenseListPage({ data }) {
 
   return (
     <div>
+      <input ref={rowFileInput} type="file" accept={RECEIPT_ACCEPT} onChange={handleRowFileChange} className="hidden" />
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold">
           経費一覧
@@ -187,8 +242,27 @@ export default function ExpenseListPage({ data }) {
             className={selectClass}
             style={{ ...selectStyle, flex: 1, minWidth: 160 }}
           />
-          <button type="submit" className="text-sm px-3 py-2" style={{ background: "#D4A644", color: "#262421" }}>
-            追加
+          <label
+            className="flex items-center gap-1 text-sm px-3 py-2 border cursor-pointer max-w-full"
+            style={{ ...selectStyle, color: "#7A6A5C" }}
+          >
+            <Camera size={14} className="shrink-0" />
+            <span className="truncate">{formReceipt ? formReceipt.name : "レシート(任意)"}</span>
+            <input
+              ref={formFileInput}
+              type="file"
+              accept={RECEIPT_ACCEPT}
+              onChange={(e) => setFormReceipt(e.target.files?.[0] || null)}
+              className="hidden"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={saving}
+            className="text-sm px-3 py-2 disabled:opacity-50"
+            style={{ background: "#D4A644", color: "#262421" }}
+          >
+            {saving ? "保存中…" : "追加"}
           </button>
           {formError && (
             <p className="text-sm w-full" style={{ color: "#A84434" }}>
@@ -252,6 +326,9 @@ export default function ExpenseListPage({ data }) {
                   <th className="text-left px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     内容
                   </th>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    レシート
+                  </th>
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}></th>
                 </tr>
               </thead>
@@ -266,7 +343,40 @@ export default function ExpenseListPage({ data }) {
                       {r.description}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <button type="button" onClick={() => handleDelete(r.id)} style={{ color: "#A84434" }}>
+                      {uploadingId === r.id ? (
+                        <span className="text-xs" style={{ color: "#8F7D6E" }}>
+                          送信中…
+                        </span>
+                      ) : r.receipt_file ? (
+                        <span className="inline-flex items-center gap-2">
+                          <a
+                            href={api.expenseReceiptUrl(r)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs"
+                            style={{ color: "#B8862B" }}
+                          >
+                            <Paperclip size={13} />
+                            表示
+                          </a>
+                          <button type="button" onClick={() => handleRemoveReceipt(r)} aria-label="レシートを削除" style={{ color: "#8F7D6E" }}>
+                            <X size={13} />
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startRowUpload(r.id)}
+                          className="inline-flex items-center gap-1 text-xs"
+                          style={{ color: "#8F7D6E" }}
+                        >
+                          <Camera size={13} />
+                          添付
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button type="button" onClick={() => handleDelete(r)} aria-label="削除" style={{ color: "#A84434" }}>
                         <Trash2 size={14} />
                       </button>
                     </td>
@@ -274,7 +384,7 @@ export default function ExpenseListPage({ data }) {
                 ))}
                 {result.rows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                    <td colSpan={7} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                       該当する経費が見つかりません。
                     </td>
                   </tr>

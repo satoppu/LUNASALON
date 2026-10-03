@@ -149,4 +149,12 @@ export const api = {
   updateExpense: (id, payload) =>
     request(`/expenses/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
   deleteExpense: (id) => request(`/expenses/${id}`, { method: "DELETE" }),
+  uploadExpenseReceipt: (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request(`/expenses/${id}/receipt`, { method: "POST", body: formData });
+  },
+  deleteExpenseReceipt: (id) => request(`/expenses/${id}/receipt`, { method: "DELETE" }),
+  // ファイル名をクエリに付け、差し替え後にブラウザのキャッシュで古い画像が出ないようにする。
+  expenseReceiptUrl: (expense) => `${BASE}/expenses/${expense.id}/receipt?v=${encodeURIComponent(expense.receipt_file)}`,
 };

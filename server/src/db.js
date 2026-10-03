@@ -236,6 +236,12 @@ db.exec(`
 db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);`);
 
+// レシート画像のファイル名(保存先は expensesService.js の RECEIPTS_DIR)。
+const hasReceiptFile = db.prepare(`SELECT 1 FROM pragma_table_info('expenses') WHERE name = 'receipt_file'`).get();
+if (!hasReceiptFile) {
+  db.exec(`ALTER TABLE expenses ADD COLUMN receipt_file TEXT;`);
+}
+
 const expensesCount = db.prepare(`SELECT COUNT(*) AS c FROM expenses`).get().c;
 if (expensesCount === 0) {
   const seedExpenseStmt = db.prepare(

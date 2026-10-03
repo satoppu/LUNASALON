@@ -1,8 +1,16 @@
 // 収支(経費)ページ向けのサービス。既存の売上系(aggregations.js/dashboardService.js)
 // とは独立しており、expensesテーブルだけを扱う。売上との突き合わせ(営業利益)
 // だけ effectiveRevenue を横断的に再利用する。
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import db from "./db.js";
 import { effectiveRevenue } from "./aggregations.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// luna.db と同じくgit管理外。DBのバックアップと一緒にこのフォルダも保管する。
+export const RECEIPTS_DIR = process.env.LUNA_RECEIPTS_DIR || path.join(__dirname, "..", "receipts");
+fs.mkdirSync(RECEIPTS_DIR, { recursive: true });
 
 // 一覧・エクスポート・グラフの並び順の基準になる勘定科目の順序。開業費・
 // 設備費(ASTERIA関連の一時費用)は営業利益の計算上「除く/含む」を切り替える
@@ -93,8 +101,37 @@ export function updateExpense(id, { date, category, store, amount, description }
   return db.prepare(`SELECT * FROM expenses WHERE id = ?`).get(id);
 }
 
+export function getExpense(id) {
+  return db.prepare(`SELECT * FROM expenses WHERE id = ?`).get(id);
+}
+
+function removeReceiptFile(filename) {
+  if (filename) fs.rmSync(path.join(RECEIPTS_DIR, filename), { force: true });
+}
+
 export function deleteExpense(id) {
+  const existing = getExpense(id);
   db.prepare(`DELETE FROM expenses WHERE id = ?`).run(id);
+  removeReceiptFile(existing?.receipt_file);
+}
+
+/** レシート画像を保存し、差し替えの場合は古いファイルを消す。 */
+export function saveExpenseReceipt(id, buffer, ext) {
+  const existing = getExpense(id);
+  if (!existing) return null;
+  const filename = `${id}-${Date.now()}.${ext}`;
+  fs.writeFileSync(path.join(RECEIPTS_DIR, filename), buffer);
+  db.prepare(`UPDATE expenses SET receipt_file = ? WHERE id = ?`).run(filename, id);
+  removeReceiptFile(existing.receipt_file);
+  return getExpense(id);
+}
+
+export function removeExpenseReceipt(id) {
+  const existing = getExpense(id);
+  if (!existing) return null;
+  db.prepare(`UPDATE expenses SET receipt_file = NULL WHERE id = ?`).run(id);
+  removeReceiptFile(existing.receipt_file);
+  return getExpense(id);
 }
 
 /**
