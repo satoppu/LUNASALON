@@ -155,6 +155,11 @@ export const api = {
     return request(`/expenses/${id}/receipt`, { method: "POST", body: formData });
   },
   deleteExpenseReceipt: (id) => request(`/expenses/${id}/receipt`, { method: "DELETE" }),
+  scanReceipt: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request("/expenses/receipt-scan", { method: "POST", body: formData });
+  },
   // ファイル名をクエリに付け、差し替え後にブラウザのキャッシュで古い画像が出ないようにする。
   expenseReceiptUrl: (expense) => `${BASE}/expenses/${expense.id}/receipt?v=${encodeURIComponent(expense.receipt_file)}`,
 };

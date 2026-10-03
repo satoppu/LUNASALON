@@ -26,6 +26,7 @@ export default function ExpenseListPage({ data }) {
   const [formReceipt, setFormReceipt] = useState(null);
   const [formError, setFormError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [scanStatus, setScanStatus] = useState(null);
   const [uploadingId, setUploadingId] = useState(null);
   const rowFileInput = useRef(null);
   const rowUploadTarget = useRef(null);
@@ -100,6 +101,29 @@ export default function ExpenseListPage({ data }) {
     }
   }
 
+  async function handleFormReceiptChange(e) {
+    const picked = e.target.files?.[0];
+    if (!picked) return;
+    const file = await shrinkImage(picked);
+    setFormReceipt(file);
+    if (!filters.receiptScanEnabled) return;
+    setScanStatus({ state: "scanning" });
+    try {
+      const { result } = await api.scanReceipt(file);
+      setForm((prev) => ({
+        ...prev,
+        date: result.date || prev.date,
+        category: result.category || prev.category,
+        store: result.store || prev.store,
+        amount: result.amount ? String(result.amount) : prev.amount,
+        description: result.description || prev.description,
+      }));
+      setScanStatus({ state: "done" });
+    } catch (err) {
+      setScanStatus({ state: "error", message: err.message });
+    }
+  }
+
   async function handleAddSubmit(e) {
     e.preventDefault();
     setFormError(null);
@@ -118,13 +142,14 @@ export default function ExpenseListPage({ data }) {
       });
       if (formReceipt) {
         try {
-          await api.uploadExpenseReceipt(expense.id, await shrinkImage(formReceipt));
+          await api.uploadExpenseReceipt(expense.id, formReceipt);
         } catch (err) {
           setError(`経費は追加しましたが、レシートのアップロードに失敗しました(一覧の「添付」から再度お試しください): ${err.message}`);
         }
       }
       setForm(EMPTY_FORM);
       setFormReceipt(null);
+      setScanStatus(null);
       if (formFileInput.current) formFileInput.current.value = "";
       setShowForm(false);
       reload();
@@ -252,7 +277,7 @@ export default function ExpenseListPage({ data }) {
               ref={formFileInput}
               type="file"
               accept={RECEIPT_ACCEPT}
-              onChange={(e) => setFormReceipt(e.target.files?.[0] || null)}
+              onChange={handleFormReceiptChange}
               className="hidden"
             />
           </label>
@@ -264,6 +289,13 @@ export default function ExpenseListPage({ data }) {
           >
             {saving ? "保存中…" : "追加"}
           </button>
+          {scanStatus && (
+            <p className="text-sm w-full" style={{ color: scanStatus.state === "error" ? "#A84434" : "#7A6A5C" }}>
+              {scanStatus.state === "scanning" && "レシートを読み取り中…(10秒ほどかかります)"}
+              {scanStatus.state === "done" && "レシートから入力しました。内容を確認・修正してから「追加」を押してください。"}
+              {scanStatus.state === "error" && `${scanStatus.message} 手入力で登録できます。`}
+            </p>
+          )}
           {formError && (
             <p className="text-sm w-full" style={{ color: "#A84434" }}>
               {formError}

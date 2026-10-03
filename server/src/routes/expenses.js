@@ -14,6 +14,7 @@ import {
   removeExpenseReceipt,
   RECEIPTS_DIR,
 } from "../expensesService.js";
+import { isReceiptScanEnabled, isScannableType, scanReceipt } from "../receiptScanService.js";
 
 const router = Router();
 
@@ -33,7 +34,7 @@ const receiptUpload = multer({
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 router.get("/expenses/filters", (req, res) => {
-  res.json(getExpenseFilters());
+  res.json({ ...getExpenseFilters(), receiptScanEnabled: isReceiptScanEnabled() });
 });
 
 router.get("/expenses", (req, res) => {
@@ -92,6 +93,22 @@ function receiptFileMiddleware(req, res, next) {
     res.status(400).json({ error: message });
   });
 }
+
+router.post("/expenses/receipt-scan", receiptFileMiddleware, async (req, res) => {
+  if (!isReceiptScanEnabled()) {
+    return res.status(503).json({ error: "自動読み取りが未設定です(サーバーの ANTHROPIC_API_KEY)。" });
+  }
+  if (!req.file) return res.status(400).json({ error: "ファイルが選択されていません。" });
+  if (!isScannableType(req.file.mimetype)) {
+    return res.status(400).json({ error: "この形式は自動読み取りできません(JPEG/PNG/WebP/PDF)。" });
+  }
+  try {
+    res.json({ result: await scanReceipt(req.file.buffer, req.file.mimetype) });
+  } catch (err) {
+    console.error("receipt scan failed:", err);
+    res.status(502).json({ error: `自動読み取りに失敗しました: ${err.message}` });
+  }
+});
 
 router.post("/expenses/:id/receipt", receiptFileMiddleware, (req, res) => {
   if (!req.file) return res.status(400).json({ error: "ファイルが選択されていません。" });
