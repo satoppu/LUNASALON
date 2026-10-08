@@ -11,7 +11,6 @@ import {
   WEEKDAYS,
   MONTH_LABELS,
   SUBSCRIPTION_STATUS,
-  PENDING_STATUS,
   isCancellationStatus,
 } from "./config.js";
 
@@ -746,7 +745,7 @@ export function buildCustomerProfiles(allRows) {
         entry.subscriptionRevenue += effectiveRevenue(r);
       } else if (effectiveHours(r) > 0) {
         entry.count += 1;
-      } else if (r.status !== PENDING_STATUS) {
+      } else if (isCancellationStatus(r.status)) {
         entry.cancelCount += 1;
       }
     });

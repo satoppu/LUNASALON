@@ -41,8 +41,7 @@ export function detectRawFormat(fields) {
   if (set.has("クーポン名") && set.has("購入日時")) return "rawSubscription";
   if (set.has("予約ID") && set.has("施設名") && set.has("利用開始日時")) return "rawInstabase";
   if (set.has("予約リクエスト日") && set.has("成約金額") && set.has("ゲスト名")) return "rawSpaceMarket";
-  // 支払いリンク(延長料金などを個別に請求したもの)。店舗・利用日時の列が
-  // 無く transactions に載せられないため、今は認識して読み飛ばすだけ。
+  // 支払いリンク(延長料金などを個別に請求したもの)。mapRawPaymentLinkRow 参照。
   if (set.has("理由") && set.has("問い合わせ番号") && set.has("お支払い完了日時")) return "rawPaymentLink";
   return null;
 }
@@ -193,6 +192,48 @@ export function mapRawSubscriptionRow(raw) {
     // (date, from 購入日時) is itself the booking-equivalent date for a
     // subscription row, so it doubles as booking_date too.
     booking_date: date,
+  };
+}
+
+/**
+ * Maps one row of a raw 支払いリンク export (columns: 顧客名(HN),理由,金額,
+ * 返金額,利益,問い合わせ番号,支払いID,支払い方法,作成日時,お支払い完了日時,
+ * 状態) — an ad-hoc charge such as an extension fee (延長利用料) requested
+ * after the booking — to a 自社サイト revenue row with hours_used 0, or null
+ * if it isn't paid yet or can't be placed. Store and usage date come from
+ * the original booking when 問い合わせ番号 matches its 決済ID; otherwise the
+ * store is the customer's most-used one and the date is the "(26.10.6)"-style
+ * date written in 理由, falling back to the payment-completion date. A
+ * 利用済み row with zero hours is unique to this shape (no booking export
+ * produces one), which is how the counts below tell it apart from a visit.
+ */
+export function mapRawPaymentLinkRow(raw, findBooking) {
+  if (String(raw["状態"] || "").trim() !== "支払い済み") return null;
+  const paidDate = String(raw["お支払い完了日時"] || "").slice(0, 10);
+  const revenueRaw = raw["利益"] !== "" && raw["利益"] != null ? raw["利益"] : raw["金額"];
+  const revenue = Number(String(revenueRaw).replace(/,/g, ""));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidDate) || Number.isNaN(revenue) || !raw["支払いID"]) return null;
+
+  const userName = canonicalizeUserName(raw["顧客名(HN)"]);
+  const booking = raw["問い合わせ番号"] ? findBooking(raw["問い合わせ番号"]) : null;
+  const m = String(raw["理由"] || "").match(/(\d{2})\.(\d{1,2})\.(\d{1,2})/);
+  const reasonDate = m ? `20${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}` : null;
+  const date = booking?.date ?? (reasonDate && reasonDate <= paidDate ? reasonDate : paidDate);
+  const store = booking?.store ?? resolveStoreForUser(userName);
+  if (!store) return null;
+
+  return {
+    date,
+    store,
+    user_name: userName,
+    revenue,
+    hours_used: 0,
+    start_hour: null,
+    weekday: WEEKDAY_FROM_JS_DOW[new Date(date).getDay()],
+    channel: BOOKING_CHANNEL,
+    status: "利用済み",
+    external_id: `plink-${raw["支払いID"]}`,
+    booking_date: paidDate,
   };
 }
 

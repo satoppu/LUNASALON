@@ -33,7 +33,7 @@ export function getUsageDaily(offsetWindows = 0, store) {
   const params = store ? [start, end, ...USAGE_STATUS_LIST, store] : [start, end, ...USAGE_STATUS_LIST];
   const rows = db
     .prepare(
-      `SELECT date, revenue
+      `SELECT date, revenue, hours_used
        FROM transactions
        WHERE date >= ? AND date <= ? AND status IN (${USAGE_STATUS_PLACEHOLDERS}) ${storeClause}`
     )
@@ -44,7 +44,8 @@ export function getUsageDaily(offsetWindows = 0, store) {
   const add = (map, date, amount) => map.set(date, (map.get(date) || 0) + amount);
 
   for (const r of rows) {
-    add(countByDate, r.date, 1);
+    // 支払いリンクの延長料金など(時間0)は売上のみで、利用件数には数えない。
+    if (r.hours_used > 0) add(countByDate, r.date, 1);
     add(revenueByDate, r.date, r.revenue);
   }
 

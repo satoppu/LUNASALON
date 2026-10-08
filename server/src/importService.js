@@ -2,7 +2,7 @@ import Papa from "papaparse";
 import db from "./db.js";
 import { normalizeImportRow } from "./importRows.js";
 import { SUBSCRIPTION_STATUS, isCancellationStatus, getTodayISO } from "./config.js";
-import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow, mapRawSpaceMarketRow } from "./rawImportMappers.js";
+import { detectRawFormat, mapRawBookingRow, mapRawSubscriptionRow, mapRawInstabaseRow, mapRawSpaceMarketRow, mapRawPaymentLinkRow } from "./rawImportMappers.js";
 import { ensureStoreRegistered } from "./storeSettingsService.js";
 
 // A plain INSERT (external_id NULL, from the simple template) never
@@ -296,6 +296,19 @@ function importRawSubscriptionCsv(parsed) {
   };
 }
 
+function importRawPaymentLinkCsv(parsed) {
+  const findBookingStmt = db.prepare("SELECT date, store FROM transactions WHERE external_id = ?");
+  const rows = [];
+  let skipped = 0;
+  for (const raw of parsed.data) {
+    const row = mapRawPaymentLinkRow(raw, (id) => findBookingStmt.get(id));
+    if (row) rows.push(row);
+    else skipped++;
+  }
+  const { inserted, updated } = rows.length > 0 ? insertRows(rows) : { inserted: 0, updated: 0 };
+  return { format: "rawPaymentLink", inserted, updated, duplicates: rows.length - inserted - updated, skipped, error: null };
+}
+
 // Unlike the 自社サイト raw export, the historical data's Instabase coverage
 // has gaps rather than a clean cutoff date (spot-checked: several Bellezza
 // rows from early/mid the export period were missing from history while
@@ -474,7 +487,7 @@ export function importParsedRows(rows) {
   if (format === "rawSubscription") return importRawSubscriptionCsv(parsed);
   if (format === "rawInstabase") return importRawInstabaseCsv(parsed);
   if (format === "rawSpaceMarket") return importRawSpaceMarketCsv(parsed);
-  if (format === "rawPaymentLink") return { format, inserted: 0, updated: 0, skipped: rows.length, error: null };
+  if (format === "rawPaymentLink") return importRawPaymentLinkCsv(parsed);
   return importSimpleCsv(parsed);
 }
 

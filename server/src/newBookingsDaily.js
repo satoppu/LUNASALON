@@ -71,7 +71,7 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
   const params = store ? [start, end, start, end, store] : [start, end, start, end];
   const rows = db
     .prepare(
-      `SELECT booking_date AS date, revenue_confirmed_date, cancelled_date, status, channel, revenue, booking_amount
+      `SELECT booking_date AS date, revenue_confirmed_date, cancelled_date, status, channel, revenue, booking_amount, hours_used
        FROM transactions
        WHERE ((booking_date >= ? AND booking_date <= ?)
               OR (status LIKE 'キャンセル%' AND COALESCE(revenue_confirmed_date, cancelled_date) >= ? AND COALESCE(revenue_confirmed_date, cancelled_date) <= ?))
@@ -113,7 +113,8 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
         add(cancelCountByDate, r.date, 1);
       }
     } else if (inWindow(r.date)) {
-      add(countByDate, r.date, 1);
+      // 支払いリンクの延長料金など(利用済みで時間0)は売上のみで、予約件数には数えない。
+      if (!(r.status === "利用済み" && !(r.hours_used > 0))) add(countByDate, r.date, 1);
       if (REVENUE_STATUSES.has(r.status)) {
         add(bookingRevenueByDate, r.date, r.revenue);
       }
