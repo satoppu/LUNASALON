@@ -41,6 +41,9 @@ export function detectRawFormat(fields) {
   if (set.has("クーポン名") && set.has("購入日時")) return "rawSubscription";
   if (set.has("予約ID") && set.has("施設名") && set.has("利用開始日時")) return "rawInstabase";
   if (set.has("予約リクエスト日") && set.has("成約金額") && set.has("ゲスト名")) return "rawSpaceMarket";
+  // 支払いリンク(延長料金などを個別に請求したもの)。店舗・利用日時の列が
+  // 無く transactions に載せられないため、今は認識して読み飛ばすだけ。
+  if (set.has("理由") && set.has("問い合わせ番号") && set.has("お支払い完了日時")) return "rawPaymentLink";
   return null;
 }
 

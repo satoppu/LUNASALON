@@ -474,6 +474,7 @@ export function importParsedRows(rows) {
   if (format === "rawSubscription") return importRawSubscriptionCsv(parsed);
   if (format === "rawInstabase") return importRawInstabaseCsv(parsed);
   if (format === "rawSpaceMarket") return importRawSpaceMarketCsv(parsed);
+  if (format === "rawPaymentLink") return { format, inserted: 0, updated: 0, skipped: rows.length, error: null };
   return importSimpleCsv(parsed);
 }
 
