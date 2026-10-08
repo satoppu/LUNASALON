@@ -213,9 +213,13 @@ async function main() {
     console.log(new Date().toISOString(), JSON.stringify(result));
     if (result.error) {
       process.exitCode = 1;
+      // 原因調査用に、取り込めなかったファイルを残す(debug-shots/ はgit管理外)。
+      fs.mkdirSync(DEBUG_DIR, { recursive: true });
+      const savedPath = path.join(DEBUG_DIR, `failed-${new Date().toISOString().slice(0, 10)}-${filename}`);
+      fs.writeFileSync(savedPath, buffer);
       await sendResultEmail({
         subject: "【LUNA】自動取り込み失敗",
-        text: `よやクルProからの自動取り込みでエラーが発生しました。\n\n${result.error}`,
+        text: `よやクルProからの自動取り込みでエラーが発生しました。\n\n${result.error}\n\nダウンロードしたファイル: ${savedPath}`,
       }).catch((e) => console.error("メール通知に失敗しました:", e.message));
     } else {
       await sendResultEmail({

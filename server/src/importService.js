@@ -481,5 +481,17 @@ export function importParsedRows(rows) {
 export function importCsv(csvText) {
   const cleaned = csvText.replace(/^﻿/, "");
   const parsed = Papa.parse(cleaned, { header: true, skipEmptyLines: true });
-  return importParsedRows(parsed.data);
+  // 見出し行だけでデータ行が無いCSV(例: その日にクーポン購入が無い日の
+  // 有料クーポンexport)は、1行目のキーからは形式を判定できないため、
+  // 見出し(meta.fields)で判定して「0件の取り込み」として正常に扱う。
+  const fields = parsed.meta.fields || [];
+  const format = detectRawFormat(fields);
+  if (format && parsed.data.length === 0) {
+    return { format, inserted: 0, updated: 0, error: null };
+  }
+  const result = importParsedRows(parsed.data);
+  if (result.error && !format) {
+    return { ...result, error: `${result.error}(CSVの列: ${fields.slice(0, 10).join(", ") || "なし"})` };
+  }
+  return result;
 }

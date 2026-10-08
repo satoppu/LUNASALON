@@ -69,9 +69,9 @@ export function importFileBuffer(buffer, filename, mimetype) {
     if (csvEntries.length === 0) {
       return { error: "zip内にCSVファイルが見つかりませんでした。" };
     }
-    const results = csvEntries.map((entry) => importCsv(entry.getData().toString("utf-8")));
+    const results = csvEntries.map((entry) => ({ name: entry.entryName, ...importCsv(entry.getData().toString("utf-8")) }));
     const failed = results.find((r) => r.error);
-    if (failed) return failed;
+    if (failed) return { ...failed, error: `${failed.name}: ${failed.error}` };
     return mergeResults(results);
   }
 
