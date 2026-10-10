@@ -28,6 +28,7 @@ import { chromium } from "playwright";
 import { importFileBuffer } from "../src/importFileBuffer.js";
 import { sendResultEmail } from "../src/notifyEmail.js";
 import { getNewBookingsDaily } from "../src/newBookingsDaily.js";
+import { importSpaceMarketEmails, formatSpaceMarketSection } from "../src/spaceMarketMailbox.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, "..", ".env");
@@ -195,7 +196,21 @@ async function downloadZip(page) {
   return { buffer: fs.readFileSync(filePath), filename: download.suggestedFilename() };
 }
 
+// スペースマーケットの通知メール(luna@mj-japan.net)の取り込み。よやクルProの
+// 取り込みが失敗しても動くよう独立して実行し、結果は同じ通知メールに添える。
+async function runSpaceMarketEmails() {
+  try {
+    const result = await importSpaceMarketEmails();
+    if (result) console.log(new Date().toISOString(), "spacemarket", JSON.stringify(result));
+    return formatSpaceMarketSection(result);
+  } catch (err) {
+    console.error(new Date().toISOString(), "スペースマーケットのメール取り込みに失敗しました:", err.message);
+    return formatSpaceMarketSection(null, err);
+  }
+}
+
 async function main() {
+  const smSection = await runSpaceMarketEmails();
   // Uses the machine's own installed Google Chrome ("channel: chrome")
   // rather than Playwright's bundled Chromium: the VPS runs Ubuntu 20.04
   // (past its official support window), which Playwright's own browser
@@ -219,7 +234,7 @@ async function main() {
       fs.writeFileSync(savedPath, buffer);
       await sendResultEmail({
         subject: "【LUNA】自動取り込み失敗",
-        text: `よやクルProからの自動取り込みでエラーが発生しました。\n\n${result.error}\n\nダウンロードしたファイル: ${savedPath}`,
+        text: `よやクルProからの自動取り込みでエラーが発生しました。\n\n${result.error}\n\nダウンロードしたファイル: ${savedPath}` + smSection,
       }).catch((e) => console.error("メール通知に失敗しました:", e.message));
     } else {
       await sendResultEmail({
@@ -234,7 +249,8 @@ async function main() {
           `重複スキップ: ${result.duplicates}件\n` +
           `期間対象外スキップ: ${result.skipped}件\n` +
           `解析不能スキップ: ${result.skippedUnparseable}件\n` +
-          `解決不能/不正: ${result.unresolvedOrBad}件`,
+          `解決不能/不正: ${result.unresolvedOrBad}件` +
+          smSection,
       }).catch((e) => console.error("メール通知に失敗しました:", e.message));
     }
   } catch (err) {
@@ -243,7 +259,7 @@ async function main() {
     process.exitCode = 1;
     await sendResultEmail({
       subject: "【LUNA】自動取り込み失敗",
-      text: `よやクルProからの自動取り込みが失敗しました。\n\n${err.message}`,
+      text: `よやクルProからの自動取り込みが失敗しました。\n\n${err.message}` + smSection,
     }).catch((e) => console.error("メール通知に失敗しました:", e.message));
   } finally {
     await browser.close();

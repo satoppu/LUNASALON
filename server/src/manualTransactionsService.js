@@ -23,7 +23,7 @@ function toMinutes(hhmm) {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
-function computeFields({ date, status, startTime, endTime }) {
+export function computeFields({ date, status, startTime, endTime }) {
   const weekday = WEEKDAY_FROM_JS_DOW[new Date(date).getDay()];
   const startMin = toMinutes(startTime);
   const endMin = toMinutes(endTime);

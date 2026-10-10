@@ -242,6 +242,20 @@ if (!hasReceiptFile) {
   db.exec(`ALTER TABLE expenses ADD COLUMN receipt_file TEXT;`);
 }
 
+// スペースマーケットの通知メール(luna@mj-japan.net)を取り込んだ記録。
+// 同じメールを毎朝何度読んでも二重に反映しないよう、Message-IDで管理する
+// (spaceMarketEmail.js 参照)。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS spacemarket_email_log (
+    message_id TEXT PRIMARY KEY,
+    received_date TEXT,
+    kind TEXT NOT NULL,
+    booking_id TEXT,
+    summary TEXT NOT NULL,
+    processed_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 const expensesCount = db.prepare(`SELECT COUNT(*) AS c FROM expenses`).get().c;
 if (expensesCount === 0) {
   const seedExpenseStmt = db.prepare(
