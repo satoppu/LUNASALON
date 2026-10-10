@@ -4,7 +4,7 @@
 // 揃っていない場合は何もしない(自動取り込み自体は通知なしで継続する)。
 import nodemailer from "nodemailer";
 
-export async function sendResultEmail({ subject, text }) {
+export async function sendResultEmail({ subject, text, attachments }) {
   const { GMAIL_USER, GMAIL_APP_PASSWORD, NOTIFY_EMAIL_TO } = process.env;
   if (!GMAIL_USER || !GMAIL_APP_PASSWORD || !NOTIFY_EMAIL_TO) {
     console.log("メール通知はスキップされました(GMAIL_USER / GMAIL_APP_PASSWORD / NOTIFY_EMAIL_TO が未設定)。");
@@ -21,5 +21,6 @@ export async function sendResultEmail({ subject, text }) {
     to: NOTIFY_EMAIL_TO,
     subject,
     text,
+    attachments,
   });
 }

@@ -209,7 +209,32 @@ async function runPlatformEmails() {
   }
 }
 
+// ログイン画面が表示されない等の一時的な不調(サイト側の朝のメンテナンス・回線の瞬断)で
+// 失敗することがあるため、少し待って1回だけやり直す。
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 3 * 60 * 1000;
+const ERROR_SHOT = path.join(DEBUG_DIR, "99-error.png");
+
+async function fetchFromYoyakul(browser) {
+  const page = await browser.newPage({ acceptDownloads: true });
+  try {
+    await login(page);
+    await openSalesTab(page);
+    await selectDateRange(page);
+    return await downloadZip(page);
+  } catch (err) {
+    // 失敗時の画面を残し、どこで止まったか分かるようにURLとタイトルもエラーに添える。
+    await shot(page, "99-error");
+    const where = `${await page.title().catch(() => "?")} (${page.url()})`;
+    throw new Error(`${err.message}\n\n失敗時の画面: ${where}`);
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
 async function main() {
+  // 前回の失敗時の画面が今回のメールに添付されないよう、最初に消しておく。
+  fs.rmSync(ERROR_SHOT, { force: true });
   const emailSection = await runPlatformEmails();
   // Uses the machine's own installed Google Chrome ("channel: chrome")
   // rather than Playwright's bundled Chromium: the VPS runs Ubuntu 20.04
@@ -217,12 +242,19 @@ async function main() {
   // installer now refuses to target at all — even without --with-deps.
   // A real Chrome .deb install sidesteps that check entirely.
   const browser = await chromium.launch({ channel: "chrome", headless: true, slowMo: DEBUG ? 200 : 0 });
-  const page = await browser.newPage({ acceptDownloads: true });
   try {
-    await login(page);
-    await openSalesTab(page);
-    await selectDateRange(page);
-    const { buffer, filename } = await downloadZip(page);
+    let downloaded;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        downloaded = await fetchFromYoyakul(browser);
+        break;
+      } catch (err) {
+        if (attempt >= MAX_ATTEMPTS) throw err;
+        console.error(new Date().toISOString(), `よやクルProの取得に失敗(${attempt}回目)。${RETRY_DELAY_MS / 60000}分後にやり直します:`, err.message);
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      }
+    }
+    const { buffer, filename } = downloaded;
 
     const result = importFileBuffer(buffer, filename);
     console.log(new Date().toISOString(), JSON.stringify(result));
@@ -255,11 +287,14 @@ async function main() {
     }
   } catch (err) {
     console.error(new Date().toISOString(), "自動取り込みに失敗しました:", err.message);
-    await shot(page, "99-error");
     process.exitCode = 1;
     await sendResultEmail({
       subject: "【LUNA】自動取り込み失敗",
-      text: `よやクルProからの自動取り込みが失敗しました。\n\n${err.message}` + emailSection,
+      text:
+        `よやクルProからの自動取り込みが失敗しました(${MAX_ATTEMPTS}回試しました)。\n\n${err.message}\n\n` +
+        `失敗時の画面を添付しています。` +
+        emailSection,
+      attachments: fs.existsSync(ERROR_SHOT) ? [{ filename: "error.png", path: ERROR_SHOT }] : undefined,
     }).catch((e) => console.error("メール通知に失敗しました:", e.message));
   } finally {
     await browser.close();
