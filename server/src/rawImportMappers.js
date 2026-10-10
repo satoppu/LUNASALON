@@ -305,12 +305,13 @@ export function mapRawInstabaseRow(raw) {
   };
 }
 
+// メール本文のスペース名は途中で改行・空白が入ることがあるため、空白を除いて比べる。
+const squash = (s) => String(s).normalize("NFKC").replace(/\s+/g, "");
+const findStore = (table, spaceName) => table.find((f) => squash(spaceName).includes(squash(f.match)))?.store ?? null;
+
 /** スペース名からの店舗判定。どれにも当てはまらなければ null(メール取り込み用)。 */
-export function findSpaceMarketStore(spaceName) {
-  const name = String(spaceName).normalize("NFKC");
-  const hit = SPACEMARKET_SPACE_STORE.find((f) => name.includes(f.match.normalize("NFKC")));
-  return hit ? hit.store : null;
-}
+export const findSpaceMarketStore = (spaceName) => findStore(SPACEMARKET_SPACE_STORE, spaceName);
+export const findInstabaseStore = (spaceName) => findStore(INSTABASE_SPACE_STORE, spaceName);
 
 function mapSpaceMarketStore(spaceName) {
   const hit = SPACEMARKET_SPACE_STORE.find((f) => String(spaceName).includes(f.match));

@@ -1,6 +1,6 @@
 // スペースマーケットからの通知メール(no-reply@spacemarket.com → luna@mj-japan.net)
 // を読み取り、「設定→記録」のスペースマーケット手動入力の行として反映する。
-// メールの受信自体は spaceMarketMailbox.js、ここは本文の解析と DB への反映だけ。
+// メールの受信自体は emailImport.js、ここは本文の解析と DB への反映だけ。
 //
 // 対応しているメール(2026年9〜10月の実物で確認した形):
 //   - 【今すぐ予約】…            → 予約として登録(予約ID・お名前・スペース名・利用期間・合計)
@@ -21,10 +21,6 @@ const SPACEMARKET_CHANNEL = "スペースマーケット";
 
 // 予約IDはInstabaseなど他チャネルの数字IDと external_id が衝突しないよう接頭辞を付ける。
 const externalIdFor = (bookingId) => `sm-${bookingId}`;
-
-function toISODateJST(date) {
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(date);
-}
 
 const yenToNumber = (s) => Number(String(s).replace(/[,，]/g, ""));
 const pad2 = (n) => String(n).padStart(2, "0");
@@ -187,65 +183,16 @@ function applyCancel(e, receivedDate) {
   return { ok: true, summary: `キャンセル: ${describe({ ...existing, revenue: kept })}(払い戻し ¥${(e.refund ?? 0).toLocaleString("ja-JP")})` };
 }
 
-/**
- * 解析済みのメール1通を反映し、ログに記録する。既にログにあるメールは何もしない。
- * @returns {{ skipped: true } | { kind: string, ok: boolean, summary: string }}
- */
-export function applySpaceMarketEmail({ messageId, subject, text, date }) {
-  if (db.prepare(`SELECT 1 FROM spacemarket_email_log WHERE message_id = ?`).get(messageId)) return { skipped: true };
-  const receivedDate = date ? toISODateJST(date) : getTodayISO();
-  const e = parseSpaceMarketEmail({ subject, text });
-
-  let result;
-  db.exec("BEGIN");
-  try {
-    if (e.kind === "booking") result = applyBooking(e, receivedDate);
-    else if (e.kind === "changeRequest") result = applyChangeRequest(e, receivedDate);
-    else if (e.kind === "change") result = applyChange(e, receivedDate);
-    else if (e.kind === "changeRejected") {
-      if (e.bookingId) db.prepare(`DELETE FROM spacemarket_change_requests WHERE booking_id = ?`).run(e.bookingId);
-      result = { ok: true, summary: `予約変更リクエストの却下(予約ID ${e.bookingId ?? "不明"})` };
-    }
-    else if (e.kind === "cancel") result = applyCancel(e, receivedDate);
-    else if (e.kind === "ignored") result = { ok: true, silent: true, summary: `対象外: ${subject}` };
-    else result = { ok: false, summary: `未対応のメールのため反映していません: ${subject}` };
-    db.prepare(`INSERT INTO spacemarket_email_log (message_id, received_date, kind, booking_id, summary) VALUES (?, ?, ?, ?, ?)`).run(
-      messageId,
-      receivedDate,
-      e.kind,
-      e.bookingId,
-      result.summary
-    );
-    db.exec("COMMIT");
-  } catch (err) {
-    db.exec("ROLLBACK");
-    throw err;
+/** 解析済みのメール1通をDBに反映する(記録は emailImportLog.js の processEmailOnce が行う)。 */
+export function applySpaceMarketEmail(e, receivedDate, subject) {
+  if (e.kind === "booking") return applyBooking(e, receivedDate);
+  if (e.kind === "changeRequest") return applyChangeRequest(e, receivedDate);
+  if (e.kind === "change") return applyChange(e, receivedDate);
+  if (e.kind === "changeRejected") {
+    if (e.bookingId) db.prepare(`DELETE FROM spacemarket_change_requests WHERE booking_id = ?`).run(e.bookingId);
+    return { ok: true, summary: `予約変更リクエストの却下(予約ID ${e.bookingId ?? "不明"})` };
   }
-  return { kind: e.kind, ...result };
-}
-
-/**
- * 反映はせず「処理済み」の印だけ付ける(導入時、手入力済みの過去分と二重にしないため)。
- * @returns {boolean} 新たに印を付けたら true
- */
-export function markSpaceMarketEmailBaseline({ messageId, subject, text, date }) {
-  if (db.prepare(`SELECT 1 FROM spacemarket_email_log WHERE message_id = ?`).get(messageId)) return false;
-  const e = parseSpaceMarketEmail({ subject, text });
-  db.prepare(`INSERT INTO spacemarket_email_log (message_id, received_date, kind, booking_id, summary) VALUES (?, ?, 'baseline', ?, ?)`).run(
-    messageId,
-    date ? toISODateJST(date) : getTodayISO(),
-    e.bookingId,
-    `導入前のメール(反映せず): ${subject}`
-  );
-  return true;
-}
-
-/**
- * 利用日を過ぎた手入力(メール取り込み含む)の「利用前」行を「利用済み」にする。
- * CSV取り込みの行は毎回のインポートで更新されるが、手入力の行は誰も更新しないため。
- */
-export function promotePastManualPendingRows() {
-  return db
-    .prepare(`UPDATE transactions SET status = '利用済み' WHERE manual_entry = 1 AND status = ? AND date < ?`)
-    .run(PENDING_STATUS, getTodayISO()).changes;
+  if (e.kind === "cancel") return applyCancel(e, receivedDate);
+  if (e.kind === "ignored") return { ok: true, silent: true, summary: `対象外: ${subject}` };
+  return { ok: false, summary: `未対応のメールのため反映していません: ${subject}` };
 }

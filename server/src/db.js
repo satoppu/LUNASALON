@@ -242,12 +242,13 @@ if (!hasReceiptFile) {
   db.exec(`ALTER TABLE expenses ADD COLUMN receipt_file TEXT;`);
 }
 
-// スペースマーケットの通知メール(luna@mj-japan.net)を取り込んだ記録。
+// 予約サイトの通知メール(スペースマーケット・インスタベース)を取り込んだ記録。
 // 同じメールを毎朝何度読んでも二重に反映しないよう、Message-IDで管理する
-// (spaceMarketEmail.js 参照)。
+// (emailImportLog.js 参照)。
 db.exec(`
-  CREATE TABLE IF NOT EXISTS spacemarket_email_log (
+  CREATE TABLE IF NOT EXISTS email_import_log (
     message_id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
     received_date TEXT,
     kind TEXT NOT NULL,
     booking_id TEXT,
@@ -255,6 +256,14 @@ db.exec(`
     processed_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+// 旧テーブル(スペースマーケット専用だった頃の記録)があれば移して削除する。
+if (db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'spacemarket_email_log'`).get()) {
+  db.exec(`
+    INSERT OR IGNORE INTO email_import_log (message_id, source, received_date, kind, booking_id, summary, processed_at)
+      SELECT message_id, 'spacemarket', received_date, kind, booking_id, summary, processed_at FROM spacemarket_email_log;
+    DROP TABLE spacemarket_email_log;
+  `);
+}
 
 // 承諾待ちの予約変更リクエスト(予約IDごとに最新の1件)。「変更リクエスト」メールには
 // 変更後の利用期間が載るが「承諾」メールには金額しか無いため、承諾時にここから反映する。
