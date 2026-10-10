@@ -292,17 +292,18 @@ async function main() {
       await sendResultEmail({
         subject: "【LUNA】自動取り込み成功",
         text:
+          // 順番: 前日のまとめ → スペースマーケット → インスタベース → よやクルProの取り込み結果
           formatDailySummary() +
-          `\n\n${DASHBOARD_DAILY_URL}\n` +
-          `\n----------------\n\n` +
+          `\n\n${DASHBOARD_DAILY_URL}` +
+          emailSection +
+          `\n\n----------------\n\n` +
           `よやクルProからの自動取り込みが完了しました。\n\n` +
           `新規登録: ${result.inserted}件\n` +
           `更新: ${result.updated}件\n` +
           `重複スキップ: ${result.duplicates}件\n` +
           `期間対象外スキップ: ${result.skipped}件\n` +
           `解析不能スキップ: ${result.skippedUnparseable}件\n` +
-          `解決不能/不正: ${result.unresolvedOrBad}件` +
-          emailSection,
+          `解決不能/不正: ${result.unresolvedOrBad}件`,
       }).catch((e) => console.error("メール通知に失敗しました:", e.message));
     }
   } catch (err) {
