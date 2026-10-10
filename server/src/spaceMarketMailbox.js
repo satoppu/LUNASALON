@@ -7,7 +7,7 @@
 // 未設定なら何もしない。
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
-import { applySpaceMarketEmail, parseSpaceMarketEmail, promotePastManualPendingRows } from "./spaceMarketEmail.js";
+import { applySpaceMarketEmail, markSpaceMarketEmailBaseline, parseSpaceMarketEmail, promotePastManualPendingRows } from "./spaceMarketEmail.js";
 
 const LOOKBACK_DAYS = 14;
 
@@ -17,8 +17,9 @@ export function isSpaceMarketMailboxConfigured() {
 }
 
 // dryRun: DBは変えず、各メールの読み取り結果だけを返す(初回の動作確認用)。
+// baseline: 反映せず「処理済み」の印だけ付ける(導入時に一度だけ。手入力済みの過去分との二重登録を防ぐ)。
 /** @returns {Promise<{ lines: string[], problems: string[] } | null>} 未設定なら null */
-export async function importSpaceMarketEmails({ lookbackDays = LOOKBACK_DAYS, dryRun = false } = {}) {
+export async function importSpaceMarketEmails({ lookbackDays = LOOKBACK_DAYS, dryRun = false, baseline = false } = {}) {
   if (!isSpaceMarketMailboxConfigured()) return null;
   const client = new ImapFlow({
     host: process.env.SPACEMARKET_IMAP_HOST,
@@ -54,6 +55,10 @@ export async function importSpaceMarketEmails({ lookbackDays = LOOKBACK_DAYS, dr
         lines.push(`${m.date?.toISOString().slice(0, 10)} ${m.subject}\n  → ${JSON.stringify(e)}`);
         continue;
       }
+      if (baseline) {
+        if (markSpaceMarketEmailBaseline(m)) lines.push(`印のみ: ${m.subject}`);
+        continue;
+      }
       const r = applySpaceMarketEmail(m);
       if (r.skipped || r.silent) continue;
       (r.ok ? lines : problems).push(r.summary);
@@ -62,7 +67,7 @@ export async function importSpaceMarketEmails({ lookbackDays = LOOKBACK_DAYS, dr
     await client.logout().catch(() => {});
   }
 
-  if (dryRun) return { lines, problems };
+  if (dryRun || baseline) return { lines, problems };
   const promoted = promotePastManualPendingRows();
   if (promoted > 0) lines.push(`利用日を過ぎた${promoted}件を「利用前」→「利用済み」に更新`);
   return { lines, problems };

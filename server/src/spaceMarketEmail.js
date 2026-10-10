@@ -225,6 +225,22 @@ export function applySpaceMarketEmail({ messageId, subject, text, date }) {
 }
 
 /**
+ * 反映はせず「処理済み」の印だけ付ける(導入時、手入力済みの過去分と二重にしないため)。
+ * @returns {boolean} 新たに印を付けたら true
+ */
+export function markSpaceMarketEmailBaseline({ messageId, subject, text, date }) {
+  if (db.prepare(`SELECT 1 FROM spacemarket_email_log WHERE message_id = ?`).get(messageId)) return false;
+  const e = parseSpaceMarketEmail({ subject, text });
+  db.prepare(`INSERT INTO spacemarket_email_log (message_id, received_date, kind, booking_id, summary) VALUES (?, ?, 'baseline', ?, ?)`).run(
+    messageId,
+    date ? toISODateJST(date) : getTodayISO(),
+    e.bookingId,
+    `導入前のメール(反映せず): ${subject}`
+  );
+  return true;
+}
+
+/**
  * 利用日を過ぎた手入力(メール取り込み含む)の「利用前」行を「利用済み」にする。
  * CSV取り込みの行は毎回のインポートで更新されるが、手入力の行は誰も更新しないため。
  */
