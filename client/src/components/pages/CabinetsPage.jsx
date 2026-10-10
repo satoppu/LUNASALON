@@ -170,13 +170,13 @@ export default function CabinetsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                    <th className="text-left px-4 py-2 font-medium w-28" style={{ color: "#8F7D6E" }}>
+                    <th className="text-left px-2 py-2 font-medium w-16" style={{ color: "#8F7D6E" }}>
                       番号
                     </th>
-                    <th className="text-left px-4 py-2 font-medium" style={{ color: "#8F7D6E" }}>
+                    <th className="text-left px-2 py-2 font-medium" style={{ color: "#8F7D6E" }}>
                       利用者
                     </th>
-                    <th className="text-center px-4 py-2 font-medium w-32" style={{ color: "#8F7D6E" }}>
+                    <th className="text-center px-2 py-2 font-medium w-24" style={{ color: "#8F7D6E" }}>
                       操作
                     </th>
                   </tr>
@@ -186,7 +186,7 @@ export default function CabinetsPage() {
                     const draft = cabinetDrafts[c.id] || { slotLabel: c.slot_label, userName: "" };
                     return (
                       <tr key={c.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                        <td className="px-4 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             value={draft.slotLabel}
@@ -195,7 +195,7 @@ export default function CabinetsPage() {
                             style={inputStyle}
                           />
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-2 py-2">
                           <input
                             type="text"
                             list={USER_NAMES_DATALIST_ID}
@@ -203,10 +203,10 @@ export default function CabinetsPage() {
                             onChange={(e) => setCabinetDraft(c.id, { userName: e.target.value })}
                             placeholder="空き"
                             className={inputClass}
-                            style={inputStyle}
+                            style={{ ...inputStyle, minWidth: 140 }}
                           />
                         </td>
-                        <td className="px-4 py-2">
+                        <td className="px-2 py-2">
                           <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => saveCabinet(c.id)}
@@ -281,13 +281,13 @@ export default function CabinetsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                <th className="text-left px-4 py-2 font-medium w-28" style={{ color: "#8F7D6E" }}>
+                <th className="text-left px-2 py-2 font-medium w-16" style={{ color: "#8F7D6E" }}>
                   クーポンID
                 </th>
-                <th className="text-left px-4 py-2 font-medium" style={{ color: "#8F7D6E" }}>
+                <th className="text-left px-2 py-2 font-medium" style={{ color: "#8F7D6E" }}>
                   利用者
                 </th>
-                <th className="text-center px-4 py-2 font-medium w-32" style={{ color: "#8F7D6E" }}>
+                <th className="text-center px-2 py-2 font-medium w-24" style={{ color: "#8F7D6E" }}>
                   操作
                 </th>
               </tr>
@@ -297,7 +297,7 @@ export default function CabinetsPage() {
                 const draft = couponDrafts[c.id] || { couponId: c.coupon_id, userName: "" };
                 return (
                   <tr key={c.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                    <td className="px-4 py-2">
+                    <td className="px-2 py-2">
                       <input
                         type="text"
                         value={draft.couponId}
@@ -306,7 +306,7 @@ export default function CabinetsPage() {
                         style={inputStyle}
                       />
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-2 py-2">
                       <input
                         type="text"
                         list={USER_NAMES_DATALIST_ID}
@@ -314,10 +314,10 @@ export default function CabinetsPage() {
                         onChange={(e) => setCouponDraft(c.id, { userName: e.target.value })}
                         placeholder="未割当"
                         className={inputClass}
-                        style={inputStyle}
+                        style={{ ...inputStyle, minWidth: 140 }}
                       />
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-2 py-2">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => saveCoupon(c.id)}

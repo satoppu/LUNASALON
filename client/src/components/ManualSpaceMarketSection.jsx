@@ -8,6 +8,10 @@ const EMPTY_ENTRY = { date: "", store: "", userName: "", status: "利用済み",
 
 const inputStyle = { borderColor: "#EDE3D5" };
 const inputClass = "text-sm px-2 py-1.5 border w-full";
+// 一覧の各入力欄の最小幅(px)。スマホ幅でも状態・売上などが潰れて読めなく
+// ならないよう、表は横スクロールさせて各欄の幅を確保する。
+const COL_MIN_WIDTH = { date: 150, store: 130, userName: 140, status: 190, time: 120, revenue: 110, bookingDate: 150 };
+const cellStyle = (key) => ({ ...inputStyle, minWidth: COL_MIN_WIDTH[key] });
 
 function toTimeString(hour, minute) {
   if (hour == null) return "";
@@ -172,7 +176,7 @@ export default function ManualSpaceMarketSection() {
       )}
 
       <div style={{ background: "#FFFFFF" }} className="overflow-x-auto mb-3">
-        <table className="w-full text-sm whitespace-nowrap">
+        <table className="min-w-max w-full text-sm whitespace-nowrap">
           <thead>
             <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
               <th className="text-left px-3 py-2 font-medium w-36" style={{ color: "#8F7D6E" }}>
@@ -184,7 +188,7 @@ export default function ManualSpaceMarketSection() {
               <th className="text-left px-3 py-2 font-medium w-40" style={{ color: "#8F7D6E" }}>
                 利用者名
               </th>
-              <th className="text-left px-3 py-2 font-medium w-36" style={{ color: "#8F7D6E" }}>
+              <th className="text-left px-3 py-2 font-medium w-44" style={{ color: "#8F7D6E" }}>
                 状態
               </th>
               <th className="text-left px-3 py-2 font-medium w-28" style={{ color: "#8F7D6E" }}>
@@ -214,10 +218,10 @@ export default function ManualSpaceMarketSection() {
               return (
                 <tr key={t.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
                   <td className="px-3 py-2">
-                    <input type="date" value={draft.date} onChange={(e) => setDraft(t.id, { date: e.target.value })} className={inputClass} style={inputStyle} />
+                    <input type="date" value={draft.date} onChange={(e) => setDraft(t.id, { date: e.target.value })} className={inputClass} style={cellStyle("date")} />
                   </td>
                   <td className="px-3 py-2">
-                    <select value={draft.store} onChange={(e) => setDraft(t.id, { store: e.target.value })} className={inputClass} style={inputStyle}>
+                    <select value={draft.store} onChange={(e) => setDraft(t.id, { store: e.target.value })} className={inputClass} style={cellStyle("store")}>
                       {storeNames.map((s) => (
                         <option key={s} value={s}>
                           {s}
@@ -232,11 +236,11 @@ export default function ManualSpaceMarketSection() {
                       value={draft.userName}
                       onChange={(e) => setDraft(t.id, { userName: e.target.value })}
                       className={inputClass}
-                      style={inputStyle}
+                      style={cellStyle("userName")}
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <select value={draft.status} onChange={(e) => setDraft(t.id, { status: e.target.value })} className={inputClass} style={inputStyle}>
+                    <select value={draft.status} onChange={(e) => setDraft(t.id, { status: e.target.value })} className={inputClass} style={cellStyle("status")}>
                       {statuses.map((s) => (
                         <option key={s} value={s}>
                           {s}
@@ -245,7 +249,7 @@ export default function ManualSpaceMarketSection() {
                     </select>
                   </td>
                   <td className="px-3 py-2">
-                    <input type="time" value={draft.startTime} onChange={(e) => setDraft(t.id, { startTime: e.target.value })} className={inputClass} style={inputStyle} />
+                    <input type="time" value={draft.startTime} onChange={(e) => setDraft(t.id, { startTime: e.target.value })} className={inputClass} style={cellStyle("time")} />
                   </td>
                   <td className="px-3 py-2">
                     <input
@@ -253,11 +257,11 @@ export default function ManualSpaceMarketSection() {
                       value={draft.endTime}
                       onChange={(e) => setDraft(t.id, { endTime: e.target.value })}
                       className={inputClass}
-                      style={inputStyle}
+                      style={cellStyle("time")}
                     />
                   </td>
                   <td className="px-3 py-2">
-                    <input type="number" value={draft.revenue} onChange={(e) => setDraft(t.id, { revenue: e.target.value })} className={inputClass} style={inputStyle} />
+                    <input type="number" value={draft.revenue} onChange={(e) => setDraft(t.id, { revenue: e.target.value })} className={inputClass} style={cellStyle("revenue")} />
                   </td>
                   <td className="px-3 py-2">
                     <input
@@ -265,7 +269,7 @@ export default function ManualSpaceMarketSection() {
                       value={draft.bookingDate}
                       onChange={(e) => setDraft(t.id, { bookingDate: e.target.value })}
                       className={inputClass}
-                      style={inputStyle}
+                      style={cellStyle("bookingDate")}
                     />
                   </td>
                   <td className="px-3 py-2 text-center">{formatDuration(t.hours_used)} / {yen(t.revenue)}</td>
