@@ -112,13 +112,7 @@ export const api = {
   updateCabinet: (id, payload) =>
     request(`/cabinets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
   deleteCabinet: (id) => request(`/cabinets/${id}`, { method: "DELETE" }),
-  getCoupons: () => request("/coupons"),
   getCouponPurchases: () => request("/coupons/purchases"),
-  createCoupon: (payload) =>
-    request("/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
-  updateCoupon: (id, payload) =>
-    request(`/coupons/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }),
-  deleteCoupon: (id) => request(`/coupons/${id}`, { method: "DELETE" }),
   getManualSpaceMarketTransactions: () => request("/manual-space-market"),
   getKnownUserNames: () => request("/manual-space-market/user-names"),
   createManualSpaceMarketTransaction: (payload) =>

@@ -7,7 +7,6 @@ import { useKnownUserNames } from "../../hooks/useKnownUserNames.js";
 const USER_NAMES_DATALIST_ID = "cabinets-page-user-names";
 
 const EMPTY_NEW_CABINET = { slotLabel: "", userName: "" };
-const EMPTY_NEW_COUPON = { couponId: "", userName: "" };
 
 const inputStyle = { borderColor: "#EDE3D5" };
 const inputClass = "text-sm px-2 py-1.5 border w-full";
@@ -15,30 +14,21 @@ const inputClass = "text-sm px-2 py-1.5 border w-full";
 export default function CabinetsPage() {
   const userNames = useKnownUserNames();
   const [cabinets, setCabinets] = useState(null);
-  const [coupons, setCoupons] = useState(null);
   const [storeNames, setStoreNames] = useState([]);
   const [error, setError] = useState(null);
   const [savedKey, setSavedKey] = useState(null);
   const [cabinetDrafts, setCabinetDrafts] = useState({});
-  const [couponDrafts, setCouponDrafts] = useState({});
   const [newCabinetDrafts, setNewCabinetDrafts] = useState({});
-  const [newCoupon, setNewCoupon] = useState(EMPTY_NEW_COUPON);
 
   async function load() {
     setError(null);
     try {
-      const [{ cabinets }, { coupons }, { stores }] = await Promise.all([
-        api.getCabinets(),
-        api.getCoupons(),
-        api.getStoreSettings(),
-      ]);
+      const [{ cabinets }, { stores }] = await Promise.all([api.getCabinets(), api.getStoreSettings()]);
       setCabinets(cabinets);
-      setCoupons(coupons);
       setStoreNames(stores.map((s) => s.store));
       setCabinetDrafts(
         Object.fromEntries(cabinets.map((c) => [c.id, { slotLabel: c.slot_label, userName: c.user_name || "" }]))
       );
-      setCouponDrafts(Object.fromEntries(coupons.map((c) => [c.id, { couponId: c.coupon_id, userName: c.user_name || "" }])));
     } catch (err) {
       setError(err.message);
     }
@@ -50,9 +40,6 @@ export default function CabinetsPage() {
 
   function setCabinetDraft(id, patch) {
     setCabinetDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
-  }
-  function setCouponDraft(id, patch) {
-    setCouponDrafts((d) => ({ ...d, [id]: { ...d[id], ...patch } }));
   }
 
   async function saveCabinet(id) {
@@ -91,42 +78,7 @@ export default function CabinetsPage() {
     }
   }
 
-  async function saveCoupon(id) {
-    setError(null);
-    setSavedKey(null);
-    try {
-      const draft = couponDrafts[id];
-      await api.updateCoupon(id, { couponId: draft.couponId, userName: draft.userName });
-      setSavedKey(`coupon-${id}`);
-      await load();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function removeCoupon(id) {
-    setError(null);
-    try {
-      await api.deleteCoupon(id);
-      await load();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  async function addCoupon() {
-    setError(null);
-    if (!newCoupon.couponId.trim()) return;
-    try {
-      await api.createCoupon(newCoupon);
-      setNewCoupon(EMPTY_NEW_COUPON);
-      await load();
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  if (!cabinets || !coupons) {
+  if (!cabinets) {
     return <p style={{ color: "#8F7D6E" }}>読み込み中…</p>;
   }
 
@@ -153,7 +105,7 @@ export default function CabinetsPage() {
         </div>
       )}
 
-      <section className="mb-12">
+      <section>
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-2">
           キャビネット利用
         </h3>
@@ -269,108 +221,6 @@ export default function CabinetsPage() {
         )}
       </section>
 
-      <section>
-        <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-2">
-          定額クーポンID
-        </h3>
-        <p style={{ color: "#8F7D6E" }} className="text-sm mb-6">
-          定額クーポン利用者ごとのIDを管理します。利用者を空欄にすると未割当になります。
-        </p>
-
-        <div style={{ background: "#FFFFFF" }} className="overflow-x-auto mb-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
-                <th className="text-left px-2 py-2 font-medium w-16" style={{ color: "#8F7D6E" }}>
-                  クーポンID
-                </th>
-                <th className="text-left px-2 py-2 font-medium" style={{ color: "#8F7D6E" }}>
-                  利用者
-                </th>
-                <th className="text-center px-2 py-2 font-medium w-24" style={{ color: "#8F7D6E" }}>
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {coupons.map((c) => {
-                const draft = couponDrafts[c.id] || { couponId: c.coupon_id, userName: "" };
-                return (
-                  <tr key={c.id} style={{ borderBottom: "1px solid #F3EBDF" }}>
-                    <td className="px-2 py-2">
-                      <input
-                        type="text"
-                        value={draft.couponId}
-                        onChange={(e) => setCouponDraft(c.id, { couponId: e.target.value })}
-                        className={inputClass}
-                        style={inputStyle}
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <input
-                        type="text"
-                        list={USER_NAMES_DATALIST_ID}
-                        value={draft.userName}
-                        onChange={(e) => setCouponDraft(c.id, { userName: e.target.value })}
-                        placeholder="未割当"
-                        className={inputClass}
-                        style={{ ...inputStyle, minWidth: 140 }}
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => saveCoupon(c.id)}
-                          className="flex items-center gap-1 text-xs px-2 py-1.5"
-                          style={{ background: "#D4A644", color: "#262421" }}
-                        >
-                          {savedKey === `coupon-${c.id}` ? <Check size={13} /> : null}
-                          保存
-                        </button>
-                        <button
-                          onClick={() => removeCoupon(c.id)}
-                          aria-label="削除"
-                          className="p-1.5"
-                          style={{ color: "#A84434", border: "1px solid #EDE3D5" }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <input
-            type="text"
-            value={newCoupon.couponId}
-            onChange={(e) => setNewCoupon((d) => ({ ...d, couponId: e.target.value }))}
-            placeholder="クーポンID(例: Ux)"
-            className="text-sm px-2 py-1.5 border w-32"
-            style={inputStyle}
-          />
-          <input
-            type="text"
-            list={USER_NAMES_DATALIST_ID}
-            value={newCoupon.userName}
-            onChange={(e) => setNewCoupon((d) => ({ ...d, userName: e.target.value }))}
-            placeholder="利用者(空欄=未割当)"
-            className="text-sm px-2 py-1.5 border w-48"
-            style={inputStyle}
-          />
-          <button
-            onClick={addCoupon}
-            className="flex items-center gap-1 text-sm px-3 py-1.5"
-            style={{ background: "#EDE3D5", color: "#262421" }}
-          >
-            <Plus size={14} />
-            追加
-          </button>
-        </div>
-      </section>
     </div>
   );
 }

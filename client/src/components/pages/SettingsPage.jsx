@@ -123,7 +123,7 @@ export default function SettingsPage({ onDataChanged }) {
 
           <section className="mb-12">
             <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-              キャビネット・クーポン
+              キャビネット
             </h3>
             <CabinetsPage />
           </section>
