@@ -106,6 +106,26 @@ function dateRange() {
   return { from: yesterday, to: endOfMonth6Ahead };
 }
 
+// ログインボタンの表示(文言・タグ)はサイト側の更新で変わることがあるため、
+// 見つかりやすい順に試し、どれも無ければパスワード欄でEnterを押して送信する。
+async function submitLogin(page, form, passwordInput) {
+  const candidates = [
+    page.getByRole("button", { name: /ログイン/ }),
+    form.locator('button[type="submit"], input[type="submit"]'),
+    page.getByText("ログイン", { exact: true }),
+  ];
+  for (const candidate of candidates) {
+    const button = candidate.first();
+    if (await button.isVisible().catch(() => false)) {
+      await button.click();
+      return;
+    }
+  }
+  // ボタンが見つからなければフォームを直接送信する(フォームでなければEnterで送信)。
+  const submitted = await form.evaluate((f) => (f.requestSubmit(), true)).catch(() => false);
+  if (!submitted) await passwordInput.press("Enter");
+}
+
 async function login(page) {
   await page.goto(LOGIN_URL, { waitUntil: "networkidle" });
   if (DEBUG) await shot(page, "01-login-page");
@@ -115,7 +135,7 @@ async function login(page) {
   const idInput = form.locator('input:not([type="password"]):not([type="hidden"]):not([type="submit"])').first();
   await idInput.fill(YOYAKUL_ID);
   await passwordInput.fill(YOYAKUL_PASSWORD);
-  await page.getByText("ログイン", { exact: true }).click();
+  await submitLogin(page, form, passwordInput);
   await page.waitForLoadState("networkidle");
   if (DEBUG) await shot(page, "02-after-login");
 
