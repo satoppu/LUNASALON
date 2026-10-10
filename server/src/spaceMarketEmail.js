@@ -4,8 +4,11 @@
 //
 // 対応しているメール(2026年9〜10月の実物で確認した形):
 //   - 【今すぐ予約】…            → 予約として登録(予約ID・お名前・スペース名・利用期間・合計)
-//   - 【予約内容の変更リクエスト：承諾】… → 金額だけ更新(このメールには変更後の
-//                                     利用期間が載っていないため、時間は手で確認する)
+//   - 【予約内容の変更リクエスト】…   → 変更後の内容を保存しておくだけ(まだ反映しない)
+//   - 【予約内容の変更リクエスト：承諾】… → 保存しておいた変更後の内容で更新(承諾メール
+//                                     自体には金額しか載っていないため。リクエストが
+//                                     見つからなければ金額だけ更新し、時間は手で確認)
+//   - 変更リクエストの却下          → 保存しておいた変更内容を破棄
 //   - キャンセルが完了しました…    → キャンセルに変更(払い戻し料金を差し引いた分を売上に残す)
 // それ以外(承認待ちの予約リクエストなど)は反映せず、毎朝のメールで知らせる。
 import db from "./db.js";
@@ -48,6 +51,8 @@ export function parseSpaceMarketEmail({ subject = "", text = "" }) {
   let kind = "unknown";
   if (/キャンセル/.test(subj) || /キャンセルされました/.test(body)) kind = "cancel";
   else if (/変更/.test(subj) && /承諾/.test(subj)) kind = "change";
+  else if (/変更/.test(subj) && /却下/.test(subj)) kind = "changeRejected";
+  else if (/変更リクエスト/.test(subj)) kind = "changeRequest";
   else if (/今すぐ予約/.test(subj) || /予約が確定/.test(subj) || /予約(リクエスト)?を承認/.test(subj)) kind = "booking";
 
   return {
@@ -127,8 +132,28 @@ function applyBooking(e, receivedDate) {
   return { ok: true, summary: `予約(新規): ${describe(values)}` };
 }
 
-function applyChange(e) {
+function applyChangeRequest(e, receivedDate) {
+  if (!e.bookingId || !e.period || e.total == null) return { ok: false, summary: "予約変更リクエストのメールの内容を読み取れませんでした" };
+  db.prepare(
+    `INSERT INTO spacemarket_change_requests (booking_id, details_json, received_date) VALUES (?, ?, ?)
+     ON CONFLICT(booking_id) DO UPDATE SET details_json = excluded.details_json, received_date = excluded.received_date`
+  ).run(e.bookingId, JSON.stringify(e), receivedDate);
+  const p = e.period;
+  return {
+    ok: true,
+    summary: `予約変更リクエスト(承諾待ち・未反映): ${p.date.slice(5).replace("-", "/")} ${p.startTime}〜${p.endTime} ${e.store ?? e.spaceName} ${e.userName} ¥${e.total.toLocaleString("ja-JP")}`,
+  };
+}
+
+function applyChange(e, receivedDate) {
   if (!e.bookingId || e.total == null) return { ok: false, summary: "予約変更メールの内容を読み取れませんでした" };
+  const request = db.prepare(`SELECT details_json FROM spacemarket_change_requests WHERE booking_id = ?`).get(e.bookingId);
+  if (request) {
+    const requested = JSON.parse(request.details_json);
+    const r = applyBooking({ ...requested, total: e.total }, receivedDate);
+    db.prepare(`DELETE FROM spacemarket_change_requests WHERE booking_id = ?`).run(e.bookingId);
+    return r.ok ? { ok: true, summary: r.summary.replace(/^予約\((新規|更新)\)/, "予約変更(承諾)") } : r;
+  }
   const existing = selectByExternalId.get(externalIdFor(e.bookingId));
   if (!existing) return { ok: false, summary: `予約変更(予約ID ${e.bookingId})の元の予約が見つかりませんでした。手入力で確認してください` };
   db.prepare(`UPDATE transactions SET revenue = ? WHERE id = ?`).run(e.total, existing.id);
@@ -173,7 +198,12 @@ export function applySpaceMarketEmail({ messageId, subject, text, date }) {
   db.exec("BEGIN");
   try {
     if (e.kind === "booking") result = applyBooking(e, receivedDate);
-    else if (e.kind === "change") result = applyChange(e);
+    else if (e.kind === "changeRequest") result = applyChangeRequest(e, receivedDate);
+    else if (e.kind === "change") result = applyChange(e, receivedDate);
+    else if (e.kind === "changeRejected") {
+      if (e.bookingId) db.prepare(`DELETE FROM spacemarket_change_requests WHERE booking_id = ?`).run(e.bookingId);
+      result = { ok: true, summary: `予約変更リクエストの却下(予約ID ${e.bookingId ?? "不明"})` };
+    }
     else if (e.kind === "cancel") result = applyCancel(e, receivedDate);
     else result = { ok: false, summary: `未対応のメールのため反映していません: ${subject}` };
     db.prepare(`INSERT INTO spacemarket_email_log (message_id, received_date, kind, booking_id, summary) VALUES (?, ?, ?, ?, ?)`).run(

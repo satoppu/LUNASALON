@@ -256,6 +256,16 @@ db.exec(`
   );
 `);
 
+// 承諾待ちの予約変更リクエスト(予約IDごとに最新の1件)。「変更リクエスト」メールには
+// 変更後の利用期間が載るが「承諾」メールには金額しか無いため、承諾時にここから反映する。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS spacemarket_change_requests (
+    booking_id TEXT PRIMARY KEY,
+    details_json TEXT NOT NULL,
+    received_date TEXT
+  );
+`);
+
 const expensesCount = db.prepare(`SELECT COUNT(*) AS c FROM expenses`).get().c;
 if (expensesCount === 0) {
   const seedExpenseStmt = db.prepare(
