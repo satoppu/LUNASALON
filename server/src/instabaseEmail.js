@@ -40,11 +40,15 @@ export function parseInstabaseEmail({ subject = "", text = "" }) {
   const v = body.match(new RegExp(`見学希望日時:\\s*\\S*\\s*${DATE_RE}\\s*${TIME_RE}`));
 
   let kind = "unknown";
-  if (/メッセージ|レビュー/.test(subj)) kind = "ignored";
+  // 予約に関係しない通知(メッセージ・レビュー・掲載ページの編集反映・支払明細・
+  // 件名が「[インスタベース]」で始まるお知らせ)は何も知らせずに読み飛ばす。
+  if (/メッセージ|レビュー|編集内容が反映|支払明細/.test(subj) || /^\[インスタベース\]/.test(subj)) kind = "ignored";
   else if (/キャンセル/.test(subj)) kind = "cancel";
-  else if (/見学/.test(subj)) kind = "visit";
+  else if (/見学リクエスト/.test(subj)) kind = "visit";
   else if (/変更/.test(subj) && /確定/.test(subj)) kind = "change";
   else if (/予約が入りました|予約が確定|予約確定/.test(subj)) kind = "booking";
+  // 予約・キャンセル・見学のどれとも読めない件名は、予約に関係しそうなものだけ【要確認】に回す。
+  else if (!/予約|見学/.test(subj)) kind = "ignored";
 
   return {
     kind,
