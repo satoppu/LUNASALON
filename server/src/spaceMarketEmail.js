@@ -49,7 +49,9 @@ export function parseSpaceMarketEmail({ subject = "", text = "" }) {
     : null;
 
   let kind = "unknown";
-  if (/キャンセル/.test(subj) || /キャンセルされました/.test(body)) kind = "cancel";
+  // ゲストとのメッセージやレビュー依頼などは予約の中身に関係しないため、何も知らせずに読み飛ばす。
+  if (/【メッセージ】|レビュー|評価/.test(subj)) kind = "ignored";
+  else if (/キャンセル/.test(subj) || /キャンセルされました/.test(body)) kind = "cancel";
   else if (/変更/.test(subj) && /承諾/.test(subj)) kind = "change";
   else if (/変更/.test(subj) && /却下/.test(subj)) kind = "changeRejected";
   else if (/変更リクエスト/.test(subj)) kind = "changeRequest";
@@ -205,6 +207,7 @@ export function applySpaceMarketEmail({ messageId, subject, text, date }) {
       result = { ok: true, summary: `予約変更リクエストの却下(予約ID ${e.bookingId ?? "不明"})` };
     }
     else if (e.kind === "cancel") result = applyCancel(e, receivedDate);
+    else if (e.kind === "ignored") result = { ok: true, silent: true, summary: `対象外: ${subject}` };
     else result = { ok: false, summary: `未対応のメールのため反映していません: ${subject}` };
     db.prepare(`INSERT INTO spacemarket_email_log (message_id, received_date, kind, booking_id, summary) VALUES (?, ?, ?, ?, ?)`).run(
       messageId,

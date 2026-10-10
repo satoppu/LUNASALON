@@ -50,11 +50,12 @@ export async function importSpaceMarketEmails({ lookbackDays = LOOKBACK_DAYS, dr
     for (const m of messages) {
       if (dryRun) {
         const e = parseSpaceMarketEmail(m);
+        if (e.kind === "ignored") continue;
         lines.push(`${m.date?.toISOString().slice(0, 10)} ${m.subject}\n  → ${JSON.stringify(e)}`);
         continue;
       }
       const r = applySpaceMarketEmail(m);
-      if (r.skipped) continue;
+      if (r.skipped || r.silent) continue;
       (r.ok ? lines : problems).push(r.summary);
     }
   } finally {
