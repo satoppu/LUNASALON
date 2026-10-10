@@ -116,7 +116,7 @@ export default function SettingsPage({ onDataChanged }) {
         <div>
           <section className="mb-12">
             <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">
-              スペースマーケット手動入力
+              スペースマーケット(メール自動取り込み・修正用)
             </h3>
             <ManualSpaceMarketSection />
           </section>

@@ -159,7 +159,7 @@ export default function ManualSpaceMarketSection() {
   return (
     <div>
       <p style={{ color: "#8F7D6E" }} className="text-sm mb-6">
-        スペースマーケットは予約数が少ないため、CSV取り込みではなくここで手動登録します。開始・終了時間を入れると利用時間が自動計算されます。
+        予約・変更・キャンセルは毎朝メールから自動で反映されます。ここでは内容の確認と修正、メールで取り込めなかった分の追加ができます。開始・終了時間を入れると利用時間が自動計算されます。
       </p>
 
       <datalist id="manual-space-market-user-names">
@@ -305,18 +305,19 @@ export default function ManualSpaceMarketSection() {
         終了時間を空欄のまま保存すると、利用時間の計算には反映されません(開始・終了の両方を入力してください)。
       </p>
 
-      <div style={{ background: "#FFFFFF" }} className="overflow-x-auto p-3">
-        <p style={{ color: "#8F7D6E" }} className="text-xs mb-2">
-          新規登録
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+      {/* 普段はメールから自動で入るため、手での追加欄は折りたたんでおく。 */}
+      <details style={{ background: "#FFFFFF" }} className="p-3">
+        <summary style={{ color: "#8F7D6E" }} className="text-xs cursor-pointer">
+          手で追加する(メールで取り込めなかった分)
+        </summary>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 my-3">
           <EntryFields value={newEntry} onChange={(patch) => setNewEntry((d) => ({ ...d, ...patch }))} storeNames={storeNames} statuses={statuses} />
         </div>
         <button onClick={add} className="flex items-center gap-1 text-sm px-3 py-1.5" style={{ background: "#EDE3D5", color: "#262421" }}>
           <Plus size={14} />
           追加
         </button>
-      </div>
+      </details>
     </div>
   );
 }
