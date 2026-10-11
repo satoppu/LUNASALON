@@ -2,7 +2,7 @@
 // 受信トレイは読み取り専用で開くため、既読/未読などメールの状態は一切変えない。
 //
 // 必要な設定(server/.env)。設定されていない取り込み元は何もしない。
-//   スペースマーケット(luna@mj-japan.net): SPACEMARKET_IMAP_HOST / _USER / _PASSWORD
+//   スペースマーケット(info@lunasalon.jp):  SPACEMARKET_IMAP_HOST / _USER / _PASSWORD
 //   インスタベース(info@lunasalon.jp):     INSTABASE_IMAP_HOST / _USER / _PASSWORD
 //   (任意で *_IMAP_PORT、既定993)
 import { ImapFlow } from "imapflow";

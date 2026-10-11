@@ -174,7 +174,7 @@ crontab -e
 
 `server/.env` に IMAP の設定をすると、毎朝の自動取り込みの最初に、予約サイトの通知メールを受信トレイ(直近14日分、読み取り専用)から読んで反映します(`server/src/emailImport.js`)。設定の無い取り込み元はスキップされます。
 
-**スペースマーケット**(`SPACEMARKET_IMAP_HOST` / `_USER` / `_PASSWORD`、luna@mj-japan.net)→「設定→記録」のスペースマーケット手動入力に反映(`spaceMarketEmail.js`)
+**スペースマーケット**(`SPACEMARKET_IMAP_HOST` / `_USER` / `_PASSWORD`、info@lunasalon.jp)→「設定→記録」のスペースマーケット手動入力に反映(`spaceMarketEmail.js`)
 
 - 【今すぐ予約】: 予約ID・お名前・スペース名・利用期間・合計から行を作成(手入力済みの同じ日・店舗・利用者の行があればそれに予約IDを付けて使う)
 - 【予約内容の変更リクエスト】: 変更後の内容を保存するだけ(承諾されるまで反映しない)

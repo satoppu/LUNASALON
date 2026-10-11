@@ -1,4 +1,4 @@
-// スペースマーケットからの通知メール(no-reply@spacemarket.com → luna@mj-japan.net)
+// スペースマーケットからの通知メール(no-reply@spacemarket.com → info@lunasalon.jp)
 // を読み取り、「設定→記録」のスペースマーケット手動入力の行として反映する。
 // メールの受信自体は emailImport.js、ここは本文の解析と DB への反映だけ。
 //
