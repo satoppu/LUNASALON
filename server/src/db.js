@@ -279,6 +279,16 @@ db.exec(`
   );
 `);
 
+// LINE公式アカウントの友だち数の推移(Messaging APIの統計。lineInsight.js)。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS line_stats (
+    date TEXT PRIMARY KEY,
+    followers INTEGER NOT NULL,
+    targeted_reaches INTEGER,
+    blocks INTEGER NOT NULL
+  );
+`);
+
 // 承諾待ちの予約変更リクエスト(予約IDごとに最新の1件)。「変更リクエスト」メールには
 // 変更後の利用期間が載るが「承諾」メールには金額しか無いため、承諾時にここから反映する。
 db.exec(`

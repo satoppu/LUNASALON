@@ -30,6 +30,7 @@ import { sendResultEmail } from "../src/notifyEmail.js";
 import { getNewBookingsDaily, getNewCustomersOnDate } from "../src/newBookingsDaily.js";
 import { importPlatformEmails, formatEmailImportSection } from "../src/emailImport.js";
 import { hasKnownCustomers, findNewCustomers, saveCustomers, formatNewRegistrations } from "../src/yoyakulCustomers.js";
+import { updateLineStats } from "../src/lineInsight.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, "..", ".env");
@@ -195,7 +196,7 @@ function yen(n) {
 // 棒グラフのツールチップ(newBookingsDaily.js)と同じ用語・同じ値。この
 // スクリプトはbooking_date=前日までの分を確定させる形で毎朝動くため、
 // 直近で内容が固まっている「前日」を報告対象にする。
-function formatDailySummary(registrations) {
+function formatDailySummary(registrations, lineSection) {
   const days = getNewBookingsDaily(0);
   const y = days[days.length - 1];
   const totalCount = y.count + y.subscriptionCount + y.cancelCount;
@@ -206,7 +207,8 @@ function formatDailySummary(registrations) {
     `取消：${y.cancelCount}件　消売：${y.cancelRevenue > 0 ? "-" + yen(y.cancelRevenue) : yen(0)}\n\n` +
     `合計：${totalCount}件　合売：${yen(y.revenue)}` +
     formatNewCustomers(y.date) +
-    formatNewRegistrations(registrations)
+    formatNewRegistrations(registrations) +
+    lineSection
   );
 }
 
@@ -334,6 +336,8 @@ async function main() {
   // 前回の失敗時の画面が今回のメールに添付されないよう、最初に消しておく。
   fs.rmSync(ERROR_SHOT, { force: true });
   const emailSection = await runPlatformEmails();
+  // LINEの友だち数(未設定なら空)。取れなくても取り込みは続ける。
+  const lineSection = await updateLineStats().catch((err) => `\n\nLINE：取得できませんでした(${err.message})`);
   // Uses the machine's own installed Google Chrome ("channel: chrome")
   // rather than Playwright's bundled Chromium: the VPS runs Ubuntu 20.04
   // (past its official support window), which Playwright's own browser
@@ -371,7 +375,7 @@ async function main() {
         subject: "【LUNA】自動取り込み成功",
         text:
           // 順番: 前日のまとめ → スペースマーケット → インスタベース → よやクルProの取り込み結果
-          formatDailySummary(registrations) +
+          formatDailySummary(registrations, lineSection) +
           `\n\n${DASHBOARD_DAILY_URL}` +
           emailSection +
           `\n\n----------------\n\n` +
