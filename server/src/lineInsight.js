@@ -29,10 +29,18 @@ async function issueStatelessToken() {
   return (await res.json()).access_token;
 }
 
+class RateLimitError extends Error {
+  constructor(retryAfterSec) {
+    super("LINEの統計の取得回数の上限に達しました(429)");
+    this.retryAfterSec = retryAfterSec;
+  }
+}
+
 async function fetchFollowers(token, dateISO) {
   const res = await fetch(`https://api.line.me/v2/bot/insight/followers?date=${dateISO.replaceAll("-", "")}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  if (res.status === 429) throw new RateLimitError(Number(res.headers.get("retry-after")) || null);
   if (!res.ok) throw new Error(`LINEの統計を取得できませんでした(${res.status})`);
   return res.json(); // { status: "ready" | "unready" | "out_of_service", followers, targetedReaches, blocks }
 }
@@ -44,18 +52,46 @@ function saveStats(date, s) {
   ).run(date, s.followers, s.targetedReaches ?? null, s.blocks);
 }
 
-/** 過去の数字をさかのぼって取得・記録する(グラフ用。集計の無い日は飛ばす)。 */
-export async function backfillLineStats(days) {
-  const token = await issueStatelessToken();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * 過去の数字をさかのぼって取得・記録する(グラフ用。一度だけ実行すればよい)。
+ * LINEの統計APIには回数制限があるため、1日分ごとに間をあけ、上限に達したら待ってから続ける。
+ * 記録済みの日は飛ばすので、途中で止まっても同じコマンドで続きから再開できる。
+ */
+export async function backfillLineStats(days, { intervalSec = 5, maxWaits = 40, log = console.log } = {}) {
+  let token = await issueStatelessToken();
+  let tokenIssuedAt = Date.now();
   const yesterday = shiftDate(getTodayISO(), -1);
+  const has = db.prepare(`SELECT 1 FROM line_stats WHERE date = ?`);
   let saved = 0;
+  let waits = 0;
   for (let i = 0; i < days; i++) {
     const date = shiftDate(yesterday, -i);
-    const s = await fetchFollowers(token, date);
-    if (s.status === "ready") {
-      saveStats(date, s);
-      saved++;
+    if (has.get(date)) continue;
+    // 一時トークンは15分で切れるため、10分ごとに発行し直す。
+    if (Date.now() - tokenIssuedAt > 10 * 60 * 1000) {
+      token = await issueStatelessToken();
+      tokenIssuedAt = Date.now();
     }
+    try {
+      const s = await fetchFollowers(token, date);
+      if (s.status === "ready") {
+        saveStats(date, s);
+        saved++;
+        log(`${date}: 友だち ${s.followers}・ブロック ${s.blocks}`);
+      } else {
+        log(`${date}: 集計なし(${s.status})`);
+      }
+    } catch (err) {
+      if (!(err instanceof RateLimitError) || ++waits > maxWaits) throw Object.assign(err, { saved });
+      const waitSec = err.retryAfterSec ?? 60;
+      log(`回数の上限のため ${waitSec}秒待ちます…`);
+      await sleep(waitSec * 1000);
+      i--; // 同じ日をやり直す
+      continue;
+    }
+    await sleep(intervalSec * 1000);
   }
   return saved;
 }
