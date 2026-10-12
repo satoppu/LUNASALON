@@ -192,6 +192,16 @@ crontab -e
 
 導入時: `node scripts/importEmails.js --dry-run --source instabase --days 30` で読み取り結果だけ確認し、`node scripts/importEmails.js --baseline --days 60 --source instabase` でその時点の受信メールを反映せずに処理済みとして記録してから使い始める(手入力・CSV取り込み済みの過去分と二重にしないため)。
 
+### ホームページのファイルの予約入れ替え(任意)
+
+`server/scripts/ftpSwapFiles.js` は、lunasalon.jp(お名前.comのレンタルサーバー)上のファイルを指定日時にFTPで改名して入れ替える。新しいファイルは前もって置いておき、当日に「今のファイルを `.bak-YYYYMMDD` に改名 → 新しいファイルを正式名に改名 → 大きさを確認」を行う(失敗時は元に戻す)。`server/.env` に `FTP_HOST` / `FTP_USER` / `FTP_PASSWORD` / `FTP_DIR` が必要。
+
+- `--check --swap 新:今 ...`: 接続とファイルの有無だけ確認
+- `--run --date YYYY-MM-DD --swap 新:今 ...`: 入れ替え(指定日以外・実行済みなら何もしない。結果は `server/logs/ftp-swap-<日付>.json`)
+- `--report --date YYYY-MM-DD`: 結果をメールで送る(1回だけ)
+
+cron には `--run` と `--report` を別々の時刻で登録する。
+
 ## 仕様書からの未確定事項(要本人確認・引き継ぎ)
 
 - Forest(2024-10-31〜)・Asteria(2026-04-10〜)の開業日は実績データからの自動推定値。実際の契約開業日と異なる場合は「店舗設定」画面から修正してください。
