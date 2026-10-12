@@ -6,6 +6,7 @@ import { pctChange, YoyBadge } from "../../yoy.jsx";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import StoreBadge from "../StoreBadge.jsx";
 import RankingPage from "./RankingPage.jsx";
+import LineFollowersChart from "../LineFollowersChart.jsx";
 
 // "2026-03" -> "2025-03"。前年同月比較用(月別グラフは全期間を1本の配列で
 // 持っているため、単純に年を1つ戻したキーで前年の同じ月を探せる)。
@@ -275,6 +276,8 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
           </div>
         </div>
       )}
+
+      <LineFollowersChart />
 
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">

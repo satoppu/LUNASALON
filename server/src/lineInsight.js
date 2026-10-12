@@ -37,6 +37,34 @@ async function fetchFollowers(token, dateISO) {
   return res.json(); // { status: "ready" | "unready" | "out_of_service", followers, targetedReaches, blocks }
 }
 
+function saveStats(date, s) {
+  db.prepare(
+    `INSERT INTO line_stats (date, followers, targeted_reaches, blocks) VALUES (?, ?, ?, ?)
+     ON CONFLICT(date) DO UPDATE SET followers = excluded.followers, targeted_reaches = excluded.targeted_reaches, blocks = excluded.blocks`
+  ).run(date, s.followers, s.targetedReaches ?? null, s.blocks);
+}
+
+/** 過去の数字をさかのぼって取得・記録する(グラフ用。集計の無い日は飛ばす)。 */
+export async function backfillLineStats(days) {
+  const token = await issueStatelessToken();
+  const yesterday = shiftDate(getTodayISO(), -1);
+  let saved = 0;
+  for (let i = 0; i < days; i++) {
+    const date = shiftDate(yesterday, -i);
+    const s = await fetchFollowers(token, date);
+    if (s.status === "ready") {
+      saveStats(date, s);
+      saved++;
+    }
+  }
+  return saved;
+}
+
+/** ダッシュボードのグラフ用に、記録した全期間の数字を日付順で返す。 */
+export function listLineStats() {
+  return db.prepare(`SELECT date, followers, targeted_reaches AS targetedReaches, blocks FROM line_stats ORDER BY date`).all();
+}
+
 /**
  * 前日(集計が間に合っていなければその前日)の数字を取得・記録し、通知メール用の1行を返す。
  * 未設定なら空文字。
@@ -48,10 +76,7 @@ export async function updateLineStats() {
   for (const date of [yesterday, shiftDate(yesterday, -1)]) {
     const s = await fetchFollowers(token, date);
     if (s.status !== "ready") continue;
-    db.prepare(
-      `INSERT INTO line_stats (date, followers, targeted_reaches, blocks) VALUES (?, ?, ?, ?)
-       ON CONFLICT(date) DO UPDATE SET followers = excluded.followers, targeted_reaches = excluded.targeted_reaches, blocks = excluded.blocks`
-    ).run(date, s.followers, s.targetedReaches ?? null, s.blocks);
+    saveStats(date, s);
     return formatLineStats(date);
   }
   return "\n\nLINE：まだ集計されていません";

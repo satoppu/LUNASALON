@@ -58,6 +58,7 @@ export const api = {
     return request(`/revenue${qs ? `?${qs}` : ""}`);
   },
   getCustomers: () => request("/customers"),
+  getLineStats: () => request("/line-stats"),
   searchTransactions: ({ start, end, store, status, channel, user, offset, sort } = {}) => {
     const params = new URLSearchParams();
     if (start) params.set("start", start);
