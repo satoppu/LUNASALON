@@ -56,7 +56,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * 過去の数字をさかのぼって取得・記録する(グラフ用。一度だけ実行すればよい)。
- * LINEの統計APIには回数制限があるため、1日分ごとに間をあけ、上限に達したら待ってから続ける。
+ * LINEの統計APIには回数制限があるため、1日分ごとに間をあけ、上限に達したら待ってから続ける
+ * (続けて maxWaits 回待っても取れなければ止める)。
  * 記録済みの日は飛ばすので、途中で止まっても同じコマンドで続きから再開できる。
  */
 export async function backfillLineStats(days, { intervalSec = 5, maxWaits = 40, log = console.log } = {}) {
@@ -76,6 +77,7 @@ export async function backfillLineStats(days, { intervalSec = 5, maxWaits = 40, 
     }
     try {
       const s = await fetchFollowers(token, date);
+      waits = 0; // 取れたら待ち回数を数え直す(上限は「続けて待った回数」)
       if (s.status === "ready") {
         saveStats(date, s);
         saved++;
