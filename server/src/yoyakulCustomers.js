@@ -39,17 +39,17 @@ export function saveCustomers(rows) {
   }
 }
 
-/** 毎朝の通知メールに載せる文面。 */
+/** 毎朝の通知メールに載せる文面(前後の改行は呼び出し側で付ける)。 */
 export function formatNewRegistrations(result) {
   if (!result) return "";
-  if (result.error) return `\n\nよやクル新規会員登録：取得できませんでした(${result.error})`;
-  if (result.baseline) return `\n\nよやクル新規会員登録：今の会員${result.total}名を記録しました(明日から新規登録をお知らせします)`;
-  if (result.newOnes.length === 0) return "\n\nよやクル新規会員登録：なし";
+  if (result.error) return `よやクル新規登録：取得できませんでした(${result.error})`;
+  if (result.baseline) return `よやクル新規登録：今の会員${result.total}名を記録しました(明日から新規登録をお知らせします)`;
+  if (result.newOnes.length === 0) return "よやクル新規登録：なし";
   const lines = result.newOnes.map((c) => {
     const label = c.name && c.name !== c.hn ? `${c.hn || c.name}(${c.name})` : c.hn || c.name;
     const contact = !c.phone && !c.email ? "・電話/メール未登録" : "";
     const date = c.registeredDate ? `・登録日 ${c.registeredDate}` : "";
     return `・${label}${date}${contact}`;
   });
-  return `\n\nよやクル新規会員登録：${result.newOnes.length}名\n${lines.join("\n")}`;
+  return `よやクル新規登録：${result.newOnes.length}名\n${lines.join("\n")}`;
 }

@@ -206,8 +206,8 @@ function formatDailySummary(registrations, lineSection) {
     `定額：${y.subscriptionCount}件　定売：${yen(y.subscriptionRevenue)}\n` +
     `取消：${y.cancelCount}件　消売：${y.cancelRevenue > 0 ? "-" + yen(y.cancelRevenue) : yen(0)}\n\n` +
     `合計：${totalCount}件　合売：${yen(y.revenue)}` +
-    formatNewCustomers(y.date) +
-    formatNewRegistrations(registrations) +
+    // よやクルの新規登録 → 新規予約のお客様 の順で、空行を挟まずに並べる。
+    `\n\n${[formatNewRegistrations(registrations), formatNewCustomers(y.date)].filter(Boolean).join("\n")}` +
     lineSection
   );
 }
@@ -217,12 +217,12 @@ const CHANNEL_LABEL = { Instabase: "インスタベース" };
 // 前日に初めて予約(・利用・定額クーポン購入)したお客様の一覧。
 function formatNewCustomers(dateISO) {
   const list = getNewCustomersOnDate(dateISO);
-  if (list.length === 0) return "\n\n新規のお客様：なし";
+  if (list.length === 0) return "新規予約のお客様：なし";
   const lines = list.map((c) => {
     const what = c.channel === "定期クーポン" ? "定額クーポン購入" : `${Number(c.date.slice(5, 7))}/${Number(c.date.slice(8, 10))}利用`;
     return `・${c.user}（${CHANNEL_LABEL[c.channel] ?? c.channel}／${c.store}・${what}）`;
   });
-  return `\n\n新規のお客様：${list.length}名\n${lines.join("\n")}`;
+  return `新規予約のお客様：${list.length}名\n${lines.join("\n")}`;
 }
 
 const CUSTOMER_LIST_URL = "https://v3.yoyakul.com/owner/customer";
