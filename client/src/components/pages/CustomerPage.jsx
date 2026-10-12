@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { api } from "../../api.js";
-import { FONT_HEAD, yen, makeStoreColor, formatDateShort, getTodayISO } from "../../constants.js";
+import { FONT_HEAD, yen, makeStoreColor, formatDateShort, getTodayISO, CHANNELS, CHANNEL_COLOR, CHANNEL_SHORT } from "../../constants.js";
 import { pctChange, YoyBadge } from "../../yoy.jsx";
 import CustomerDetailModal from "../CustomerDetailModal.jsx";
 import StoreBadge from "../StoreBadge.jsx";
@@ -141,18 +141,25 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
                   height={50}
                 />
                 <YAxis tick={{ fill: "#8F7D6E", fontSize: 12 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip formatter={(v) => `${v}人`} />
-                <Bar
-                  dataKey="count"
-                  fill="#D4A644"
-                  cursor="pointer"
-                  onClick={(d) => setMonthFilter({ type: "new", yearMonth: d.yearMonth, label: d.label })}
-                />
+                <Tooltip formatter={(v, name) => [`${v}人`, name]} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                {/* 初めて利用したときの導線ごとに積み上げる(導線分析と同じ色)。 */}
+                {CHANNELS.filter((ch) => state.newCustomersByMonth.some((m) => m[ch] > 0)).map((ch) => (
+                  <Bar
+                    key={ch}
+                    dataKey={ch}
+                    name={ch}
+                    stackId="new"
+                    fill={CHANNEL_COLOR[ch]}
+                    cursor="pointer"
+                    onClick={(d) => setMonthFilter({ type: "new", yearMonth: d.yearMonth, label: d.label })}
+                  />
+                ))}
               </BarChart>
             </ResponsiveContainer>
           </div>
           <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-            棒をクリックすると、その月に新規で来店したお客様の一覧を表示します。
+            初めて利用したときの導線(自社サイト・インスタベース・スペースマーケット)ごとに色分けしています。棒をクリックすると、その月に新規で来店したお客様の一覧を表示します。
           </p>
         </div>
 
@@ -231,6 +238,9 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
                   <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
                     店舗
                   </th>
+                  <th className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                    初回の導線
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -248,11 +258,14 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
                     <td className="px-4 py-3 text-center">
                       <StoreBadge store={c.primaryStore} storeColor={storeColor} />
                     </td>
+                    <td className="px-4 py-3 text-center" style={{ color: CHANNEL_COLOR[c.firstUseChannel] }}>
+                      {CHANNEL_SHORT[c.firstUseChannel] ?? c.firstUseChannel}
+                    </td>
                   </tr>
                 ))}
                 {monthFilteredCustomers.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                    <td colSpan={6} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
                       該当する顧客が見つかりません。
                     </td>
                   </tr>

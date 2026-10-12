@@ -163,3 +163,29 @@ export function getBookingsForDate(bookingDate, store) {
     )
     .all(...params);
 }
+
+/**
+ * 指定日に初めて予約(または利用・定額クーポン購入)したお客様。全チャネルを通じて、
+ * そのお客様の最も早い記録(予約日・利用日のうち早いほう)がその日のものを「新規」とする。
+ * 毎朝の通知メールの「昨日の新規のお客様」に使う。
+ * @returns {Array<{ user: string, channel: string, store: string, date: string, status: string }>}
+ */
+export function getNewCustomersOnDate(dateISO) {
+  const users = db
+    .prepare(
+      `SELECT user_name FROM transactions GROUP BY user_name
+       HAVING MIN(MIN(date, COALESCE(booking_date, date))) = ?`
+    )
+    .all(dateISO)
+    .map((r) => r.user_name);
+  const firstRow = db.prepare(
+    `SELECT user_name, channel, store, date, status FROM transactions
+     WHERE user_name = ? AND MIN(date, COALESCE(booking_date, date)) = ?
+     ORDER BY date LIMIT 1`
+  );
+  return users.map((u) => {
+    const r = firstRow.get(u, dateISO);
+    return { user: u, channel: r.channel, store: r.store, date: r.date, status: r.status };
+  });
+}
+

@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { importFileBuffer } from "../src/importFileBuffer.js";
 import { sendResultEmail } from "../src/notifyEmail.js";
-import { getNewBookingsDaily } from "../src/newBookingsDaily.js";
+import { getNewBookingsDaily, getNewCustomersOnDate } from "../src/newBookingsDaily.js";
 import { importPlatformEmails, formatEmailImportSection } from "../src/emailImport.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -203,8 +203,22 @@ function formatDailySummary() {
     `予約：${y.count}件　予売：${yen(y.bookingRevenue)}\n` +
     `定額：${y.subscriptionCount}件　定売：${yen(y.subscriptionRevenue)}\n` +
     `取消：${y.cancelCount}件　消売：${y.cancelRevenue > 0 ? "-" + yen(y.cancelRevenue) : yen(0)}\n\n` +
-    `合計：${totalCount}件　合売：${yen(y.revenue)}`
+    `合計：${totalCount}件　合売：${yen(y.revenue)}` +
+    formatNewCustomers(y.date)
   );
+}
+
+const CHANNEL_LABEL = { Instabase: "インスタベース" };
+
+// 前日に初めて予約(・利用・定額クーポン購入)したお客様の一覧。
+function formatNewCustomers(dateISO) {
+  const list = getNewCustomersOnDate(dateISO);
+  if (list.length === 0) return "\n\n新規のお客様：なし";
+  const lines = list.map((c) => {
+    const what = c.channel === "定期クーポン" ? "定額クーポン購入" : `${Number(c.date.slice(5, 7))}/${Number(c.date.slice(8, 10))}利用`;
+    return `・${c.user}（${CHANNEL_LABEL[c.channel] ?? c.channel}／${c.store}・${what}）`;
+  });
+  return `\n\n新規のお客様：${list.length}名\n${lines.join("\n")}`;
 }
 
 async function downloadZip(page) {

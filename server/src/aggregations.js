@@ -761,6 +761,8 @@ export function buildCustomerProfiles(allRows) {
       user,
       primaryStore,
       firstUseDate: visits[0].date,
+      // 初めて利用したときの導線(自社サイト/Instabase/スペースマーケット)。新規顧客の内訳に使う。
+      firstUseChannel: CHANNELS.includes(visits[0].channel) ? visits[0].channel : "その他",
       lastUseDate: visits[visits.length - 1].date,
       totalCount: visits.length,
       totalCancelCount: byYearList.reduce((sum, y) => sum + y.cancelCount, 0),
@@ -774,16 +776,22 @@ export function buildCustomerProfiles(allRows) {
   return customers.sort((a, b) => b.totalRevenue - a.totalRevenue);
 }
 
-/** New-customer count per calendar month, based on each customer's first actual visit. */
+/**
+ * New-customer count per calendar month, based on each customer's first actual
+ * visit, with a per-channel breakdown (keyed by channel name, e.g. 自社サイト: 3)
+ * of the channel that first visit came through.
+ */
 export function buildNewCustomersByMonth(customerProfiles) {
-  const counts = {};
+  const byMonth = {};
   customerProfiles.forEach((c) => {
     const ym = c.firstUseDate.slice(0, 7);
-    counts[ym] = (counts[ym] || 0) + 1;
+    if (!byMonth[ym]) byMonth[ym] = Object.fromEntries([["count", 0], ...CHANNELS.map((ch) => [ch, 0])]);
+    byMonth[ym].count += 1;
+    byMonth[ym][c.firstUseChannel] += 1;
   });
-  return Object.keys(counts)
+  return Object.keys(byMonth)
     .sort()
-    .map((ym) => ({ yearMonth: ym, label: formatYearMonth(ym), count: counts[ym] }));
+    .map((ym) => ({ yearMonth: ym, label: formatYearMonth(ym), ...byMonth[ym] }));
 }
 
 /**
