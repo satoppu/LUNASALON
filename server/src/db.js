@@ -265,6 +265,20 @@ if (db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'spa
   `);
 }
 
+// よやクルProの「顧客情報」に載っている会員(LINE等での新規登録を見つけるため)。
+// 毎朝の自動取り込みで一覧を読み、ここに無い会員を「新規登録」として知らせる(yoyakulCustomers.js)。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS yoyakul_customers (
+    key TEXT PRIMARY KEY,
+    name TEXT,
+    hn TEXT,
+    has_phone INTEGER NOT NULL DEFAULT 0,
+    has_email INTEGER NOT NULL DEFAULT 0,
+    registered_date TEXT,
+    first_seen_date TEXT NOT NULL
+  );
+`);
+
 // 承諾待ちの予約変更リクエスト(予約IDごとに最新の1件)。「変更リクエスト」メールには
 // 変更後の利用期間が載るが「承諾」メールには金額しか無いため、承諾時にここから反映する。
 db.exec(`

@@ -29,6 +29,7 @@ import { importFileBuffer } from "../src/importFileBuffer.js";
 import { sendResultEmail } from "../src/notifyEmail.js";
 import { getNewBookingsDaily, getNewCustomersOnDate } from "../src/newBookingsDaily.js";
 import { importPlatformEmails, formatEmailImportSection } from "../src/emailImport.js";
+import { hasKnownCustomers, findNewCustomers, saveCustomers, formatNewRegistrations } from "../src/yoyakulCustomers.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, "..", ".env");
@@ -194,7 +195,7 @@ function yen(n) {
 // 棒グラフのツールチップ(newBookingsDaily.js)と同じ用語・同じ値。この
 // スクリプトはbooking_date=前日までの分を確定させる形で毎朝動くため、
 // 直近で内容が固まっている「前日」を報告対象にする。
-function formatDailySummary() {
+function formatDailySummary(registrations) {
   const days = getNewBookingsDaily(0);
   const y = days[days.length - 1];
   const totalCount = y.count + y.subscriptionCount + y.cancelCount;
@@ -204,7 +205,8 @@ function formatDailySummary() {
     `定額：${y.subscriptionCount}件　定売：${yen(y.subscriptionRevenue)}\n` +
     `取消：${y.cancelCount}件　消売：${y.cancelRevenue > 0 ? "-" + yen(y.cancelRevenue) : yen(0)}\n\n` +
     `合計：${totalCount}件　合売：${yen(y.revenue)}` +
-    formatNewCustomers(y.date)
+    formatNewCustomers(y.date) +
+    formatNewRegistrations(registrations)
   );
 }
 
@@ -219,6 +221,65 @@ function formatNewCustomers(dateISO) {
     return `・${c.user}（${CHANNEL_LABEL[c.channel] ?? c.channel}／${c.store}・${what}）`;
   });
   return `\n\n新規のお客様：${list.length}名\n${lines.join("\n")}`;
+}
+
+const CUSTOMER_LIST_URL = "https://v3.yoyakul.com/owner/customer";
+const MAX_DETAIL_LOOKUPS = 10;
+
+// 「顧客情報」の一覧(お名前・HN・お電話番号・email の表)を読む。行に詳細ページへの
+// リンクがあれば、そのID(?id=…)も控える。
+async function readCustomerList(page) {
+  await page.goto(CUSTOMER_LIST_URL, { waitUntil: "networkidle" });
+  if (DEBUG) await shot(page, "10-customer-list");
+  const rows = await page.evaluate(() => {
+    const table = [...document.querySelectorAll("table")].find((t) => /HN/.test(t.innerText) && /email/i.test(t.innerText));
+    if (!table) return null;
+    return [...table.querySelectorAll("tr")]
+      .map((tr, index) => {
+        const cells = [...tr.querySelectorAll("td")].map((td) => td.innerText.trim());
+        if (cells.length < 4) return null;
+        const holder = tr.querySelector('a[href*="id="]') || tr.closest('a[href*="id="]');
+        const source = holder?.getAttribute("href") || tr.getAttribute("onclick") || tr.getAttribute("data-href") || "";
+        const detailId = source.match(/id=([\w-]+)/)?.[1] ?? null;
+        return { index, name: cells[0], hn: cells[1], phone: cells[2], email: cells[3], detailId };
+      })
+      .filter(Boolean);
+  });
+  if (!rows) throw new Error("顧客情報の一覧(表)が見つかりませんでした");
+  return rows;
+}
+
+// 会員の詳細ページを開いて「登録日」を読む(IDが分かればURLで、分からなければ一覧の行をクリックして)。
+async function readRegisteredDate(page, row) {
+  if (row.detailId) {
+    await page.goto(`${CUSTOMER_LIST_URL}/detail?id=${row.detailId}`, { waitUntil: "networkidle" });
+  } else {
+    await page.goto(CUSTOMER_LIST_URL, { waitUntil: "networkidle" });
+    await page.locator("tr").nth(row.index).click();
+    await page.waitForURL(/customer\/detail/, { timeout: 15000 });
+    await page.waitForLoadState("networkidle");
+  }
+  return page.evaluate(() => {
+    const label = [...document.querySelectorAll("th, td, div, span, dt")].find((el) => el.innerText?.trim() === "登録日");
+    const value = label?.nextElementSibling?.innerText?.trim();
+    const m = value?.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+    return m ? `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}` : null;
+  });
+}
+
+// 前回以降に会員登録した方を見つける。初回は今の会員を記録するだけ(全員を新規と扱わない)。
+async function collectNewRegistrations(page) {
+  const rows = await readCustomerList(page);
+  if (!hasKnownCustomers()) {
+    saveCustomers(rows);
+    return { baseline: true, total: rows.length };
+  }
+  const newOnes = findNewCustomers(rows);
+  for (const row of newOnes.slice(0, MAX_DETAIL_LOOKUPS)) {
+    row.registeredDate = await readRegisteredDate(page, row).catch(() => null);
+  }
+  saveCustomers(newOnes);
+  return { baseline: false, newOnes };
 }
 
 async function downloadZip(page) {
@@ -255,7 +316,10 @@ async function fetchFromYoyakul(browser) {
     await login(page);
     await openSalesTab(page);
     await selectDateRange(page);
-    return await downloadZip(page);
+    const downloaded = await downloadZip(page);
+    // 新規会員の確認は、失敗しても売上の取り込みは続ける(メールに「取得できませんでした」と出す)。
+    const registrations = await collectNewRegistrations(page).catch((err) => ({ error: err.message }));
+    return { ...downloaded, registrations };
   } catch (err) {
     // 失敗時の画面を残し、どこで止まったか分かるようにURLとタイトルもエラーに添える。
     await shot(page, "99-error");
@@ -288,7 +352,7 @@ async function main() {
         await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
       }
     }
-    const { buffer, filename } = downloaded;
+    const { buffer, filename, registrations } = downloaded;
 
     const result = importFileBuffer(buffer, filename);
     console.log(new Date().toISOString(), JSON.stringify(result));
@@ -307,7 +371,7 @@ async function main() {
         subject: "【LUNA】自動取り込み成功",
         text:
           // 順番: 前日のまとめ → スペースマーケット → インスタベース → よやクルProの取り込み結果
-          formatDailySummary() +
+          formatDailySummary(registrations) +
           `\n\n${DASHBOARD_DAILY_URL}` +
           emailSection +
           `\n\n----------------\n\n` +
