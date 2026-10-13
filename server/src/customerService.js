@@ -13,7 +13,7 @@ import { attachAssignments } from "./cabinetsService.js";
 function getAllRows() {
   return markReschedules(
     db
-      .prepare(`SELECT date, store, user_name, revenue, hours_used, status, channel, booking_date, revenue_confirmed_date, cancelled_date FROM transactions`)
+      .prepare(`SELECT id, date, store, user_name, revenue, hours_used, status, channel, booking_date, revenue_confirmed_date, cancelled_date FROM transactions`)
       .all()
   );
 }

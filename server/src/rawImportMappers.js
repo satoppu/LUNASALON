@@ -61,10 +61,13 @@ function parseUsage(raw) {
 
 // "07/02 (木) 15:06:10" — no end time, unlike 利用日時.
 function parseMonthDay(raw) {
-  const m = String(raw).match(/^(\d{2})\/(\d{2})\s*\(.\)/u);
+  const m = String(raw).match(/^(\d{2})\/(\d{2})\s*\(.\)(?:\s*(\d{1,2}:\d{2}(?::\d{2})?))?/u);
   if (!m) return null;
-  return { month: Number(m[1]), day: Number(m[2]) };
+  return { month: Number(m[1]), day: Number(m[2]), time: m[3] ?? null };
 }
+
+// "HH:MM" / "HH:MM:SS" → "HH:MM:SS"
+const fullTime = (t) => (t.length === 5 ? `${t}:00` : t.padStart(8, "0"));
 
 // Usage normally happens on/after the payment date; if the usage month is
 // earlier than the payment month, the booking crosses a New Year boundary.
@@ -156,6 +159,9 @@ export function mapRawBookingRow(raw) {
     booking_amount: bookingAmount,
     booking_date: paymentISO.slice(0, 10),
     revenue_confirmed_date: revenueConfirmedDate,
+    // 予約日時とキャンセル日時(「変更」=キャンセル→30分以内に再予約 の判定用)。
+    booking_at: /^\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}/.test(paymentISO) ? `${paymentISO.slice(0, 10)} ${fullTime(paymentISO.slice(11).trim())}` : null,
+    cancelled_at: status.startsWith("キャンセル") && revenueConfirmedDate && confirmed?.time ? `${revenueConfirmedDate} ${fullTime(confirmed.time)}` : null,
   };
 }
 

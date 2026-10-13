@@ -13,8 +13,8 @@ import { ensureStoreRegistered } from "./storeSettingsService.js";
 // cancellation) on a later export of the same 決済ID, without creating a
 // duplicate row.
 const upsertStmt = db.prepare(`
-  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, external_id, booking_date, revenue_confirmed_date, booking_amount, cancelled_date)
-  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @start_minute, @weekday, @channel, @status, @external_id, @booking_date, @revenue_confirmed_date, @booking_amount, @cancelled_date)
+  INSERT INTO transactions (date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, external_id, booking_date, revenue_confirmed_date, booking_amount, cancelled_date, booking_at, cancelled_at)
+  VALUES (@date, @store, @user_name, @revenue, @hours_used, @start_hour, @start_minute, @weekday, @channel, @status, @external_id, @booking_date, @revenue_confirmed_date, @booking_amount, @cancelled_date, @booking_at, @cancelled_at)
   ON CONFLICT(external_id) DO UPDATE SET
     date = excluded.date,
     store = excluded.store,
@@ -29,11 +29,13 @@ const upsertStmt = db.prepare(`
     booking_date = excluded.booking_date,
     revenue_confirmed_date = excluded.revenue_confirmed_date,
     booking_amount = excluded.booking_amount,
-    cancelled_date = excluded.cancelled_date
+    cancelled_date = excluded.cancelled_date,
+    booking_at = COALESCE(excluded.booking_at, booking_at),
+    cancelled_at = excluded.cancelled_at
   WHERE external_id IS NOT NULL
 `);
 const selectExistingStmt = db.prepare(`
-  SELECT date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, booking_date, revenue_confirmed_date, booking_amount, cancelled_date
+  SELECT date, store, user_name, revenue, hours_used, start_hour, start_minute, weekday, channel, status, booking_date, revenue_confirmed_date, booking_amount, cancelled_date, booking_at, cancelled_at
   FROM transactions WHERE external_id = ?
 `);
 
@@ -81,6 +83,8 @@ const COMPARE_FIELDS = [
   "booking_date",
   "revenue_confirmed_date",
   "booking_amount",
+  "booking_at",
+  "cancelled_at",
 ];
 function rowChanged(existing, incoming) {
   return COMPARE_FIELDS.some((f) => (existing[f] ?? null) !== (incoming[f] ?? null));
@@ -95,7 +99,9 @@ function insertRows(rows, { inTransaction = false } = {}) {
   let updated = 0;
   const run = () => {
     for (const store of seenStores) ensureStoreRegistered(store);
-    for (const r of rows) {
+    for (const row of rows) {
+      // 予約日時・キャンセル日時は自社サイトの取り込みにしか無いので、他の形式では空にする。
+      const r = { booking_at: null, cancelled_at: null, ...row };
       const existing = r.external_id ? selectExistingStmt.get(r.external_id) : undefined;
       if (!existing) {
         upsertStmt.run({ ...r, cancelled_date: computeCancelledDate(existing, r) });
@@ -163,7 +169,7 @@ function claimLegacyRows(rows) {
       date = @date, user_name = @user_name, revenue = @revenue, hours_used = @hours_used,
       start_hour = @start_hour, start_minute = @start_minute, weekday = @weekday, status = @status,
       external_id = @external_id, booking_date = @booking_date, revenue_confirmed_date = @revenue_confirmed_date,
-      booking_amount = @booking_amount
+      booking_amount = @booking_amount, booking_at = @booking_at, cancelled_at = @cancelled_at
     WHERE id = @id
   `);
   const externalIdTakenStmt = db.prepare(`SELECT 1 FROM transactions WHERE external_id = ? AND id != ?`);
@@ -205,6 +211,8 @@ function claimLegacyRows(rows) {
         booking_date: fileRow.booking_date,
         revenue_confirmed_date: fileRow.revenue_confirmed_date,
         booking_amount: fileRow.booking_amount,
+        booking_at: fileRow.booking_at ?? null,
+        cancelled_at: fileRow.cancelled_at ?? null,
         id: dbRows[i].id,
       });
       claimed++;

@@ -95,6 +95,15 @@ if (!hasManualEntry) {
   db.exec(`ALTER TABLE transactions ADD COLUMN manual_entry INTEGER NOT NULL DEFAULT 0;`);
 }
 
+// booking_at / cancelled_at — 自社サイト(よやクル)の予約日時とキャンセル日時("YYYY-MM-DD HH:MM:SS")。
+// よやクルの予約変更は「キャンセル→新しく予約」になるため、両者が30分以内なら「変更」と
+// 判定するのに使う(reschedules.js)。
+for (const col of ["booking_at", "cancelled_at"]) {
+  if (!db.prepare(`SELECT 1 FROM pragma_table_info('transactions') WHERE name = ?`).get(col)) {
+    db.exec(`ALTER TABLE transactions ADD COLUMN ${col} TEXT;`);
+  }
+}
+
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store ON transactions(store);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_store_date ON transactions(store, date);`);
