@@ -31,6 +31,7 @@ export const api = {
     if (store) params.set("store", store);
     return request(`/dashboard/new-bookings-daily/detail?${params.toString()}`);
   },
+  getVacancy: (months) => request(`/dashboard/vacancy?months=${months}`),
   getUsageDaily: (offset, store) => {
     const params = new URLSearchParams();
     if (offset) params.set("offset", offset);

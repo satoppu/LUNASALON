@@ -1,7 +1,9 @@
 import { Router } from "express";
-import { getDashboard, getAvailableYears, getYoyByStore, getRevenueSection } from "../dashboardService.js";
+import { getDashboard, getAvailableYears, getYoyByStore, getRevenueSection, getEffectiveOpenDates } from "../dashboardService.js";
 import { getNewBookingsDaily, getBookingsForDate } from "../newBookingsDaily.js";
 import { getUsageDaily, getUsageForDate } from "../usageDaily.js";
+import { getVacancyHeatmap } from "../vacancyHeatmap.js";
+
 
 const router = Router();
 
@@ -22,6 +24,15 @@ router.get("/dashboard/new-bookings-daily/detail", (req, res) => {
   const { date } = req.query;
   if (!date || !DATE_RE.test(date)) return res.status(400).json({ error: "date must be YYYY-MM-DD" });
   res.json({ rows: getBookingsForDate(date, req.query.store || undefined) });
+});
+
+// 店舗×曜日×時間帯の稼働率(空き状況)。months: 直近何か月分か(1〜12、既定3)。
+router.get("/dashboard/vacancy", (req, res) => {
+  const months = Number(req.query.months ?? 3);
+  if (!Number.isInteger(months) || months < 1 || months > 12) {
+    return res.status(400).json({ error: "months must be an integer between 1 and 12" });
+  }
+  res.json(getVacancyHeatmap({ months, openDates: getEffectiveOpenDates() }));
 });
 
 router.get("/dashboard/usage-daily", (req, res) => {

@@ -1,5 +1,6 @@
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { FONT_HEAD, makeStoreColor } from "../../constants.js";
+import VacancyHeatmap from "../VacancyHeatmap.jsx";
 
 // 前年バーは店舗色ではなく、どの店舗でも同じ控えめなグレーで統一 — 「今年の
 // 実データ」と「前年の参考値」を色でも区別できるようにする。
@@ -144,6 +145,8 @@ export default function OccupancyPage({ data }) {
           )}
         </div>
       </div>
+
+      <VacancyHeatmap />
     </>
   );
 }

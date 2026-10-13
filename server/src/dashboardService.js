@@ -29,6 +29,12 @@ function getStoreOpenDates() {
   return Object.fromEntries(rows.map((r) => [r.store, r.open_date]));
 }
 
+/** 店舗ごとの営業開始日(店舗設定の値、空欄なら実績からの推定)。 */
+export function getEffectiveOpenDates() {
+  const inferred = getStoreOpenDates();
+  return Object.fromEntries(getStoreSettings().map((s) => [s.store, s.open_date || inferred[s.store] || null]));
+}
+
 function getRowsForYear(year) {
   // 自社サイトの「変更」(キャンセル→同日に再予約)に印を付け、キャンセル率から外す。
   return markReschedules(db.prepare(`SELECT * FROM transactions WHERE substr(date, 1, 4) = ? ORDER BY date`).all(String(year)));
