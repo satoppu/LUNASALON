@@ -9,6 +9,7 @@ import UsageDateDetailModal from "../UsageDateDetailModal.jsx";
 const BOOKING_COLOR = {
   予約: "#D4A644",
   取消: "#A84434",
+  変更: "#8F7D6E",
   定額: CHANNEL_COLOR.定期クーポン,
   合計: "#D66B5C", // matches the plotted Line's stroke.
 };
@@ -34,6 +35,7 @@ const USAGE_COLOR = {
 const BOOKING_LEGEND_ITEMS = [
   { label: "予約", color: BOOKING_COLOR.予約, shape: "square" },
   { label: "取消", color: BOOKING_COLOR.取消, shape: "square" },
+  { label: "変更", color: BOOKING_COLOR.変更, shape: "square" },
   { label: "定額", color: BOOKING_COLOR.定額, shape: "square" },
   { label: "予約売上", color: BOOKING_COLOR.合計, shape: "line" },
 ];
@@ -67,6 +69,7 @@ function BookingTrendsTooltip({ active, payload }) {
     { key: "count", labelText: "予約", text: `${d.count}件`, color: BOOKING_COLOR.予約 },
     { key: "subscriptionCount", labelText: "定額", text: `${d.subscriptionCount}件`, color: BOOKING_COLOR.定額 },
     { key: "cancelCount", labelText: "取消", text: `${d.cancelCount}件`, color: BOOKING_COLOR.取消 },
+    { key: "changeCount", labelText: "変更", text: `${d.changeCount ?? 0}件`, color: BOOKING_COLOR.変更 },
     { key: "bookingRevenue", labelText: "予売", text: yen(d.bookingRevenue), color: BOOKING_COLOR.予約 },
     { key: "subscriptionRevenue", labelText: "定売", text: yen(d.subscriptionRevenue), color: BOOKING_COLOR.定額 },
     { key: "cancelRevenue", labelText: "消売", text: d.cancelRevenue > 0 ? `-${yen(d.cancelRevenue)}` : yen(0), color: BOOKING_COLOR.取消 },
@@ -275,6 +278,15 @@ export default function DailyTrendsPage({ data }) {
                 />
                 <Bar
                   yAxisId="count"
+                  dataKey="changeCount"
+                  name="変更"
+                  stackId="count"
+                  fill={BOOKING_COLOR.変更}
+                  cursor="pointer"
+                  onClick={(entry) => setSelectedBookingDate(entry.date)}
+                />
+                <Bar
+                  yAxisId="count"
                   dataKey="subscriptionCount"
                   name="定額"
                   stackId="count"
@@ -287,7 +299,7 @@ export default function DailyTrendsPage({ data }) {
             </ResponsiveContainer>
           </div>
           <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
-            予約(または定期クーポン購入)が行われた日です(利用日ではありません)。予約売上は「予約+定額クーポンの売上」からキャンセル代(自社サイトの本来の予約金額とキャンセル後に実際に残った売上の差額)を差し引いた金額です。棒をクリックすると、その日の明細を表示します。
+            予約(または定期クーポン購入)が行われた日です(利用日ではありません)。よやクルの予約変更は「キャンセル→新しく予約」の形になるため、同じお客様が同じ日にキャンセルと予約をした場合は「変更」として数え、取消・予約の件数には含めません。予約売上は「予約+定額クーポンの売上」からキャンセル代(自社サイトの本来の予約金額とキャンセル後に実際に残った売上の差額)を差し引いた金額です。棒をクリックすると、その日の明細を表示します。
           </p>
         </div>
       )}

@@ -1,4 +1,5 @@
 import db from "./db.js";
+import { markReschedules } from "./reschedules.js";
 import { getTodayISO } from "./config.js";
 import { buildDashboard, buildAnnualTrend, buildYoyByStore, buildRevenueSection } from "./aggregations.js";
 import { listBusinessEventsInRange } from "./businessEventsService.js";
@@ -29,7 +30,8 @@ function getStoreOpenDates() {
 }
 
 function getRowsForYear(year) {
-  return db.prepare(`SELECT * FROM transactions WHERE substr(date, 1, 4) = ? ORDER BY date`).all(String(year));
+  // 自社サイトの「変更」(キャンセル→同日に再予約)に印を付け、キャンセル率から外す。
+  return markReschedules(db.prepare(`SELECT * FROM transactions WHERE substr(date, 1, 4) = ? ORDER BY date`).all(String(year)));
 }
 
 export function getYoyByStore(year, month, store) {

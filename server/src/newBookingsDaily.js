@@ -5,6 +5,7 @@
 // テーブル全体のサイズに依存しない小さく一定のコストに抑えている(いずれも
 // 索引あり)。
 import db from "./db.js";
+import { loadOwnSiteBookingCounts, isRescheduleCancel, cancelDateOf } from "./reschedules.js";
 import { getTodayISO, REVENUE_STATUSES, SUBSCRIPTION_STATUS, isCancellationStatus } from "./config.js";
 
 const WINDOW_DAYS = 10;
@@ -71,7 +72,7 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
   const params = store ? [start, end, start, end, store] : [start, end, start, end];
   const rows = db
     .prepare(
-      `SELECT booking_date AS date, revenue_confirmed_date, cancelled_date, status, channel, revenue, booking_amount, hours_used
+      `SELECT booking_date AS date, booking_date, user_name, revenue_confirmed_date, cancelled_date, status, channel, revenue, booking_amount, hours_used
        FROM transactions
        WHERE ((booking_date >= ? AND booking_date <= ?)
               OR (status LIKE 'キャンセル%' AND COALESCE(revenue_confirmed_date, cancelled_date) >= ? AND COALESCE(revenue_confirmed_date, cancelled_date) <= ?))
@@ -81,12 +82,24 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
 
   const countByDate = new Map();
   const cancelCountByDate = new Map();
+  const changeCountByDate = new Map();
   const subscriptionCountByDate = new Map();
   const bookingRevenueByDate = new Map();
   const subscriptionRevenueByDate = new Map();
   const cancelRevenueByDate = new Map();
   const add = (map, date, amount) => map.set(date, (map.get(date) || 0) + amount);
   const inWindow = (d) => d != null && d >= start && d <= end;
+
+  // よやクルの「変更」(キャンセル→同日に再予約)は取消ではなく変更として数え、その日の
+  // 再予約も新しい予約には数えない(売上の計算は変えない: 取り消した分を引き、再予約分を足す)。
+  const counts = loadOwnSiteBookingCounts();
+  const rebookedSlots = new Map(); // "お客様|日付" → その日の再予約として予約件数から外す件数
+  for (const r of rows) {
+    if (!isRescheduleCancel(r, counts)) continue;
+    r.rescheduled = true;
+    const k = `${r.user_name}|${cancelDateOf(r)}`;
+    rebookedSlots.set(k, (rebookedSlots.get(k) || 0) + 1);
+  }
 
   for (const r of rows) {
     if (r.status === SUBSCRIPTION_STATUS) {
@@ -106,7 +119,7 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
           add(bookingRevenueByDate, r.date, r.booking_amount);
         }
         if (inWindow(confirmDate)) {
-          add(cancelCountByDate, confirmDate, 1);
+          add(r.rescheduled ? changeCountByDate : cancelCountByDate, confirmDate, 1);
           add(cancelRevenueByDate, confirmDate, r.booking_amount - r.revenue);
         }
       } else if (inWindow(r.date)) {
@@ -114,7 +127,11 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
       }
     } else if (inWindow(r.date)) {
       // 支払いリンクの延長料金など(利用済みで時間0)は売上のみで、予約件数には数えない。
-      if (!(r.status === "利用済み" && !(r.hours_used > 0))) add(countByDate, r.date, 1);
+      // 「変更」の再予約も、新しい予約としては数えない。
+      const slot = `${r.user_name}|${r.booking_date}`;
+      const isRebooking = r.channel === "自社サイト" && (rebookedSlots.get(slot) || 0) > 0;
+      if (isRebooking) rebookedSlots.set(slot, rebookedSlots.get(slot) - 1);
+      else if (!(r.status === "利用済み" && !(r.hours_used > 0))) add(countByDate, r.date, 1);
       if (REVENUE_STATUSES.has(r.status)) {
         add(bookingRevenueByDate, r.date, r.revenue);
       }
@@ -131,6 +148,7 @@ export function getNewBookingsDaily(offsetWindows = 0, store) {
       date,
       count: countByDate.get(date) || 0,
       cancelCount: cancelCountByDate.get(date) || 0,
+      changeCount: changeCountByDate.get(date) || 0,
       subscriptionCount: subscriptionCountByDate.get(date) || 0,
       bookingRevenue,
       subscriptionRevenue,

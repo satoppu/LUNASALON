@@ -578,7 +578,8 @@ export function buildYearNarrative({ year, yearRows, priorYearRows, hasPriorYear
   const monthCancelRate = (rows, month) => {
     const monthRows = rows.filter((r) => Number(r.date.slice(5, 7)) === month && r.status !== SUBSCRIPTION_STATUS);
     if (monthRows.length === 0) return null;
-    return monthRows.filter((r) => isCancellationStatus(r.status)).length / monthRows.length;
+    // 「変更」(キャンセル→同日に再予約。r.rescheduled)は取消に数えない。
+    return monthRows.filter((r) => isCancellationStatus(r.status) && !r.rescheduled).length / monthRows.length;
   };
 
   // その月に重なる登録済みの出来事(工事休業・新店オープンなど)。売上の
@@ -745,7 +746,7 @@ export function buildCustomerProfiles(allRows) {
         entry.subscriptionRevenue += effectiveRevenue(r);
       } else if (effectiveHours(r) > 0) {
         entry.count += 1;
-      } else if (isCancellationStatus(r.status)) {
+      } else if (isCancellationStatus(r.status) && !r.rescheduled) {
         entry.cancelCount += 1;
       }
     });

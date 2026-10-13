@@ -199,12 +199,13 @@ function yen(n) {
 function formatDailySummary(registrations, lineSection) {
   const days = getNewBookingsDaily(0);
   const y = days[days.length - 1];
-  const totalCount = y.count + y.subscriptionCount + y.cancelCount;
+  const totalCount = y.count + y.subscriptionCount + y.cancelCount + y.changeCount;
   return (
     `日付：${y.date}\n` +
     `予約：${y.count}件　予売：${yen(y.bookingRevenue)}\n` +
     `定額：${y.subscriptionCount}件　定売：${yen(y.subscriptionRevenue)}\n` +
-    `取消：${y.cancelCount}件　消売：${y.cancelRevenue > 0 ? "-" + yen(y.cancelRevenue) : yen(0)}\n\n` +
+    `取消：${y.cancelCount}件　消売：${y.cancelRevenue > 0 ? "-" + yen(y.cancelRevenue) : yen(0)}\n` +
+    `変更：${y.changeCount}件\n\n` +
     `合計：${totalCount}件　合売：${yen(y.revenue)}` +
     // よやクルの新規登録 → 新規予約のお客様 の順で、空行を挟まずに並べる。
     `\n\n${[formatNewRegistrations(registrations), formatNewCustomers(y.date)].filter(Boolean).join("\n")}` +
