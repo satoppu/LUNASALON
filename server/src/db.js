@@ -265,6 +265,10 @@ db.exec(`
     processed_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+// 反映できたか(1)・できなかったか(0)。この列を足す前の記録は NULL。
+if (!db.prepare(`SELECT 1 FROM pragma_table_info('email_import_log') WHERE name = 'ok'`).get()) {
+  db.exec(`ALTER TABLE email_import_log ADD COLUMN ok INTEGER;`);
+}
 // 旧テーブル(スペースマーケット専用だった頃の記録)があれば移して削除する。
 if (db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'spacemarket_email_log'`).get()) {
   db.exec(`

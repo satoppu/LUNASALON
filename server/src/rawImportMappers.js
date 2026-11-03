@@ -29,6 +29,8 @@ const SPACEMARKET_SPACE_STORE = [
   { match: "Bellezza2号店", store: "Forest" },
   { match: "はじめての一歩を応援する完全個室レンタルサロンAsteria", store: "Asteria" },
   { match: "高級感ある完全個室サロン", store: "Asteria" },
+  // 掲載タイトルはキャンペーンなどで変わるため、つくば(=Asteria)の地名でも判定する。
+  { match: "つくば", store: "Asteria" },
 ];
 
 /**

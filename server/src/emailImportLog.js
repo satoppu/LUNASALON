@@ -9,10 +9,24 @@ export function toISODateJST(date) {
 
 const isProcessed = (messageId) => Boolean(db.prepare(`SELECT 1 FROM email_import_log WHERE message_id = ?`).get(messageId));
 
-function log(source, messageId, receivedDate, kind, bookingId, summary) {
+function log(source, messageId, receivedDate, kind, bookingId, summary, ok) {
   db.prepare(
-    `INSERT INTO email_import_log (message_id, source, received_date, kind, booking_id, summary) VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(messageId, source, receivedDate, kind, bookingId ?? null, summary);
+    `INSERT INTO email_import_log (message_id, source, received_date, kind, booking_id, summary, ok) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(messageId, source, receivedDate, kind, bookingId ?? null, summary, ok == null ? null : ok ? 1 : 0);
+}
+
+// ok 列を足す前に記録された「反映できなかったメール」の見分け方(各取り込みの失敗時の文言)。
+const LEGACY_FAILURE_PATTERNS = ["%できませんでした%", "%見つかりませんでした%", "未対応のメール%", "キャンセル(予約ID%"];
+
+/**
+ * 反映できなかったメールの記録を消し、次の取り込みでもう一度処理されるようにする
+ * (店舗の判定ルールを直した後などに使う)。消した件数を返す。
+ */
+export function forgetFailedEmails(source) {
+  const legacy = LEGACY_FAILURE_PATTERNS.map(() => "summary LIKE ?").join(" OR ");
+  return db
+    .prepare(`DELETE FROM email_import_log WHERE (? IS NULL OR source = ?) AND (ok = 0 OR (ok IS NULL AND kind != 'baseline' AND (${legacy})))`)
+    .run(source ?? null, source ?? null, ...LEGACY_FAILURE_PATTERNS).changes;
 }
 
 /**
@@ -28,7 +42,7 @@ export function processEmailOnce(source, { messageId, subject, text, date }, par
   db.exec("BEGIN");
   try {
     const result = apply(e, receivedDate, subject);
-    log(source, messageId, receivedDate, e.kind, e.bookingId, result.summary);
+    log(source, messageId, receivedDate, e.kind, e.bookingId, result.summary, result.ok);
     db.exec("COMMIT");
     return { kind: e.kind, ...result };
   } catch (err) {

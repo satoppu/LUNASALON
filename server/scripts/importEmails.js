@@ -8,6 +8,7 @@
 //   node scripts/importEmails.js --source instabase              # 取り込み元を1つに絞る(spacemarket / instabase)
 //   node scripts/importEmails.js --baseline --days 60 --source instabase
 //                                                                # 導入時に一度だけ: 今あるメールは反映せず処理済みにする
+//   node scripts/importEmails.js --retry-failed                  # 反映できなかったメール(【要確認】)をもう一度処理する
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +18,7 @@ const envPath = path.join(__dirname, "..", ".env");
 if (fs.existsSync(envPath)) process.loadEnvFile?.(envPath);
 
 const { importPlatformEmails, configuredSources, EMAIL_SOURCES } = await import("../src/emailImport.js");
+const { forgetFailedEmails } = await import("../src/emailImportLog.js");
 
 const arg = (name) => {
   const i = process.argv.indexOf(name);
@@ -35,6 +37,10 @@ const targets = configuredSources().filter((s) => !only || s.key === only);
 if (targets.length === 0) {
   console.error("server/.env にメールの設定(SPACEMARKET_IMAP_* または INSTABASE_IMAP_*)がありません。");
   process.exit(1);
+}
+
+if (process.argv.includes("--retry-failed") && !dryRun && !baseline) {
+  console.log(`反映できなかったメール ${forgetFailedEmails(only)}件を、もう一度処理します。`);
 }
 
 const outcomes = await importPlatformEmails({ lookbackDays, dryRun, baseline, only });
