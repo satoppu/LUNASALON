@@ -46,7 +46,10 @@ export function parseSpaceMarketEmail({ subject = "", text = "" }) {
 
   let kind = "unknown";
   // ゲストとのメッセージやレビュー依頼などは予約の中身に関係しないため、何も知らせずに読み飛ばす。
-  if (/【メッセージ】|レビュー|評価/.test(subj)) kind = "ignored";
+  // お気に入り登録・退室時の記録・機能やセミナーのお知らせなども同じく読み飛ばす。
+  if (/【メッセージ】|レビュー|評価|お気に入り|退室時|機能|リリース|セミナー|アカデミー|お知らせ/.test(subj)) kind = "ignored";
+  // 延長は金額の内訳がまだ確認できていないため反映せず、【要確認】で知らせる。
+  else if (/延長/.test(subj)) kind = "extension";
   else if (/キャンセル/.test(subj) || /キャンセルされました/.test(body)) kind = "cancel";
   else if (/変更/.test(subj) && /承諾/.test(subj)) kind = "change";
   else if (/変更/.test(subj) && /却下/.test(subj)) kind = "changeRejected";
@@ -193,6 +196,10 @@ export function applySpaceMarketEmail(e, receivedDate, subject) {
     return { ok: true, summary: `予約変更リクエストの却下(予約ID ${e.bookingId ?? "不明"})` };
   }
   if (e.kind === "cancel") return applyCancel(e, receivedDate);
+  if (e.kind === "extension") {
+    const id = e.bookingId ? `予約ID ${e.bookingId}` : "予約ID不明";
+    return { ok: false, summary: `延長の手続きがありました(${id})。延長後の時間と金額を「設定→記録」で確認してください` };
+  }
   if (e.kind === "ignored") return { ok: true, silent: true, summary: `対象外: ${subject}` };
   return { ok: false, summary: `未対応のメールのため反映していません: ${subject}` };
 }
