@@ -54,7 +54,7 @@ export async function syncLineFollowers() {
   const current = new Set(ids);
 
   const added = [];
-  const toInsert = [];
+  const toInsert = []; // [id, name, isNew]
   for (const id of ids) {
     const row = known.get(id);
     if (row && !row.left_date) continue;
@@ -75,6 +75,12 @@ export async function syncLineFollowers() {
     db.prepare(`UPDATE line_followers SET last_seen = ? WHERE left_date IS NULL`).run(today);
     const markLeft = db.prepare(`UPDATE line_followers SET left_date = ? WHERE user_id = ?`);
     for (const r of left) markLeft.run(today, r.user_id);
+    // 履歴(初回の記録は「今いる友だち」なので履歴には入れない)。
+    if (!baseline) {
+      const event = db.prepare(`INSERT INTO line_follower_events (date, user_id, display_name, event) VALUES (?, ?, ?, ?)`);
+      for (const r of left) event.run(today, r.user_id, r.display_name, "block");
+      for (const [id, name] of toInsert) event.run(today, id, name, "follow");
+    }
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");
@@ -90,4 +96,14 @@ export async function updateLineFollowers() {
   if (r.baseline) return `\nLINEの友だち${r.total}人を記録しました(明日からブロック・友だち追加した方の名前をお知らせします)`;
   const names = (list) => (list.length ? list.join("、") : "なし");
   return `\nLINEブロック：${names(r.left)}\nLINE友だち追加：${names(r.added)}`;
+}
+
+/** ブロック(と友だち追加)の履歴を新しい順で返す。 */
+export function listLineFollowerEvents({ event } = {}) {
+  return db
+    .prepare(
+      `SELECT date, display_name AS name, event FROM line_follower_events
+       WHERE (? IS NULL OR event = ?) ORDER BY date DESC, id DESC`
+    )
+    .all(event ?? null, event ?? null);
 }

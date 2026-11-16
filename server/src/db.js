@@ -312,6 +312,14 @@ db.exec(`
     last_seen TEXT NOT NULL,
     left_date TEXT
   );
+  -- 友だちの出入りの履歴(いつ・誰が)。ブロックして戻り、またブロックした人も1回ずつ残る。
+  CREATE TABLE IF NOT EXISTS line_follower_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    display_name TEXT,
+    event TEXT NOT NULL CHECK (event IN ('block', 'follow'))
+  );
 `);
 
 // 承諾待ちの予約変更リクエスト(予約IDごとに最新の1件)。「変更リクエスト」メールには
