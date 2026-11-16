@@ -60,6 +60,7 @@ export const api = {
   },
   getCustomers: () => request("/customers"),
   getLineStats: () => request("/line-stats"),
+  getLineFollowerEvents: () => request("/line-follower-events"),
   searchTransactions: ({ start, end, store, status, channel, user, offset, sort } = {}) => {
     const params = new URLSearchParams();
     if (start) params.set("start", start);

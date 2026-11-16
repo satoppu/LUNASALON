@@ -277,7 +277,12 @@ export default function CustomerPage({ data, onNavigateToHistory }) {
         </div>
       )}
 
-      <LineFollowersChart />
+      <LineFollowersChart
+        onSelectCustomer={(name) => {
+          const c = customersByName.get(name);
+          if (c) setSelected(c);
+        }}
+      />
 
       <div className="mb-12">
         <h3 style={{ fontFamily: FONT_HEAD, color: "#262421" }} className="text-base font-bold mb-4">

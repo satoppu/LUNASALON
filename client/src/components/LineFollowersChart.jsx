@@ -12,14 +12,27 @@ const SERIES = [
 
 const shortDate = (iso) => `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
 
-export default function LineFollowersChart() {
+const fullDate = (iso) => `${iso.slice(0, 4)}/${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))}`;
+const EVENT_TABS = [
+  { key: "block", label: "ブロックした人" },
+  { key: "follow", label: "友だち追加した人" },
+];
+
+/** onSelectCustomer(name): 照合できたお客様の名前を押したとき(顧客の詳細を開く)。 */
+export default function LineFollowersChart({ onSelectCustomer } = {}) {
   const [stats, setStats] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [eventTab, setEventTab] = useState(null);
 
   useEffect(() => {
     api
       .getLineStats()
       .then(({ stats }) => setStats(stats))
       .catch(() => setStats([]));
+    api
+      .getLineFollowerEvents()
+      .then(({ events }) => setEvents(events))
+      .catch(() => setEvents([]));
   }, []);
 
   if (!stats) return null;
@@ -78,6 +91,67 @@ export default function LineFollowersChart() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+          <div className="flex flex-wrap gap-2 mt-4">
+            {EVENT_TABS.map((t) => {
+              const count = events.filter((e) => e.event === t.key).length;
+              const active = eventTab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setEventTab(active ? null : t.key)}
+                  className="text-sm px-3 py-2 border"
+                  style={{ borderColor: active ? "#C9A55A" : "#EDE3D5", background: active ? "#C9A55A" : "#FFFFFF", color: active ? "#FFFFFF" : "#7A6A5C" }}
+                >
+                  {t.label}({count})
+                </button>
+              );
+            })}
+          </div>
+          {eventTab && (
+            <div style={{ background: "#FFFFFF" }} className="mt-2 overflow-x-auto max-h-[360px] overflow-y-auto">
+              <table className="w-full text-sm whitespace-nowrap">
+                <thead className="sticky top-0" style={{ background: "#FFFFFF" }}>
+                  <tr style={{ borderBottom: "1px solid #EDE3D5" }}>
+                    {["日付", "LINEの表示名", "お客様"].map((h) => (
+                      <th key={h} className="text-center px-4 py-3 font-medium" style={{ color: "#8F7D6E" }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {events
+                    .filter((e) => e.event === eventTab)
+                    .map((e, i) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #F3EBDF" }}>
+                        <td className="px-4 py-3 text-center">{fullDate(e.date)}</td>
+                        <td className="px-4 py-3 text-left">{e.name ?? "(名前不明)"}</td>
+                        <td className="px-4 py-3 text-left">
+                          {e.customer ? (
+                            <button type="button" className="underline" style={{ color: "#7A5A2A" }} onClick={() => onSelectCustomer?.(e.customer)}>
+                              {e.customer}
+                            </button>
+                          ) : (
+                            <span style={{ color: "#B0A090" }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  {events.every((e) => e.event !== eventTab) && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-6 text-center" style={{ color: "#8F7D6E" }}>
+                        まだいません(2026/11/17から記録しています)。
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
+            ブロック・友だち追加の日付は毎朝の取り込みで気づいた日です(実際にはその前日のことが多いです)。「お客様」は、LINEの表示名がよやクル会員や予約のお名前と一致した場合だけ表示します(押すと詳細)。
+          </p>
           <p className="text-xs mt-2" style={{ color: "#8F7D6E" }}>
             毎朝LINEから前日時点の数字を取得しています(LINEのアプリに出る「今」の数字とは、当日分だけずれます)。ターゲットリーチは、友だちからブロックと属性が推定できない人を除いた、メッセージを届けられる人数です。
           </p>

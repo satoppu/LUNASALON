@@ -9,6 +9,7 @@
 import db from "./db.js";
 import { getTodayISO } from "./config.js";
 import { isLineConfigured, issueStatelessToken } from "./lineInsight.js";
+import { canonicalizeUserName } from "./importHelpers.js";
 
 const API = "https://api.line.me/v2/bot";
 
@@ -106,4 +107,24 @@ export function listLineFollowerEvents({ event } = {}) {
        WHERE (? IS NULL OR event = ?) ORDER BY date DESC, id DESC`
     )
     .all(event ?? null, event ?? null);
+}
+
+const squash = (v) => String(v ?? "").normalize("NFKC").replace(/\s+/g, "").toLowerCase();
+
+/**
+ * 画面用: 履歴に、照合できたお客様の名前(予約の利用者名)を添えて返す。
+ * LINEの表示名は予約のお名前と違うことがあるため、よやクル会員の表示名・お名前、または
+ * 予約の利用者名と一致したときだけ添える(一致しなければ customer は null)。
+ */
+export function listLineFollowerEventsWithCustomers() {
+  const users = new Set(db.prepare(`SELECT DISTINCT user_name FROM transactions WHERE user_name IS NOT NULL AND user_name != ''`).all().map((r) => r.user_name));
+  const byKey = new Map();
+  for (const u of users) byKey.set(squash(u), u);
+  for (const c of db.prepare(`SELECT name, hn FROM yoyakul_customers WHERE name IS NOT NULL`).all()) {
+    const user = canonicalizeUserName(c.name);
+    if (!users.has(user)) continue;
+    if (c.hn && !byKey.has(squash(c.hn))) byKey.set(squash(c.hn), user);
+    if (!byKey.has(squash(c.name))) byKey.set(squash(c.name), user);
+  }
+  return listLineFollowerEvents().map((e) => ({ ...e, customer: (e.name && byKey.get(squash(e.name))) || null }));
 }
