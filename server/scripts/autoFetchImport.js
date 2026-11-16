@@ -31,6 +31,7 @@ import { getNewBookingsDaily, getNewCustomersOnDate } from "../src/newBookingsDa
 import { importPlatformEmails, formatEmailImportSection } from "../src/emailImport.js";
 import { hasKnownCustomers, findNewCustomers, saveCustomers, formatNewRegistrations } from "../src/yoyakulCustomers.js";
 import { updateLineStats } from "../src/lineInsight.js";
+import { updateLineFollowers } from "../src/lineFollowers.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = path.join(__dirname, "..", ".env");
@@ -339,6 +340,8 @@ async function main() {
   const emailSection = await runPlatformEmails();
   // LINEの友だち数(未設定なら空)。取れなくても取り込みは続ける。
   const lineSection = await updateLineStats().catch((err) => `\n\nLINE：取得できませんでした(${err.message})`);
+  // ブロック・友だち追加した方の名前(LINEの表示名)。
+  const lineFollowersSection = await updateLineFollowers().catch((err) => `\nLINEブロック：取得できませんでした(${err.message})`);
   // Uses the machine's own installed Google Chrome ("channel: chrome")
   // rather than Playwright's bundled Chromium: the VPS runs Ubuntu 20.04
   // (past its official support window), which Playwright's own browser
@@ -376,7 +379,7 @@ async function main() {
         subject: "【LUNA】自動取り込み成功",
         text:
           // 順番: 前日のまとめ → スペースマーケット → インスタベース → よやクルProの取り込み結果
-          formatDailySummary(registrations, lineSection) +
+          formatDailySummary(registrations, lineSection + lineFollowersSection) +
           `\n\n${DASHBOARD_DAILY_URL}` +
           emailSection +
           `\n\n----------------\n\n` +

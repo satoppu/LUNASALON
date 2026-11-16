@@ -302,6 +302,18 @@ db.exec(`
   );
 `);
 
+// LINE公式アカウントの友だち(ユーザーIDと表示名)。ブロックした人の名前を毎朝知らせるため
+// (lineFollowers.js)。ブロックされると表示名を取れなくなるので、友だちのうちに記録しておく。
+db.exec(`
+  CREATE TABLE IF NOT EXISTS line_followers (
+    user_id TEXT PRIMARY KEY,
+    display_name TEXT,
+    first_seen TEXT NOT NULL,
+    last_seen TEXT NOT NULL,
+    left_date TEXT
+  );
+`);
+
 // 承諾待ちの予約変更リクエスト(予約IDごとに最新の1件)。「変更リクエスト」メールには
 // 変更後の利用期間が載るが「承諾」メールには金額しか無いため、承諾時にここから反映する。
 db.exec(`

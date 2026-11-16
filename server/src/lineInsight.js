@@ -15,7 +15,7 @@ const shiftDate = (iso, days) => {
 
 export const isLineConfigured = () => Boolean(process.env.LINE_CHANNEL_ID && process.env.LINE_CHANNEL_SECRET);
 
-async function issueStatelessToken() {
+export async function issueStatelessToken() {
   const res = await fetch("https://api.line.me/oauth2/v3/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
